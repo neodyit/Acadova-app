@@ -98,8 +98,6 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // Sign out first to allow prompt/account selection without hanging
-      await _googleSignIn.signOut().catchError((_) => null);
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
