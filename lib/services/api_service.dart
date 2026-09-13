@@ -897,6 +897,28 @@ class ApiService {
     return false;
   }
 
+  /// Get subject & section allocations assigned to current faculty member
+  static Future<List<Map<String, dynamic>>> getMyFacultyAllocations() async {
+    final url = Uri.parse('$baseUrl/faculty/my-allocations');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// Add a Question to Quiz (Faculty)
   static Future<Map<String, dynamic>> addQuestionToQuiz({
     required int quizId,

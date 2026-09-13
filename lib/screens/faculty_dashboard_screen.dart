@@ -33,6 +33,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
   List<Map<String, dynamic>> _quizzes = [];
   List<Map<String, dynamic>> _submissions = [];
+  List<Map<String, dynamic>> _allocations = [];
 
   @override
   void initState() {
@@ -86,6 +87,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
       // 4. Fetch Student Submissions
       final rawSubmissions = await ApiService.getFacultySubmissions();
       _submissions = List<Map<String, dynamic>>.from(rawSubmissions);
+
+      // 5. Fetch Faculty Allocations (Subjects & Sections)
+      _allocations = await ApiService.getMyFacultyAllocations();
     } catch (_) {}
 
     if (mounted) {
@@ -95,9 +99,17 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
   void _showCreateQuizModal() {
     final titleController = TextEditingController();
-    final subjectController = TextEditingController(text: _user['department'] ?? 'Computer Science');
+    final customSubjectController = TextEditingController();
+    final customSectionController = TextEditingController();
     final durationController = TextEditingController(text: '15');
     final descriptionController = TextEditingController();
+
+    String selectedSubject = _allocations.isNotEmpty
+        ? (_allocations.first['subject_name'] ?? _user['department'] ?? 'Computer Science')
+        : (_user['department'] ?? 'Computer Science');
+    String selectedSection = _allocations.isNotEmpty
+        ? (_allocations.first['section_name'] ?? 'All Sections')
+        : 'All Sections';
     String selectedStatus = 'active';
 
     showModalBottomSheet(
@@ -107,6 +119,18 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
+            final allocatedSubjects = _allocations
+                .map((a) => a['subject_name']?.toString() ?? '')
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList();
+
+            final allocatedSections = _allocations
+                .map((a) => a['section_name']?.toString() ?? '')
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList();
+
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
@@ -117,143 +141,195 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 44,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'Create New Quiz',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.mainText,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Quiz Title *',
-                        prefixIcon: Icon(Icons.quiz_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: subjectController,
-                      decoration: const InputDecoration(
-                        labelText: 'Subject / Category *',
-                        prefixIcon: Icon(Icons.school_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: durationController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Duration (Mins) *',
-                              prefixIcon: Icon(Icons.timer_rounded),
-                            ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: selectedStatus,
-                            decoration: const InputDecoration(
-                              labelText: 'Status',
-                              prefixIcon: Icon(Icons.flag_rounded),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: 'active', child: Text('Active')),
-                              DropdownMenuItem(value: 'upcoming', child: Text('Upcoming')),
-                              DropdownMenuItem(value: 'completed', child: Text('Completed')),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) setModalState(() => selectedStatus = val);
-                            },
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Create New Quiz',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.mainText,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Quiz Title *',
+                          prefixIcon: Icon(Icons.quiz_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      if (allocatedSubjects.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          initialValue: allocatedSubjects.contains(selectedSubject) ? selectedSubject : allocatedSubjects.first,
+                          decoration: const InputDecoration(
+                            labelText: 'Assigned Subject *',
+                            prefixIcon: Icon(Icons.school_rounded),
+                          ),
+                          items: allocatedSubjects.map((sub) {
+                            return DropdownMenuItem(value: sub, child: Text(sub));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => selectedSubject = val);
+                          },
+                        ),
+                      ] else ...[
+                        TextField(
+                          controller: customSubjectController,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject / Category *',
+                            prefixIcon: Icon(Icons.school_rounded),
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: descriptionController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Instructions / Description',
-                        prefixIcon: Icon(Icons.description_rounded),
+                      const SizedBox(height: 14),
+                      if (allocatedSections.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          initialValue: allocatedSections.contains(selectedSection) ? selectedSection : allocatedSections.first,
+                          decoration: const InputDecoration(
+                            labelText: 'Target Section / Batch *',
+                            prefixIcon: Icon(Icons.groups_rounded),
+                          ),
+                          items: allocatedSections.map((sec) {
+                            return DropdownMenuItem(value: sec, child: Text(sec));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => selectedSection = val);
+                          },
+                        ),
+                      ] else ...[
+                        TextField(
+                          controller: customSectionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Target Section (Optional)',
+                            prefixIcon: Icon(Icons.groups_rounded),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: durationController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Duration (Mins) *',
+                                prefixIcon: Icon(Icons.timer_rounded),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedStatus,
+                              decoration: const InputDecoration(
+                                labelText: 'Status',
+                                prefixIcon: Icon(Icons.flag_rounded),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'active', child: Text('Active')),
+                                DropdownMenuItem(value: 'upcoming', child: Text('Upcoming')),
+                                DropdownMenuItem(value: 'completed', child: Text('Completed')),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setModalState(() => selectedStatus = val);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final title = titleController.text.trim();
-                          final subject = subjectController.text.trim();
-                          final duration = int.tryParse(durationController.text.trim()) ?? 15;
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Instructions / Description',
+                          prefixIcon: Icon(Icons.description_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final title = titleController.text.trim();
+                            final finalSubject = allocatedSubjects.isNotEmpty
+                                ? selectedSubject
+                                : (customSubjectController.text.trim().isNotEmpty
+                                    ? customSubjectController.text.trim()
+                                    : (_user['department'] ?? 'General'));
+                            final finalSection = allocatedSections.isNotEmpty
+                                ? selectedSection
+                                : (customSectionController.text.trim().isNotEmpty
+                                    ? customSectionController.text.trim()
+                                    : 'All Sections');
 
-                          if (title.isEmpty) {
-                            CustomToast.show(
-                              sheetContext,
-                              message: 'Please enter quiz title',
-                              type: ToastType.warning,
-                            );
-                            return;
-                          }
+                            final duration = int.tryParse(durationController.text.trim()) ?? 15;
 
-                          Navigator.pop(sheetContext);
-
-                          if (!mounted) return;
-
-                          final res = await ApiService.createQuiz(
-                            title: title,
-                            subject: subject.isEmpty ? 'General' : subject,
-                            instructor: _user['name'] ?? 'Faculty',
-                            durationMinutes: duration,
-                            status: selectedStatus,
-                            description: descriptionController.text.trim(),
-                          );
-
-                          if (mounted) {
-                            if (res['success'] == true) {
+                            if (title.isEmpty) {
                               CustomToast.show(
-                                context,
-                                title: 'Quiz Created',
-                                message: 'Quiz "$title" has been created successfully!',
-                                type: ToastType.success,
+                                sheetContext,
+                                message: 'Please enter quiz title',
+                                type: ToastType.warning,
                               );
-                              _fetchFacultyData();
-                            } else {
-                              CustomToast.show(
-                                context,
-                                title: 'Creation Failed',
-                                message: ApiService.getErrorMessage(res, 'Could not create quiz'),
-                                type: ToastType.error,
-                              );
+                              return;
                             }
-                          }
-                        },
-                        icon: const Icon(Icons.add_task_rounded),
-                        label: const Text('Create Quiz', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+
+                            Navigator.pop(sheetContext);
+
+                            if (!mounted) return;
+
+                            final res = await ApiService.createQuiz(
+                              title: title,
+                              subject: finalSubject,
+                              instructor: _user['name'] ?? 'Faculty',
+                              durationMinutes: duration,
+                              status: selectedStatus,
+                              description: descriptionController.text.trim(),
+                            );
+
+                            if (mounted) {
+                              if (res['success'] == true) {
+                                CustomToast.show(
+                                  context,
+                                  title: 'Quiz Created',
+                                  message: 'Quiz "$title" created for $finalSubject ($finalSection)!',
+                                  type: ToastType.success,
+                                );
+                                _fetchFacultyData();
+                              } else {
+                                CustomToast.show(
+                                  context,
+                                  title: 'Creation Failed',
+                                  message: ApiService.getErrorMessage(res, 'Could not create quiz'),
+                                  type: ToastType.error,
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.add_task_rounded),
+                          label: const Text('Create Quiz', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
