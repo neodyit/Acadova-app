@@ -707,6 +707,17 @@ class ApiService {
     return [];
   }
 
+  static Future<List<Map<String, dynamic>>> getSemesters() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/academic/semesters'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data['data'] ?? []);
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// Update user profile academic fields & mandatory phone
   static Future<Map<String, dynamic>> updateAcademicProfile({
     String? phone,

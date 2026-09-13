@@ -30,6 +30,7 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
   List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _sections = [];
   List<Map<String, dynamic>> _subsections = [];
+  List<Map<String, dynamic>> _semestersData = [];
 
   int? _selectedUniversityId;
   int? _selectedCollegeId;
@@ -39,17 +40,6 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
   int? _selectedSectionId;
   int? _selectedSubsectionId;
   String? _selectedSemester;
-
-  final List<String> _semesters = const [
-    'Semester 1',
-    'Semester 2',
-    'Semester 3',
-    'Semester 4',
-    'Semester 5',
-    'Semester 6',
-    'Semester 7',
-    'Semester 8',
-  ];
 
   final _phoneController = TextEditingController();
   final _facultyIdController = TextEditingController();
@@ -82,6 +72,7 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
     final branches = await ApiService.getBranches();
     final sections = await ApiService.getSections();
     final subsections = await ApiService.getSubsections();
+    final semestersData = await ApiService.getSemesters();
 
     if (mounted) {
       setState(() {
@@ -92,6 +83,7 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
         _branches = branches;
         _sections = sections;
         _subsections = subsections;
+        _semestersData = semestersData;
 
         // Set existing selection from user data if present
         _selectedUniversityId = _parseId(_userData['university_id'] ?? _userData['university']?['id']);
@@ -102,9 +94,6 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
         _selectedSectionId = _parseId(_userData['section_id'] ?? _userData['section']?['id']);
         _selectedSubsectionId = _parseId(_userData['subsection_id'] ?? _userData['subsection']?['id']);
         _selectedSemester = _userData['semester']?.toString();
-        if (_selectedSemester != null && !_semesters.contains(_selectedSemester)) {
-          _selectedSemester = null;
-        }
 
         _isLoading = false;
       });
@@ -582,7 +571,10 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
                                 ],
                               ),
                               icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primary),
-                              items: _semesters.map((sem) {
+                              items: (_semestersData.isNotEmpty
+                                      ? _semestersData.map((s) => s['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList()
+                                      : const ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6', 'Semester 7', 'Semester 8'])
+                                  .map((sem) {
                                 return DropdownMenuItem<String>(
                                   value: sem,
                                   child: Row(
