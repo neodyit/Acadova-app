@@ -783,4 +783,152 @@ class ApiService {
     }
     return defaultMsg;
   }
+
+  /// Get statistics summary for Faculty Dashboard
+  static Future<Map<String, dynamic>?> getFacultyStats() async {
+    final url = Uri.parse('$baseUrl/faculty/stats');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return Map<String, dynamic>.from(data['data']);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Get student submissions log for Faculty Dashboard
+  static Future<List<Map<String, dynamic>>> getFacultySubmissions() async {
+    final url = Uri.parse('$baseUrl/faculty/submissions');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (data['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// Create a new Quiz (Faculty)
+  static Future<Map<String, dynamic>> createQuiz({
+    required String title,
+    required String subject,
+    required String instructor,
+    required int durationMinutes,
+    required String status,
+    String? description,
+    String? scheduledAt,
+  }) async {
+    final url = Uri.parse('$baseUrl/quizzes');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({
+          'title': title,
+          'subject': subject,
+          'instructor': instructor,
+          'duration_minutes': durationMinutes,
+          'status': status,
+          'description': description ?? '',
+          'scheduled_at': scheduledAt,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Quiz creation response',
+        'data': data['data'],
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to create quiz ($e)'};
+    }
+  }
+
+  /// Delete a Quiz (Faculty)
+  static Future<bool> deleteQuiz(int quizId) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId');
+    try {
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// Add a Question to Quiz (Faculty)
+  static Future<Map<String, dynamic>> addQuestionToQuiz({
+    required int quizId,
+    required String question,
+    required String type,
+    required List<String> options,
+    required dynamic correctOption,
+  }) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId/questions');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({
+          'question': question,
+          'type': type,
+          'options': options,
+          'correct_option': correctOption,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Add question response',
+        'data': data['data'],
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to add question ($e)'};
+    }
+  }
 }
