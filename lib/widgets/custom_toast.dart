@@ -12,70 +12,73 @@ class CustomToast {
     Duration duration = const Duration(seconds: 3),
     IconData? customIcon,
   }) {
-    Color backgroundColor;
-    Color iconColor;
-    Color textColor;
+    Color accentColor;
     IconData icon;
 
     switch (type) {
       case ToastType.success:
-        backgroundColor = const Color(0xFF10B981);
-        iconColor = Colors.white;
-        textColor = Colors.white;
-        icon = customIcon ?? Icons.check_circle_outline_rounded;
+        accentColor = AppTheme.success;
+        icon = customIcon ?? Icons.check_circle_rounded;
         break;
       case ToastType.warning:
-        backgroundColor = const Color(0xFFF59E0B);
-        iconColor = Colors.white;
-        textColor = Colors.white;
-        icon = customIcon ?? Icons.warning_amber_rounded;
+        accentColor = AppTheme.warning;
+        icon = customIcon ?? Icons.warning_rounded;
         break;
       case ToastType.error:
-        backgroundColor = const Color(0xFFEF4444);
-        iconColor = Colors.white;
-        textColor = Colors.white;
-        icon = customIcon ?? Icons.error_outline_rounded;
+        accentColor = AppTheme.error;
+        icon = customIcon ?? Icons.error_rounded;
         break;
       case ToastType.info:
-        backgroundColor = AppTheme.primary;
-        iconColor = Colors.white;
-        textColor = Colors.white;
-        icon = customIcon ?? Icons.info_outline_rounded;
+        accentColor = AppTheme.primary;
+        icon = customIcon ?? Icons.info_rounded;
         break;
     }
 
     final snackBar = SnackBar(
-      elevation: 6,
+      elevation: 0,
       behavior: SnackBarBehavior.floating,
       backgroundColor: Colors.transparent,
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       padding: EdgeInsets.zero,
       duration: duration,
       content: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: const Color(0xFF1E1B18), // Deep warm charcoal matching brand theme
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: accentColor.withValues(alpha: 0.35),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: backgroundColor.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: accentColor.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: accentColor.withValues(alpha: 0.3),
+                  width: 1,
+                ),
               ),
               child: Icon(
                 icon,
-                color: iconColor,
-                size: 22,
+                color: accentColor,
+                size: 20,
               ),
             ),
             const SizedBox(width: 14),
@@ -87,20 +90,22 @@ class CustomToast {
                   if (title != null && title.isNotEmpty) ...[
                     Text(
                       title,
-                      style: TextStyle(
-                        color: textColor,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 0.2,
                       ),
                     ),
                     const SizedBox(height: 2),
                   ],
                   Text(
                     message,
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.95),
+                    style: const TextStyle(
+                      color: AppTheme.background, // Warm cream text color matching main theme
                       fontSize: 13.5,
                       fontWeight: FontWeight.w500,
+                      height: 1.3,
                     ),
                   ),
                 ],

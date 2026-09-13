@@ -145,7 +145,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } else {
         CustomToast.show(
           context,
-          message: res['message'] ?? 'Failed to update profile',
+          title: 'Update Failed',
+          message: ApiService.getErrorMessage(res, 'Failed to update profile'),
           type: ToastType.error,
         );
       }
@@ -378,7 +379,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String email = _user['email'] ?? '';
     final String role = (_user['role'] ?? 'Student').toString().toUpperCase();
     final String rollOrFaculty = _user['roll_number'] ?? _user['faculty_id'] ?? 'Not Assigned';
-    final String department = _user['department'] ?? 'Not Specified';
     final String phone = _user['phone'] ?? 'Not Specified';
     final String bio = _user['bio'] ?? '';
     final String memberSince = _formatMemberSince(_user['created_at']?.toString());
@@ -658,14 +658,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildProfileField(
-                      icon: Icons.school_outlined,
-                      label: 'Department',
-                      value: department,
-                      controller: _deptController,
-                      isEditing: _isEditing,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildProfileField(
                       icon: Icons.phone_android_rounded,
                       label: 'Phone Number',
                       value: phone,
@@ -820,27 +812,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const Divider(height: 1),
                       ListTile(
-                        leading: const Icon(Icons.account_balance_rounded, color: AppTheme.primary),
-                        title: const Text('Academic Details & Dropdowns', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('Edit University, College, Department, Course, Branch, Section', style: TextStyle(fontSize: 11.5, color: AppTheme.textMuted)),
-                        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                        onTap: () async {
-                          final updatedUser = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AcademicProfileScreen(userData: _user),
-                            ),
-                          );
-                          if (updatedUser != null && updatedUser is Map<String, dynamic>) {
-                            setState(() {
-                              _user = updatedUser;
-                              _syncControllers();
-                            });
-                          }
-                        },
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
                         leading: const Icon(Icons.lock_outline_rounded, color: Color(0xFF00B894)),
                         title: const Text('Change Password', style: TextStyle(fontWeight: FontWeight.w600)),
                         trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
@@ -985,7 +956,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showChangePasswordModal() {
-    final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
@@ -1029,15 +999,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: oldPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Password',
-                    prefixIcon: Icon(Icons.lock_outline_rounded),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
                   controller: newPasswordController,
                   obscureText: true,
                   decoration: const InputDecoration(
@@ -1078,7 +1039,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
 
                       final res = await ApiService.changePassword(
-                        oldPassword: oldPasswordController.text,
                         newPassword: newPasswordController.text,
                         confirmPassword: confirmPasswordController.text,
                       );

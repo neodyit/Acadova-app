@@ -203,7 +203,7 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
         CustomToast.show(
           context,
           title: 'Update Failed',
-          message: res['message'] ?? 'Could not save academic profile.',
+          message: ApiService.getErrorMessage(res, 'Could not save academic profile.'),
           type: ToastType.error,
         );
       }

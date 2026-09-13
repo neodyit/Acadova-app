@@ -934,7 +934,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -1115,13 +1115,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          percentage >= 50 ? Icons.emoji_events_rounded : Icons.info_outline_rounded,
+                          percentage >= 50 ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded,
                           color: Colors.white,
-                          size: 28,
+                          size: 24,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -1129,9 +1129,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              percentage >= 50 ? 'Quiz Result: Passed' : 'Quiz Result: Needs Review',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                            const Text(
+                              'Quiz Already Attempted',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -1153,7 +1153,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () async {
                     if (isAttempted) {
-                      Navigator.pop(context);
+                      Navigator.pop(sheetContext);
                       CustomToast.show(
                         context,
                         title: 'Already Attempted',
@@ -1164,7 +1164,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     }
 
                     if (quiz['isAfterEnd'] == true) {
-                      Navigator.pop(context);
+                      Navigator.pop(sheetContext);
                       CustomToast.show(
                         context,
                         title: 'Quiz Expired / Missed',
@@ -1176,7 +1176,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     }
 
                     if (quiz['isBeforeStart'] == true) {
-                      Navigator.pop(context);
+                      Navigator.pop(sheetContext);
                       CustomToast.show(
                         context,
                         title: 'Quiz Not Started',
@@ -1187,13 +1187,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       return;
                     }
 
-                    Navigator.pop(context); // Close modal sheet
+                    Navigator.pop(sheetContext); // Close modal sheet
 
-                    final pageContext = this.context;
                     if (!mounted) return;
 
                     showDialog(
-                      context: pageContext,
+                      context: context,
                       barrierDismissible: false,
                       builder: (_) => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
                     );
@@ -1228,7 +1227,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     }
 
                     if (!mounted) return;
-                    Navigator.of(pageContext, rootNavigator: true).pop(); // Close loader
+                    Navigator.of(context, rootNavigator: true).pop(); // Close loader
 
                     if (questions.isEmpty) {
                       CustomToast.show(

@@ -373,6 +373,7 @@ class ApiService {
         'success': data['success'] ?? false,
         'message': data['message'] ?? 'Profile update response',
         'data': data['data'] ?? {},
+        'errors': data['errors'],
       };
     } catch (e) {
       return {'success': false, 'message': 'Failed to update profile ($e)'};
@@ -381,7 +382,7 @@ class ApiService {
 
   /// Change user password
   static Future<Map<String, dynamic>> changePassword({
-    required String oldPassword,
+    String oldPassword = '',
     required String newPassword,
     required String confirmPassword,
   }) async {
@@ -754,6 +755,7 @@ class ApiService {
         'success': data['success'] ?? false,
         'message': data['message'] ?? 'Academic profile updated',
         'data': data['data'] ?? {},
+        'errors': data['errors'],
       };
     } catch (e) {
       return {
@@ -762,5 +764,23 @@ class ApiService {
         'message': 'Failed to save academic profile',
       };
     }
+  }
+
+  /// Helper to extract clean user-facing error message from API response
+  static String getErrorMessage(Map<String, dynamic> res, [String defaultMsg = 'An error occurred']) {
+    if (res['errors'] != null && res['errors'] is Map && (res['errors'] as Map).isNotEmpty) {
+      final errMap = res['errors'] as Map;
+      final firstKey = errMap.keys.first;
+      final firstVal = errMap[firstKey];
+      if (firstVal is List && firstVal.isNotEmpty) {
+        return firstVal.first.toString();
+      } else if (firstVal is String) {
+        return firstVal;
+      }
+    }
+    if (res['message'] != null && res['message'].toString().isNotEmpty && res['message'] != 'Validation errors occurred') {
+      return res['message'].toString();
+    }
+    return defaultMsg;
   }
 }
