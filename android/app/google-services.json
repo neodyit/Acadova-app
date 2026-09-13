@@ -1,0 +1,138 @@
+{
+  "project_info": {
+    "project_number": "764324372715",
+    "firebase_url": "https://neody-it-platform-system-default-rtdb.firebaseio.com",
+    "project_id": "neody-it-platform-system",
+    "storage_bucket": "neody-it-platform-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:764324372715:android:f0fd3cbdd75ccee1f2deae",
+        "android_client_info": {
+          "package_name": "com.neodyit.acadova"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "764324372715-d0ol9o9osh4fmfrqi3sbmn13mj89mf5g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neodyit.acadova",
+            "certificate_hash": "0bcaad8151115ab7da5c7152940f2746fefbc30c"
+          }
+        },
+        {
+          "client_id": "764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeabJFHpjCzH0Mb5x-CRtuCuIaJi6dYX4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:764324372715:android:cd48d27c715f737cf2deae",
+        "android_client_info": {
+          "package_name": "com.neodyit.flowsync"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeabJFHpjCzH0Mb5x-CRtuCuIaJi6dYX4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:764324372715:android:20e0d4bbb81ab6a4f2deae",
+        "android_client_info": {
+          "package_name": "com.neodyit.nexorgapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "764324372715-ag8f6h2hdiiqt30mle52ppot1t8igfeh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neodyit.nexorgapp",
+            "certificate_hash": "b9f3eb4125f98322402afbc459b94d7b9b2f57f5"
+          }
+        },
+        {
+          "client_id": "764324372715-b00l6m95nm9ntkufbkl9sdvc702ksr2b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neodyit.nexorgapp",
+            "certificate_hash": "0bcaad8151115ab7da5c7152940f2746fefbc30c"
+          }
+        },
+        {
+          "client_id": "764324372715-ptf96amatdkd8todmkmo4af5e6330uh5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neodyit.nexorgapp",
+            "certificate_hash": "f9943421f2a02201a2403ac99497cbb29b15db09"
+          }
+        },
+        {
+          "client_id": "764324372715-rhmjhqprpfp8qrrmpnnot909t4oem0nl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neodyit.nexorgapp",
+            "certificate_hash": "f81463f098708fc07a11bd59e46ec58076bea44c"
+          }
+        },
+        {
+          "client_id": "764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeabJFHpjCzH0Mb5x-CRtuCuIaJi6dYX4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
