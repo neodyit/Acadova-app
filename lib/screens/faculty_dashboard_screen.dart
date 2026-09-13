@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
+import 'academic_profile_screen.dart';
 import 'profile_screen.dart';
 
 class FacultyDashboardScreen extends StatefulWidget {
@@ -55,6 +56,20 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
         if (freshUser is Map<String, dynamic>) {
           _user = Map<String, dynamic>.from(freshUser);
+
+          if (ApiService.isProfileIncomplete(_user)) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => AcademicProfileScreen(userData: _user, isInitialSetup: true),
+                  ),
+                  (route) => false,
+                );
+              }
+            });
+            return;
+          }
         }
       }
 

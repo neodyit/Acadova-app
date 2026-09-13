@@ -54,18 +54,7 @@ class _SplashScreenState extends State<SplashScreen>
       Widget targetScreen = const OnboardingScreen();
       if (isLoggedIn && ApiService.currentUser != null) {
         final userData = ApiService.currentUser!;
-        final isStudent = (userData['role'] ?? 'student').toString().toLowerCase() == 'student';
-        final isProfileIncomplete = isStudent && (
-          userData['phone'] == null || userData['phone'].toString().trim().isEmpty ||
-          userData['roll_number'] == null || userData['roll_number'].toString().trim().isEmpty ||
-          userData['university_id'] == null ||
-          userData['college_id'] == null ||
-          userData['department_id'] == null ||
-          userData['course_id'] == null ||
-          userData['branch_id'] == null ||
-          userData['section_id'] == null ||
-          userData['subsection_id'] == null
-        );
+        final isProfileIncomplete = ApiService.isProfileIncomplete(userData);
 
         if (isProfileIncomplete) {
           targetScreen = AcademicProfileScreen(userData: userData, isInitialSetup: true);

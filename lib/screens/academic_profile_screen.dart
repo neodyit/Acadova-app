@@ -40,18 +40,21 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
   int? _selectedSubsectionId;
 
   final _phoneController = TextEditingController();
+  final _facultyIdController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _userData = Map<String, dynamic>.from(widget.userData);
     _phoneController.text = _userData['phone'] ?? '';
+    _facultyIdController.text = _userData['faculty_id'] ?? '';
     _initAcademicData();
   }
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _facultyIdController.dispose();
     super.dispose();
   }
 
@@ -148,15 +151,30 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
   }
 
   Future<void> _handleSaveAcademicProfile() async {
+    final role = (_userData['role'] ?? 'student').toString().toLowerCase();
+    final isFaculty = role == 'faculty';
+
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
-      CustomToast.show(context, title: 'Phone Required', message: 'Please enter your phone number.', type: ToastType.warning);
+      CustomToast.show(context, title: 'Phone Required', message: 'Please enter your mobile phone number.', type: ToastType.warning);
       return;
     }
 
-    if (_selectedUniversityId == null || _selectedCollegeId == null || _selectedDepartmentId == null || _selectedCourseId == null || _selectedBranchId == null || _selectedSectionId == null || _selectedSubsectionId == null) {
-      CustomToast.show(context, title: 'Incomplete Selection', message: 'Please select options for all academic fields.', type: ToastType.warning);
-      return;
+    if (isFaculty) {
+      final facultyId = _facultyIdController.text.trim();
+      if (facultyId.isEmpty) {
+        CustomToast.show(context, title: 'Faculty ID Required', message: 'Please enter your Faculty ID.', type: ToastType.warning);
+        return;
+      }
+      if (_selectedUniversityId == null) {
+        CustomToast.show(context, title: 'University Required', message: 'Please select your University.', type: ToastType.warning);
+        return;
+      }
+    } else {
+      if (_selectedUniversityId == null || _selectedCollegeId == null || _selectedDepartmentId == null || _selectedCourseId == null || _selectedBranchId == null || _selectedSectionId == null || _selectedSubsectionId == null) {
+        CustomToast.show(context, title: 'Incomplete Selection', message: 'Please select options for all academic fields.', type: ToastType.warning);
+        return;
+      }
     }
 
     setState(() {
@@ -165,13 +183,14 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
 
     final res = await ApiService.updateAcademicProfile(
       phone: phone,
+      facultyId: isFaculty ? _facultyIdController.text.trim() : null,
       universityId: _selectedUniversityId,
       collegeId: _selectedCollegeId,
       departmentId: _selectedDepartmentId,
-      courseId: _selectedCourseId,
-      branchId: _selectedBranchId,
-      sectionId: _selectedSectionId,
-      subsectionId: _selectedSubsectionId,
+      courseId: isFaculty ? null : _selectedCourseId,
+      branchId: isFaculty ? null : _selectedBranchId,
+      sectionId: isFaculty ? null : _selectedSectionId,
+      subsectionId: isFaculty ? null : _selectedSubsectionId,
     );
 
     if (mounted) {
@@ -212,6 +231,8 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isFaculty = (_userData['role'] ?? 'student').toString().toLowerCase() == 'faculty';
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -220,12 +241,16 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
         leading: widget.isInitialSetup
             ? null
             : IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.mainText),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.mainText, size: 20),
                 onPressed: () => Navigator.pop(context),
               ),
-        title: const Text(
-          'Academic Profile',
-          style: TextStyle(color: AppTheme.mainText, fontWeight: FontWeight.bold, fontSize: 19),
+        title: Text(
+          isFaculty ? 'Faculty Setup' : 'Academic Structure',
+          style: const TextStyle(
+            color: AppTheme.mainText,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
       ),
       body: _isLoading
@@ -235,28 +260,35 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner Card
+                  // Banner Box
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.primary, AppTheme.primaryLight],
+                      gradient: const LinearGradient(
+                        colors: [AppTheme.primary, AppTheme.primaryDark],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: const [
-                            Icon(Icons.account_balance_rounded, color: Colors.white, size: 22),
-                            SizedBox(width: 8),
+                          children: [
+                            const Icon(Icons.account_balance_rounded, color: Colors.white, size: 22),
+                            const SizedBox(width: 8),
                             Text(
-                              'Academic Structure',
-                              style: TextStyle(
+                              isFaculty ? 'Faculty Setup' : 'Academic Structure',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -266,7 +298,9 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Select your University, College, Department, Course, Branch, Section, and Subsection from the dropdown lists.',
+                          isFaculty
+                              ? 'Please complete your Phone Number, Faculty ID, and University selection to proceed.'
+                              : 'Select your University, College, Department, Course, Branch, Section, and Subsection from the dropdown lists.',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 12.5,
@@ -319,9 +353,51 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // 0.1 Faculty ID Input (If Faculty)
+                  if (isFaculty) ...[
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Faculty ID *',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppTheme.border),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _facultyIdController,
+                            decoration: const InputDecoration(
+                              hintText: 'Enter Faculty ID (e.g. FAC-102)',
+                              prefixIcon: Icon(Icons.badge_outlined, color: AppTheme.primary, size: 20),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // 1. University Dropdown
                   _buildDropdownTile(
-                    label: 'University',
+                    label: 'University *',
                     icon: Icons.account_balance_rounded,
                     value: _selectedUniversityId,
                     items: _universities,
@@ -341,7 +417,7 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
 
                   // 2. College Dropdown
                   _buildDropdownTile(
-                    label: 'College / Institute',
+                    label: isFaculty ? 'College / Institute (Optional)' : 'College / Institute *',
                     icon: Icons.apartment_rounded,
                     value: _selectedCollegeId,
                     items: _filteredColleges,
@@ -360,7 +436,7 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
 
                   // 3. Department Dropdown
                   _buildDropdownTile(
-                    label: 'Department',
+                    label: isFaculty ? 'Department (Optional)' : 'Department *',
                     icon: Icons.business_center_rounded,
                     value: _selectedDepartmentId,
                     items: _filteredDepartments,
@@ -376,66 +452,69 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 4. Course Dropdown
-                  _buildDropdownTile(
-                    label: 'Course / Degree',
-                    icon: Icons.school_rounded,
-                    value: _selectedCourseId,
-                    items: _filteredCourses,
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedCourseId = val;
-                        _selectedBranchId = null;
-                        _selectedSectionId = null;
-                        _selectedSubsectionId = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                  if (!isFaculty) ...[
+                    // 4. Course Dropdown
+                    _buildDropdownTile(
+                      label: 'Course / Degree *',
+                      icon: Icons.school_rounded,
+                      value: _selectedCourseId,
+                      items: _filteredCourses,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedCourseId = val;
+                          _selectedBranchId = null;
+                          _selectedSectionId = null;
+                          _selectedSubsectionId = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                  // 5. Branch Dropdown
-                  _buildDropdownTile(
-                    label: 'Branch / Specialization',
-                    icon: Icons.alt_route_rounded,
-                    value: _selectedBranchId,
-                    items: _filteredBranches,
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedBranchId = val;
-                        _selectedSectionId = null;
-                        _selectedSubsectionId = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                    // 5. Branch Dropdown
+                    _buildDropdownTile(
+                      label: 'Branch / Specialization *',
+                      icon: Icons.alt_route_rounded,
+                      value: _selectedBranchId,
+                      items: _filteredBranches,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedBranchId = val;
+                          _selectedSectionId = null;
+                          _selectedSubsectionId = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                  // 6. Section Dropdown
-                  _buildDropdownTile(
-                    label: 'Section',
-                    icon: Icons.class_rounded,
-                    value: _selectedSectionId,
-                    items: _filteredSections,
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedSectionId = val;
-                        _selectedSubsectionId = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                    // 6. Section Dropdown
+                    _buildDropdownTile(
+                      label: 'Section *',
+                      icon: Icons.class_rounded,
+                      value: _selectedSectionId,
+                      items: _filteredSections,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedSectionId = val;
+                          _selectedSubsectionId = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                  // 7. Subsection Dropdown
-                  _buildDropdownTile(
-                    label: 'Subsection / Batch',
-                    icon: Icons.groups_rounded,
-                    value: _selectedSubsectionId,
-                    items: _filteredSubsections,
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedSubsectionId = val;
-                      });
-                    },
-                  ),
+                    // 7. Subsection Dropdown
+                    _buildDropdownTile(
+                      label: 'Subsection / Batch *',
+                      icon: Icons.groups_rounded,
+                      value: _selectedSubsectionId,
+                      items: _filteredSubsections,
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedSubsectionId = val;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   const SizedBox(height: 32),
 
                   // Save Button

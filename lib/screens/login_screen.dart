@@ -50,20 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
 
           final userData = response['data']['user'] ?? {};
-          final isStudent = (userData['role'] ?? 'student').toString().toLowerCase() == 'student';
-
-          // Mandatory check: If any key field (phone, roll number, college, section, department, branch) is empty/null, redirect to AcademicProfileScreen
-          final isProfileIncomplete = isStudent && (
-            userData['phone'] == null || userData['phone'].toString().trim().isEmpty ||
-            userData['roll_number'] == null || userData['roll_number'].toString().trim().isEmpty ||
-            userData['university_id'] == null ||
-            userData['college_id'] == null ||
-            userData['department_id'] == null ||
-            userData['course_id'] == null ||
-            userData['branch_id'] == null ||
-            userData['section_id'] == null ||
-            userData['subsection_id'] == null
-          );
+          final isProfileIncomplete = ApiService.isProfileIncomplete(userData);
 
           if (isProfileIncomplete) {
             Navigator.of(context).pushAndRemoveUntil(
@@ -162,19 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
             customIcon: Icons.check_circle_rounded,
           );
 
-          final isStudent = (userData['role'] ?? 'student').toString().toLowerCase() == 'student';
-
-          final isProfileIncomplete = isStudent && (
-            userData['phone'] == null || userData['phone'].toString().trim().isEmpty ||
-            userData['roll_number'] == null || userData['roll_number'].toString().trim().isEmpty ||
-            userData['university_id'] == null ||
-            userData['college_id'] == null ||
-            userData['department_id'] == null ||
-            userData['course_id'] == null ||
-            userData['branch_id'] == null ||
-            userData['section_id'] == null ||
-            userData['subsection_id'] == null
-          );
+          final isProfileIncomplete = ApiService.isProfileIncomplete(userData);
 
           if (isProfileIncomplete) {
             Navigator.of(context).pushAndRemoveUntil(

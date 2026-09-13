@@ -59,18 +59,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         if (freshUser is Map<String, dynamic>) {
           _userData = Map<String, dynamic>.from(freshUser);
 
-          final isStudent = (_userData['role'] ?? 'student').toString().toLowerCase() == 'student';
-          final isProfileIncomplete = isStudent && (
-            _userData['phone'] == null || _userData['phone'].toString().trim().isEmpty ||
-            _userData['roll_number'] == null || _userData['roll_number'].toString().trim().isEmpty ||
-            _userData['university_id'] == null ||
-            _userData['college_id'] == null ||
-            _userData['department_id'] == null ||
-            _userData['course_id'] == null ||
-            _userData['branch_id'] == null ||
-            _userData['section_id'] == null ||
-            _userData['subsection_id'] == null
-          );
+          final isProfileIncomplete = ApiService.isProfileIncomplete(_userData);
 
           if (isProfileIncomplete) {
             WidgetsBinding.instance.addPostFrameCallback((_) {

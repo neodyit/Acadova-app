@@ -710,6 +710,7 @@ class ApiService {
   /// Update user profile academic fields & mandatory phone
   static Future<Map<String, dynamic>> updateAcademicProfile({
     String? phone,
+    String? facultyId,
     int? universityId,
     int? collegeId,
     int? departmentId,
@@ -730,6 +731,7 @@ class ApiService {
         },
         body: jsonEncode({
           if (phone != null) 'phone': phone,
+          if (facultyId != null) 'faculty_id': facultyId,
           'university_id': universityId,
           'college_id': collegeId,
           'department_id': departmentId,
@@ -929,6 +931,27 @@ class ApiService {
       };
     } catch (e) {
       return {'success': false, 'message': 'Failed to add question ($e)'};
+    }
+  }
+
+  /// Checks if user profile setup is incomplete (Mandatory check for both Students & Faculty)
+  static bool isProfileIncomplete(Map<String, dynamic> userData) {
+    final role = (userData['role'] ?? 'student').toString().toLowerCase();
+
+    if (role == 'faculty') {
+      return (userData['phone'] == null || userData['phone'].toString().trim().isEmpty) ||
+             (userData['university_id'] == null && userData['university'] == null) ||
+             (userData['faculty_id'] == null || userData['faculty_id'].toString().trim().isEmpty);
+    } else {
+      return (userData['phone'] == null || userData['phone'].toString().trim().isEmpty) ||
+             (userData['roll_number'] == null || userData['roll_number'].toString().trim().isEmpty) ||
+             (userData['university_id'] == null && userData['university'] == null) ||
+             (userData['college_id'] == null && userData['college'] == null) ||
+             (userData['department_id'] == null && userData['department_model'] == null) ||
+             (userData['course_id'] == null && userData['course'] == null) ||
+             (userData['branch_id'] == null && userData['branch'] == null) ||
+             (userData['section_id'] == null && userData['section'] == null) ||
+             (userData['subsection_id'] == null && userData['subsection'] == null);
     }
   }
 }
