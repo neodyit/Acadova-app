@@ -38,6 +38,18 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
   int? _selectedBranchId;
   int? _selectedSectionId;
   int? _selectedSubsectionId;
+  String? _selectedSemester;
+
+  final List<String> _semesters = const [
+    'Semester 1',
+    'Semester 2',
+    'Semester 3',
+    'Semester 4',
+    'Semester 5',
+    'Semester 6',
+    'Semester 7',
+    'Semester 8',
+  ];
 
   final _phoneController = TextEditingController();
   final _facultyIdController = TextEditingController();
@@ -89,6 +101,10 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
         _selectedBranchId = _parseId(_userData['branch_id'] ?? _userData['branch']?['id']);
         _selectedSectionId = _parseId(_userData['section_id'] ?? _userData['section']?['id']);
         _selectedSubsectionId = _parseId(_userData['subsection_id'] ?? _userData['subsection']?['id']);
+        _selectedSemester = _userData['semester']?.toString();
+        if (_selectedSemester != null && !_semesters.contains(_selectedSemester)) {
+          _selectedSemester = null;
+        }
 
         _isLoading = false;
       });
@@ -171,8 +187,16 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
         return;
       }
     } else {
-      if (_selectedUniversityId == null || _selectedCollegeId == null || _selectedDepartmentId == null || _selectedCourseId == null || _selectedBranchId == null || _selectedSectionId == null || _selectedSubsectionId == null) {
-        CustomToast.show(context, title: 'Incomplete Selection', message: 'Please select options for all academic fields.', type: ToastType.warning);
+      if (_selectedUniversityId == null ||
+          _selectedCollegeId == null ||
+          _selectedDepartmentId == null ||
+          _selectedCourseId == null ||
+          _selectedBranchId == null ||
+          _selectedSectionId == null ||
+          _selectedSubsectionId == null ||
+          _selectedSemester == null ||
+          _selectedSemester!.trim().isEmpty) {
+        CustomToast.show(context, title: 'Incomplete Selection', message: 'Please select options for all academic fields including Semester.', type: ToastType.warning);
         return;
       }
     }
@@ -191,6 +215,7 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
       branchId: isFaculty ? null : _selectedBranchId,
       sectionId: isFaculty ? null : _selectedSectionId,
       subsectionId: isFaculty ? null : _selectedSubsectionId,
+      semester: isFaculty ? null : _selectedSemester,
     );
 
     if (mounted) {
@@ -512,6 +537,79 @@ class _AcademicProfileScreenState extends State<AcademicProfileScreen> {
                           _selectedSubsectionId = val;
                         });
                       },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 8. Semester Dropdown
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Semester *',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppTheme.border),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedSemester,
+                              isExpanded: true,
+                              hint: const Row(
+                                children: [
+                                  Icon(Icons.calendar_month_rounded, color: AppTheme.textMuted, size: 20),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Select Semester',
+                                    style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primary),
+                              items: _semesters.map((sem) {
+                                return DropdownMenuItem<String>(
+                                  value: sem,
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_month_rounded, color: AppTheme.primary, size: 18),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        sem,
+                                        style: const TextStyle(
+                                          color: AppTheme.mainText,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedSemester = val;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                   ],

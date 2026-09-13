@@ -718,6 +718,7 @@ class ApiService {
     int? branchId,
     int? sectionId,
     int? subsectionId,
+    String? semester,
   }) async {
     final url = Uri.parse('$baseUrl/profile');
 
@@ -739,6 +740,7 @@ class ApiService {
           'branch_id': branchId,
           'section_id': sectionId,
           'subsection_id': subsectionId,
+          if (semester != null) 'semester': semester,
         }),
       );
 
@@ -973,7 +975,8 @@ class ApiService {
              (userData['course_id'] == null && userData['course'] == null) ||
              (userData['branch_id'] == null && userData['branch'] == null) ||
              (userData['section_id'] == null && userData['section'] == null) ||
-             (userData['subsection_id'] == null && userData['subsection'] == null);
+             (userData['subsection_id'] == null && userData['subsection'] == null) ||
+             (userData['semester'] == null || userData['semester'].toString().trim().isEmpty);
     }
   }
 }
