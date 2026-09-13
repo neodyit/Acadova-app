@@ -742,8 +742,8 @@ class ApiService {
           if (authToken != null) 'Authorization': 'Bearer $authToken',
         },
         body: jsonEncode({
-          if (phone != null) 'phone': phone,
-          if (facultyId != null) 'faculty_id': facultyId,
+          'phone': ?phone,
+          'faculty_id': ?facultyId,
           'university_id': universityId,
           'college_id': collegeId,
           'department_id': departmentId,
@@ -751,7 +751,7 @@ class ApiService {
           'branch_id': branchId,
           'section_id': sectionId,
           'subsection_id': subsectionId,
-          if (semester != null) 'semester': semester,
+          'semester': ?semester,
         }),
       );
 

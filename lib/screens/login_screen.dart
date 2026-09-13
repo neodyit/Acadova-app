@@ -100,9 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // Try silent sign-in first (instant if user previously signed in)
       GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
-      if (googleUser == null) {
-        googleUser = await _googleSignIn.signIn();
-      }
+      googleUser ??= await _googleSignIn.signIn();
 
       if (googleUser == null) {
         // User cancelled the Google sign in dialog
@@ -114,12 +112,14 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+      final GoogleSignInAccount userAccount = googleUser;
+
       // First attempt to sign in with existing Google account
       final response = await ApiService.googleLogin(
-        email: googleUser.email,
-        name: googleUser.displayName ?? googleUser.email.split('@')[0],
-        googleId: googleUser.id,
-        avatar: googleUser.photoUrl,
+        email: userAccount.email,
+        name: userAccount.displayName ?? userAccount.email.split('@')[0],
+        googleId: userAccount.id,
+        avatar: userAccount.photoUrl,
         // Do not force role so backend detects if user already exists
       );
 
@@ -136,13 +136,13 @@ class _LoginScreenState extends State<LoginScreen> {
           if (isNewUser || userData['roll_number'] == null && userData['faculty_id'] == null) {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => GoogleCompleteProfileScreen(googleUser: googleUser),
+                builder: (context) => GoogleCompleteProfileScreen(googleUser: userAccount),
               ),
             );
             return;
           }
 
-          final userName = userData['name'] ?? googleUser.displayName ?? 'User';
+          final userName = userData['name'] ?? userAccount.displayName ?? 'User';
           CustomToast.show(
             context,
             title: 'Welcome Back!',
@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // If login fails, navigate to profile completion
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => GoogleCompleteProfileScreen(googleUser: googleUser),
+              builder: (context) => GoogleCompleteProfileScreen(googleUser: userAccount),
             ),
           );
         }
