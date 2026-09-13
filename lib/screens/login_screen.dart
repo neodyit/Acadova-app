@@ -98,7 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Try silent sign-in first (instant if user previously signed in)
+      GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+      if (googleUser == null) {
+        googleUser = await _googleSignIn.signIn();
+      }
 
       if (googleUser == null) {
         // User cancelled the Google sign in dialog
