@@ -188,20 +188,22 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
+      print('Google Sign-In Error Details: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
 
         final errStr = e.toString().toLowerCase();
-        String userFriendlyMsg = 'An error occurred during Google authentication.';
+        String userFriendlyMsg = 'Google Sign-In failed: ${e.toString()}';
 
         if (errStr.contains('network_error') ||
-            errStr.contains('apiexception: 7') ||
             errStr.contains('socketexception') ||
             errStr.contains('failed host lookup') ||
             errStr.contains('no address associated with hostname')) {
           userFriendlyMsg = 'No Internet Connection. Please connect to the internet and try again.';
+        } else if (errStr.contains('apiexception: 7')) {
+          userFriendlyMsg = 'Network / API Exception (7): Unable to connect to Google Auth servers or backend host.';
         } else if (errStr.contains('sign_in_failed') || errStr.contains('apiexception: 10') || errStr.contains('developer_error')) {
           userFriendlyMsg = 'Google Sign-In configuration error. Please check SHA-1 / OAuth credentials.';
         } else if (errStr.contains('sign_in_canceled') || errStr.contains('canceled')) {
@@ -213,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
           title: 'Google Sign In Error',
           message: userFriendlyMsg,
           type: ToastType.error,
-          customIcon: Icons.wifi_off_rounded,
+          customIcon: Icons.error_outline_rounded,
         );
       }
     }
