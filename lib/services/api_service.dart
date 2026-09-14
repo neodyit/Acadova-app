@@ -17,6 +17,69 @@ class ApiService {
   static const String _keyToken = 'auth_token';
   static const String _keyUser = 'user_data';
 
+  // User Profile Caching System (30 minutes TTL per user_id profile)
+  static const Duration profileCacheTtl = Duration(minutes: 30);
+  static final Map<int, Map<String, dynamic>> _userProfileMemoryCache = {};
+  static final Map<int, DateTime> _userProfileCacheExpiry = {};
+
+  /// Save or update a user's profile in local memory & disk cache
+  static Future<void> cacheUserProfile(int userId, Map<String, dynamic> userData) async {
+    _userProfileMemoryCache[userId] = userData;
+    _userProfileCacheExpiry[userId] = DateTime.now().add(profileCacheTtl);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_user_profile_$userId', jsonEncode(userData));
+      await prefs.setInt('cached_user_profile_ts_$userId', DateTime.now().millisecondsSinceEpoch);
+    } catch (_) {}
+  }
+
+  /// Get cached user profile by userId if valid and not expired
+  static Future<Map<String, dynamic>?> getCachedUserProfile(int userId) async {
+    // 1. Check in-memory cache first
+    if (_userProfileMemoryCache.containsKey(userId)) {
+      final expiry = _userProfileCacheExpiry[userId];
+      if (expiry != null && DateTime.now().isBefore(expiry)) {
+        return _userProfileMemoryCache[userId];
+      }
+    }
+
+    // 2. Check disk cache (SharedPreferences)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('cached_user_profile_$userId');
+      final ts = prefs.getInt('cached_user_profile_ts_$userId');
+
+      if (userJson != null && ts != null) {
+        final cachedTime = DateTime.fromMillisecondsSinceEpoch(ts);
+        if (DateTime.now().difference(cachedTime) < profileCacheTtl) {
+          final userData = jsonDecode(userJson) as Map<String, dynamic>;
+          _userProfileMemoryCache[userId] = userData;
+          _userProfileCacheExpiry[userId] = cachedTime.add(profileCacheTtl);
+          return userData;
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  /// Invalidate or clear cached profile for a specific user (or all users)
+  static Future<void> clearUserProfileCache([int? userId]) async {
+    if (userId != null) {
+      _userProfileMemoryCache.remove(userId);
+      _userProfileCacheExpiry.remove(userId);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('cached_user_profile_$userId');
+        await prefs.remove('cached_user_profile_ts_$userId');
+      } catch (_) {}
+    } else {
+      _userProfileMemoryCache.clear();
+      _userProfileCacheExpiry.clear();
+    }
+  }
+
   /// Check response status code and trigger session clearance if 401 Unauthenticated / User Deleted
   static void _checkUnauthorized(int statusCode) {
     if (statusCode == 401) {

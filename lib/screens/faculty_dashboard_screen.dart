@@ -1481,13 +1481,18 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                                       final u = stSub['user'] is Map ? stSub['user'] : {};
                                       final sName = u['name'] ?? 'Student';
                                       final rNo = u['roll_number'] ?? u['roll'] ?? 'N/A';
+                                      final avatarUrl = ApiService.formatMediaUrl(u['avatar']?.toString());
                                       final sc = (stSub['score'] as num?)?.toInt() ?? 0;
                                       final tot = (stSub['total_questions'] as num?)?.toInt() ?? 1;
                                       final pct = tot > 0 ? ((sc / tot) * 100).round() : 0;
                                       final isPass = pct >= 50;
                                       final violations = (stSub['violations_count'] as num?)?.toInt() ?? 0;
-                                      final loc = stSub['location'] ?? 'Location N/A';
                                       final autoReason = stSub['auto_submit_reason'];
+
+                                      // Cache user profile automatically for fast lazyloading
+                                      if (u['id'] is int) {
+                                        ApiService.cacheUserProfile(u['id'], u);
+                                      }
 
                                       return Container(
                                         padding: const EdgeInsets.all(14),
@@ -1505,14 +1510,19 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                                                   backgroundColor: isPass
                                                       ? AppTheme.success.withValues(alpha: 0.12)
                                                       : AppTheme.error.withValues(alpha: 0.12),
-                                                  child: Text(
-                                                    sName.isNotEmpty ? sName[0].toUpperCase() : 'S',
-                                                    style: TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 13,
-                                                      color: isPass ? AppTheme.success : AppTheme.error,
-                                                    ),
-                                                  ),
+                                                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                                                      ? NetworkImage(avatarUrl)
+                                                      : null,
+                                                  child: (avatarUrl == null || avatarUrl.isEmpty)
+                                                      ? Text(
+                                                          sName.isNotEmpty ? sName[0].toUpperCase() : 'S',
+                                                          style: TextStyle(
+                                                            fontWeight: FontWeight.bold,
+                                                            fontSize: 13,
+                                                            color: isPass ? AppTheme.success : AppTheme.error,
+                                                          ),
+                                                        )
+                                                      : null,
                                                 ),
                                                 const SizedBox(width: 12),
                                                 Expanded(
@@ -1736,6 +1746,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     return Column(
       children: _submissions.map((sub) {
         final user = sub['user'] is Map ? sub['user'] : {};
+        final avatarUrl = ApiService.formatMediaUrl(user['avatar']?.toString());
         final quiz = sub['quiz'] is Map ? sub['quiz'] : {};
         final studentName = user['name'] ?? 'Student User';
         final rollNo = user['roll_number'] ?? 'N/A';
@@ -1743,8 +1754,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
         final score = sub['score'] ?? 0;
         final totalQs = sub['total_questions'] ?? 1;
         final percentage = totalQs > 0 ? ((score / totalQs) * 100).round() : 0;
-        final location = sub['location'] ?? 'Location Verified';
         final submittedAt = sub['submitted_at'] != null ? sub['submitted_at'].toString().split('T').first : '';
+
+        // Cache user profile
+        if (user['id'] is int) {
+          ApiService.cacheUserProfile(user['id'], user);
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -1768,13 +1783,18 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                 backgroundColor: percentage >= 50
                     ? AppTheme.primary.withValues(alpha: 0.12)
                     : AppTheme.error.withValues(alpha: 0.12),
-                child: Text(
-                  studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: percentage >= 50 ? AppTheme.primary : AppTheme.error,
-                  ),
-                ),
+                backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                    ? NetworkImage(avatarUrl)
+                    : null,
+                child: (avatarUrl == null || avatarUrl.isEmpty)
+                    ? Text(
+                        studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: percentage >= 50 ? AppTheme.primary : AppTheme.error,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 14),
               Expanded(
