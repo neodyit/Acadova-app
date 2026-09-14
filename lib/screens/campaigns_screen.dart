@@ -61,6 +61,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
           'title': c['title'] ?? 'Announcement',
           'description': c['description'] ?? 'No description provided.',
           'badge': c['badge'] ?? 'Notice',
+          'imageUrl': ApiService.formatMediaUrl(c['image_url']?.toString()),
           'linkUrl': c['link_url'],
           'endsAt': endsAt,
           'isExpired': isExpired,
@@ -277,17 +278,19 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
   Widget _buildCampaignCard(Map<String, dynamic> c) {
     final List<Color> gradient = c['gradient'] as List<Color>;
     final bool isExpired = c['isExpired'] == true;
+    final String? imageUrl = c['imageUrl'] as String?;
+    final DateTime? endsAt = c['endsAt'] as DateTime?;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade200, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -295,83 +298,189 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner Top Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isExpired
-                    ? [Colors.grey.shade600, Colors.grey.shade400]
-                    : gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Row(
+          // Banner Section (Image or Gradient Header)
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Stack(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    c['badge'].toString().toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    imageUrl,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isExpired
+                              ? [Colors.grey.shade600, Colors.grey.shade400]
+                              : gradient,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.campaign_rounded, color: Colors.white, size: 48),
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(),
-                if (isExpired)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                // Gradient Overlay for Badge contrast
+                Positioned.fill(
+                  child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withValues(alpha: 0.5),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.3),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
-                    child: const Text(
-                      'Ended',
-                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  )
-                else
-                  const Icon(Icons.campaign_rounded, color: Colors.white, size: 20),
+                  ),
+                ),
+                // Top Tag Bar over Image
+                Positioned(
+                  top: 14,
+                  left: 14,
+                  right: 14,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          c['badge'].toString().toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (isExpired)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'ENDED',
+                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
+            )
+          else
+            // Header Bar without Image
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isExpired
+                      ? [Colors.grey.shade600, Colors.grey.shade400]
+                      : gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      c['badge'].toString().toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  if (isExpired)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Ended',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    )
+                  else
+                    const Icon(Icons.campaign_rounded, color: Colors.white, size: 22),
+                ],
+              ),
             ),
-          ),
 
           // Body Content
           Padding(
-            padding: const EdgeInsets.all(18.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   c['title'],
                   style: const TextStyle(
-                    fontSize: 17,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2D3436),
+                    height: 1.25,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   c['description'],
                   style: TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 14,
                     color: Colors.grey.shade700,
-                    height: 1.4,
+                    height: 1.45,
                   ),
                 ),
+                if (endsAt != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule_rounded, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 5),
+                      Text(
+                        isExpired
+                            ? 'Ended on ${endsAt.day}/${endsAt.month}/${endsAt.year}'
+                            : 'Valid until ${endsAt.day}/${endsAt.month}/${endsAt.year} ${endsAt.hour.toString().padLeft(2, '0')}:${endsAt.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isExpired ? Colors.red.shade400 : Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (c['linkUrl'] != null && c['linkUrl'].toString().trim().isNotEmpty) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,
-                    height: 42,
+                    height: 44,
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         final String urlStr = c['linkUrl'].toString().trim();
@@ -390,7 +499,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                         }
                       },
                       icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: const Text('Open External Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                      label: const Text('Open External Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: gradient.first,
                         foregroundColor: Colors.white,
