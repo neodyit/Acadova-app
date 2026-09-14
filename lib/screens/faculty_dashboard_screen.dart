@@ -925,171 +925,893 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
         final String startStr = _formatDateAmPm(quiz['scheduled_at'] ?? quiz['starts_at']);
         final String endStr = _formatDateAmPm(quiz['ends_at']);
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+        // Count submissions for this quiz
+        final int quizSubCount = _submissions.where((sub) {
+          final qId = sub['quiz_id']?.toString() ?? (sub['quiz'] is Map ? sub['quiz']['id']?.toString() : null);
+          return qId == quiz['id']?.toString();
+        }).length;
+
+        return GestureDetector(
+          onTap: () => _showQuizPopout(context, quiz),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  quiz['subject'] ?? 'General Subject',
+                                  style: const TextStyle(
+                                    color: AppTheme.primary,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.assignment_turned_in_rounded, size: 12, color: Colors.purple),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$quizSubCount Subs',
+                                      style: const TextStyle(
+                                        color: Colors.purple,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          child: Text(
-                            quiz['subject'] ?? 'General Subject',
+                          const SizedBox(height: 8),
+                          Text(
+                            quiz['title'] ?? 'Quiz Assessment',
                             style: const TextStyle(
-                              color: AppTheme.primary,
-                              fontSize: 11.5,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
+                              color: AppTheme.mainText,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          quiz['title'] ?? 'Quiz Assessment',
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.mainText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: badgeColor,
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.help_outline_rounded, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$questionCount Questions',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.timer_outlined, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${quiz['duration_minutes'] ?? 15} mins',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                  ),
-                ],
-              ),
-              if (startStr != 'N/A' || endStr != 'N/A') ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.schedule_rounded, size: 15, color: AppTheme.primary),
-                    const SizedBox(width: 6),
-                    Expanded(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Text(
-                        'Start: $startStr ${endStr != 'N/A' ? '• End: $endStr' : ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.mainText),
+                        status,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: badgeColor,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ],
-              const Divider(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      final updated = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ManageQuestionsScreen(quiz: quiz),
-                        ),
-                      );
-                      if (updated == true && mounted) {
-                        _fetchFacultyData();
-                      }
-                    },
-                    icon: const Icon(Icons.quiz_rounded, size: 18),
-                    label: Text('Manage Questions ($questionCount)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                      foregroundColor: AppTheme.primary,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.help_outline_rounded, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$questionCount Questions',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
-                    tooltip: 'Delete Quiz',
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Delete Quiz'),
-                          content: Text('Are you sure you want to delete "${quiz['title']}"?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Delete', style: TextStyle(color: AppTheme.error)),
-                            ),
-                          ],
+                    const SizedBox(width: 16),
+                    Icon(Icons.timer_outlined, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${quiz['duration_minutes'] ?? 15} mins',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                    ),
+                  ],
+                ),
+                if (startStr != 'N/A' || endStr != 'N/A') ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule_rounded, size: 15, color: AppTheme.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Start: $startStr ${endStr != 'N/A' ? '• End: $endStr' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.mainText),
                         ),
-                      );
-
-                      if (confirm == true && quiz['id'] != null) {
-                        final ok = await ApiService.deleteQuiz(quiz['id']);
-                        if (ok && mounted) {
-                          CustomToast.show(context, message: 'Quiz deleted', type: ToastType.info);
-                          _fetchFacultyData();
-                        }
-                      }
-                    },
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ],
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final updated = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ManageQuestionsScreen(quiz: quiz),
+                            ),
+                          );
+                          if (updated == true && mounted) {
+                            _fetchFacultyData();
+                          }
+                        },
+                        icon: const Icon(Icons.quiz_rounded, size: 16),
+                        label: Text('Manage Questions ($questionCount)', style: const TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                          foregroundColor: AppTheme.primary,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _showQuizPopout(context, quiz),
+                      icon: const Icon(Icons.tune_rounded, size: 16),
+                      label: const Text('Actions & Report', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: const BorderSide(color: AppTheme.primary),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
+                      tooltip: 'Delete Quiz',
+                      onPressed: () => _confirmDeleteQuiz(context, quiz),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       }).toList(),
     );
+  }
+
+  void _showQuizPopout(BuildContext context, Map<String, dynamic> quiz) {
+    final int quizId = quiz['id'] ?? 0;
+    final int questionCount = quiz['questions_count'] ?? (quiz['questions'] is List ? (quiz['questions'] as List).length : 0);
+    final String title = quiz['title'] ?? 'Quiz Details';
+    final String subject = quiz['subject'] ?? 'General Subject';
+    final String status = (quiz['status'] ?? 'active').toString().toUpperCase();
+
+    final quizSubmissions = _submissions.where((sub) {
+      final qId = sub['quiz_id']?.toString() ?? (sub['quiz'] is Map ? sub['quiz']['id']?.toString() : null);
+      return qId == quizId.toString();
+    }).toList();
+
+    final int totalSubs = quizSubmissions.length;
+    double avgScorePct = 0;
+    int maxScore = 0;
+    int totalPossible = 0;
+
+    if (totalSubs > 0) {
+      double pctSum = 0;
+      for (var s in quizSubmissions) {
+        final sc = (s['score'] as num?)?.toInt() ?? 0;
+        final tot = (s['total_questions'] as num?)?.toInt() ?? 1;
+        if (sc > maxScore) maxScore = sc;
+        totalPossible = tot;
+        if (tot > 0) pctSum += (sc / tot) * 100;
+      }
+      avgScorePct = (pctSum / totalSubs).roundToDouble();
+    }
+
+    final Map<String, List<Map<String, dynamic>>> groupWiseSubmissions = {};
+    for (var sub in quizSubmissions) {
+      final u = sub['user'] is Map ? sub['user'] : {};
+      final branch = (u['branch'] ?? u['branch_code'] ?? u['branch_name'] ?? 'General Branch').toString();
+      final sec = (u['section'] ?? u['section_name'] ?? 'A').toString();
+      final dept = (u['department'] ?? u['department_name'] ?? '').toString();
+
+      String groupKey = '$branch - Sec $sec';
+      if (dept.isNotEmpty && !groupKey.contains(dept)) {
+        groupKey = '$groupKey ($dept)';
+      }
+      groupWiseSubmissions.putIfAbsent(groupKey, () => []).add(sub);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                subject,
+                                style: const TextStyle(
+                                  color: AppTheme.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: status == 'ACTIVE'
+                                    ? AppTheme.success.withValues(alpha: 0.12)
+                                    : (status == 'SCHEDULED'
+                                        ? AppTheme.primary.withValues(alpha: 0.12)
+                                        : Colors.purple.withValues(alpha: 0.12)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                status,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: status == 'ACTIVE'
+                                      ? AppTheme.success
+                                      : (status == 'SCHEDULED' ? AppTheme.primary : Colors.purple),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$questionCount Questions • ${quiz['duration_minutes'] ?? 15} Mins Duration',
+                          style: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: AppTheme.border),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              Navigator.pop(modalCtx);
+                              final updated = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ManageQuestionsScreen(quiz: quiz),
+                                ),
+                              );
+                              if (updated == true && mounted) {
+                                _fetchFacultyData();
+                              }
+                            },
+                            icon: const Icon(Icons.quiz_rounded, size: 16),
+                            label: const Text('Questions', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(modalCtx);
+                              _showEditQuizModal(context, quiz);
+                            },
+                            icon: const Icon(Icons.edit_rounded, size: 16),
+                            label: const Text('Edit Quiz', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primary,
+                              side: const BorderSide(color: AppTheme.primary),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppTheme.error.withValues(alpha: 0.1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 20),
+                          tooltip: 'Delete Quiz',
+                          onPressed: () async {
+                            Navigator.pop(modalCtx);
+                            _confirmDeleteQuiz(context, quiz);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: AppTheme.border),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildPopoutMetricTile(
+                                title: 'Submissions',
+                                value: '$totalSubs',
+                                icon: Icons.assignment_turned_in_rounded,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildPopoutMetricTile(
+                                title: 'Avg Score',
+                                value: totalSubs > 0 ? '$avgScorePct%' : 'N/A',
+                                icon: Icons.analytics_rounded,
+                                color: AppTheme.success,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildPopoutMetricTile(
+                                title: 'Max Score',
+                                value: totalSubs > 0 ? '$maxScore/$totalPossible' : 'N/A',
+                                icon: Icons.emoji_events_rounded,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Icon(Icons.groups_rounded, color: AppTheme.primary, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Group-wise Student Report',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.mainText,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${groupWiseSubmissions.length} Groups',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (groupWiseSubmissions.isEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.assignment_late_outlined, size: 36, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  'No Submissions Yet',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.mainText),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'When students attempt this quiz, detailed group-wise reports and scores will appear here.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else ...[
+                          ...groupWiseSubmissions.entries.map((entry) {
+                            final groupTitle = entry.key;
+                            final studentsList = entry.value;
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppTheme.border),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.02),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Theme(
+                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                child: ExpansionTile(
+                                  initiallyExpanded: true,
+                                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                  title: Text(
+                                    groupTitle,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.5,
+                                      color: AppTheme.mainText,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${studentsList.length} Student Attempt${studentsList.length == 1 ? '' : 's'}',
+                                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                  ),
+                                  leading: CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                                    child: const Icon(Icons.school_rounded, color: AppTheme.primary, size: 18),
+                                  ),
+                                  children: [
+                                    const Divider(height: 1, color: AppTheme.border),
+                                    ...studentsList.map((stSub) {
+                                      final u = stSub['user'] is Map ? stSub['user'] : {};
+                                      final sName = u['name'] ?? 'Student';
+                                      final rNo = u['roll_number'] ?? u['roll'] ?? 'N/A';
+                                      final sc = (stSub['score'] as num?)?.toInt() ?? 0;
+                                      final tot = (stSub['total_questions'] as num?)?.toInt() ?? 1;
+                                      final pct = tot > 0 ? ((sc / tot) * 100).round() : 0;
+                                      final isPass = pct >= 50;
+                                      final violations = (stSub['violations_count'] as num?)?.toInt() ?? 0;
+                                      final loc = stSub['location'] ?? 'Location N/A';
+                                      final autoReason = stSub['auto_submit_reason'];
+
+                                      return Container(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: const BoxDecoration(
+                                          border: Border(bottom: BorderSide(color: AppTheme.border, width: 0.5)),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                CircleAvatar(
+                                                  radius: 18,
+                                                  backgroundColor: isPass
+                                                      ? AppTheme.success.withValues(alpha: 0.12)
+                                                      : AppTheme.error.withValues(alpha: 0.12),
+                                                  child: Text(
+                                                    sName.isNotEmpty ? sName[0].toUpperCase() : 'S',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                      color: isPass ? AppTheme.success : AppTheme.error,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        sName,
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 14,
+                                                          color: AppTheme.mainText,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        'Roll No: $rNo',
+                                                        style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: isPass
+                                                        ? AppTheme.success.withValues(alpha: 0.12)
+                                                        : AppTheme.error.withValues(alpha: 0.12),
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: Text(
+                                                    '$sc/$tot ($pct%)',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 12.5,
+                                                      color: isPass ? AppTheme.success : AppTheme.error,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 6,
+                                              children: [
+                                                _buildInfoPill(
+                                                  icon: Icons.location_on_outlined,
+                                                  text: loc,
+                                                  color: Colors.grey.shade700,
+                                                  bgColor: Colors.grey.shade100,
+                                                ),
+                                                if (violations > 0)
+                                                  _buildInfoPill(
+                                                    icon: Icons.warning_amber_rounded,
+                                                    text: '$violations Violation${violations > 1 ? 's' : ''}',
+                                                    color: AppTheme.error,
+                                                    bgColor: AppTheme.error.withValues(alpha: 0.1),
+                                                  ),
+                                                if (autoReason != null && autoReason.toString().isNotEmpty)
+                                                  _buildInfoPill(
+                                                    icon: Icons.timer_off_outlined,
+                                                    text: 'Auto-Submitted: $autoReason',
+                                                    color: Colors.orange.shade800,
+                                                    bgColor: Colors.orange.withValues(alpha: 0.1),
+                                                  ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPopoutMetricTile({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoPill({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditQuizModal(BuildContext context, Map<String, dynamic> quiz) {
+    final titleController = TextEditingController(text: quiz['title'] ?? '');
+    final subjectController = TextEditingController(text: quiz['subject'] ?? '');
+    final durationController = TextEditingController(text: (quiz['duration_minutes'] ?? 15).toString());
+    final descriptionController = TextEditingController(text: quiz['description'] ?? '');
+    String selectedStatus = (quiz['status'] ?? 'active').toString().toLowerCase();
+
+    bool isUpdating = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (stCtx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(stCtx).viewInsets.bottom),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Edit Quiz Details',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.mainText),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.pop(modalCtx),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Quiz Title',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: subjectController,
+                        decoration: InputDecoration(
+                          labelText: 'Subject',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: durationController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Duration (Minutes)',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Quiz Status',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mainText),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: ['active', 'scheduled', 'completed'].map((st) {
+                          final isSel = selectedStatus == st;
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 6.0),
+                              child: ChoiceChip(
+                                label: Text(st.toUpperCase(), style: TextStyle(fontSize: 11, color: isSel ? Colors.white : AppTheme.mainText)),
+                                selected: isSel,
+                                selectedColor: AppTheme.primary,
+                                onSelected: (val) {
+                                  if (val) setModalState(() => selectedStatus = st);
+                                },
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: 'Description (Optional)',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: isUpdating
+                              ? null
+                              : () async {
+                                  if (titleController.text.trim().isEmpty) {
+                                    CustomToast.show(context, message: 'Please enter quiz title', type: ToastType.error);
+                                    return;
+                                  }
+
+                                  setModalState(() => isUpdating = true);
+
+                                  final dur = int.tryParse(durationController.text.trim()) ?? 15;
+                                  final res = await ApiService.updateQuiz(
+                                    quizId: quiz['id'],
+                                    title: titleController.text.trim(),
+                                    subject: subjectController.text.trim(),
+                                    durationMinutes: dur,
+                                    status: selectedStatus,
+                                    description: descriptionController.text.trim(),
+                                  );
+
+                                  if (context.mounted) {
+                                    Navigator.pop(modalCtx);
+                                    if (res['success'] == true) {
+                                      CustomToast.show(context, message: 'Quiz updated successfully', type: ToastType.success);
+                                      _fetchFacultyData();
+                                    } else {
+                                      CustomToast.show(context, message: res['message'] ?? 'Failed to update quiz', type: ToastType.error);
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: isUpdating
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDeleteQuiz(BuildContext context, Map<String, dynamic> quiz) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Quiz'),
+        content: Text('Are you sure you want to delete "${quiz['title']}"? This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && quiz['id'] != null) {
+      final ok = await ApiService.deleteQuiz(quiz['id']);
+      if (ok && mounted) {
+        CustomToast.show(context, message: 'Quiz deleted', type: ToastType.info);
+        _fetchFacultyData();
+      }
+    }
   }
 
   Widget _buildSubmissionsTab() {

@@ -920,17 +920,20 @@ class ApiService {
   static Future<Map<String, dynamic>> updateQuiz({
     required int quizId,
     required String title,
-    required String subject,
-    required String instructor,
-    required int durationMinutes,
-    required String status,
+    String? subject,
+    String? instructor,
+    int? durationMinutes,
+    String? status,
     String? description,
     String? scheduledAt,
+    String? startsAt,
+    String? endsAt,
     List<dynamic>? departmentIds,
     List<dynamic>? courseIds,
     List<dynamic>? branchIds,
     List<dynamic>? sectionIds,
     List<dynamic>? subjectIds,
+    List<Map<String, dynamic>>? targetGroups,
   }) async {
     final url = Uri.parse('$baseUrl/quizzes/$quizId');
     try {
@@ -943,17 +946,20 @@ class ApiService {
         },
         body: jsonEncode({
           'title': title,
-          'subject': subject,
-          'instructor': instructor,
-          'duration_minutes': durationMinutes,
-          'status': status,
-          'description': description ?? '',
-          'scheduled_at': scheduledAt,
-          'department_ids': departmentIds,
-          'course_ids': courseIds,
-          'branch_ids': branchIds,
-          'section_ids': sectionIds,
-          'subject_ids': subjectIds,
+          if (subject != null) 'subject': subject,
+          if (instructor != null) 'instructor': instructor,
+          if (durationMinutes != null) 'duration_minutes': durationMinutes,
+          if (status != null) 'status': status,
+          if (description != null) 'description': description,
+          if (scheduledAt != null) 'scheduled_at': scheduledAt,
+          if (startsAt != null) 'starts_at': startsAt,
+          if (endsAt != null) 'ends_at': endsAt,
+          if (departmentIds != null) 'department_ids': departmentIds,
+          if (courseIds != null) 'course_ids': courseIds,
+          if (branchIds != null) 'branch_ids': branchIds,
+          if (sectionIds != null) 'section_ids': sectionIds,
+          if (subjectIds != null) 'subject_ids': subjectIds,
+          if (targetGroups != null) 'target_groups': targetGroups,
         }),
       );
       _checkUnauthorized(response.statusCode);
@@ -1109,6 +1115,8 @@ class ApiService {
     } catch (_) {}
     return false;
   }
+
+
 
   /// Import Questions via CSV File (Faculty / Admin)
   static Future<Map<String, dynamic>> importQuestionsCsv({
