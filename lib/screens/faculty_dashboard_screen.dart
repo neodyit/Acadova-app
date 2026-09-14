@@ -298,6 +298,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return StatefulBuilder(
@@ -313,20 +314,20 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
               ),
-              child: ConstrainedBox(
+              child: Container(
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.88,
+                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
                 ),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
                         child: Container(
@@ -625,8 +626,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   ),
                 ),
               ),
-            ),
-          );
+            );
           },
         );
       },
