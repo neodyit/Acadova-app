@@ -538,7 +538,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       controller: _durationController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Duration (Mins) *',
+                        labelText: 'Duration *',
+                        suffixText: 'Mins',
                         prefixIcon: Icon(Icons.timer_rounded),
                       ),
                       validator: (val) {
