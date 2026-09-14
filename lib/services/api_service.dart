@@ -433,6 +433,18 @@ class ApiService {
   }) async {
     final url = Uri.parse('$baseUrl/profile');
     try {
+      final Map<String, dynamic> bodyPayload = {
+        'name': name,
+        'phone': phone,
+        'roll_number': rollNumber,
+        'faculty_id': facultyId,
+        'department': department,
+        'bio': bio,
+      };
+      if (avatar != null) {
+        bodyPayload['avatar'] = avatar;
+      }
+
       final response = await http.put(
         url,
         headers: {
@@ -440,15 +452,7 @@ class ApiService {
           'Accept': 'application/json',
           if (authToken != null) 'Authorization': 'Bearer $authToken',
         },
-        body: jsonEncode({
-          'name': name,
-          'phone': phone,
-          'roll_number': rollNumber,
-          'faculty_id': facultyId,
-          'department': department,
-          'bio': bio,
-          'avatar': avatar,
-        }),
+        body: jsonEncode(bodyPayload),
       );
 
       Map<String, dynamic> data = {};
