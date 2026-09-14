@@ -1223,44 +1223,43 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              Navigator.pop(modalCtx);
+                              final updated = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ManageQuestionsScreen(quiz: quiz),
+                                ),
+                              );
+                              if (updated == true && mounted) {
+                                _fetchFacultyData();
+                              }
+                            },
+                            icon: const Icon(Icons.quiz_rounded, size: 20),
+                            label: Text('Manage Questions ($questionCount)', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                         Row(
                           children: [
                             Expanded(
-                              flex: 3,
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  Navigator.pop(modalCtx);
-                                  final updated = await Navigator.push<bool>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ManageQuestionsScreen(quiz: quiz),
-                                    ),
-                                  );
-                                  if (updated == true && mounted) {
-                                    _fetchFacultyData();
-                                  }
-                                },
-                                icon: const Icon(Icons.quiz_rounded, size: 18),
-                                label: Text('Manage Questions ($questionCount)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primary,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              flex: 2,
                               child: OutlinedButton.icon(
                                 onPressed: () {
                                   Navigator.pop(modalCtx);
                                   _showEditQuizModal(context, quiz);
                                 },
-                                icon: const Icon(Icons.edit_rounded, size: 16),
-                                label: const Text('Edit Quiz', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                                icon: const Icon(Icons.edit_rounded, size: 18),
+                                label: const Text('Edit Quiz', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppTheme.primary,
                                   side: const BorderSide(color: AppTheme.primary),
@@ -1269,18 +1268,23 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              style: IconButton.styleFrom(
-                                backgroundColor: AppTheme.error.withValues(alpha: 0.1),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(modalCtx);
+                                  _confirmDeleteQuiz(context, quiz);
+                                },
+                                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                label: const Text('Delete Quiz', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppTheme.error,
+                                  side: BorderSide(color: AppTheme.error.withValues(alpha: 0.5)),
+                                  backgroundColor: AppTheme.error.withValues(alpha: 0.05),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
                               ),
-                              icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 20),
-                              tooltip: 'Delete Quiz',
-                              onPressed: () async {
-                                Navigator.pop(modalCtx);
-                                _confirmDeleteQuiz(context, quiz);
-                              },
                             ),
                           ],
                         ),

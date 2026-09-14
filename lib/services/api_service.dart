@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../config/app_config.dart';
 
 class ApiService {
@@ -27,7 +29,10 @@ class ApiService {
 
   /// Helper to convert technical exceptions (SocketException, HandshakeException, Timeout, etc.)
   /// into user-friendly error messages like "No Internet Connection".
-  static String _formatExceptionMessage(dynamic error, {String defaultMessage = 'Connection failed'}) {
+  static String _formatExceptionMessage(
+    dynamic error, {
+    String defaultMessage = 'Connection failed',
+  }) {
     final str = error.toString().toLowerCase();
     if (str.contains('socketexception') ||
         str.contains('failed host lookup') ||
@@ -95,7 +100,10 @@ class ApiService {
   }
 
   /// Save session to persistent storage
-  static Future<void> saveSession(String token, Map<String, dynamic> user) async {
+  static Future<void> saveSession(
+    String token,
+    Map<String, dynamic> user,
+  ) async {
     authToken = token;
     currentUser = user;
     final prefs = await SharedPreferences.getInstance();
@@ -158,7 +166,8 @@ class ApiService {
       return {
         'statusCode': response.statusCode,
         'success': data['success'] ?? false,
-        'message': data['message'] ?? 'Registration status (${response.statusCode})',
+        'message':
+            data['message'] ?? 'Registration status (${response.statusCode})',
         'data': data['data'] ?? {},
         'errors': data['errors'] ?? {},
       };
@@ -166,7 +175,10 @@ class ApiService {
       return {
         'statusCode': 500,
         'success': false,
-        'message': _formatExceptionMessage(e, defaultMessage: 'Connection failed. Please check backend server.'),
+        'message': _formatExceptionMessage(
+          e,
+          defaultMessage: 'Connection failed. Please check backend server.',
+        ),
         'error': e.toString(),
       };
     }
@@ -186,10 +198,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       Map<String, dynamic> data = {};
@@ -206,7 +215,11 @@ class ApiService {
       return {
         'statusCode': response.statusCode,
         'success': data['success'] ?? false,
-        'message': data['message'] ?? (response.statusCode == 401 ? 'Invalid email or password' : 'Server error (${response.statusCode})'),
+        'message':
+            data['message'] ??
+            (response.statusCode == 401
+                ? 'Invalid email or password'
+                : 'Server error (${response.statusCode})'),
         'data': data['data'] ?? {},
         'errors': data['errors'] ?? {},
       };
@@ -214,7 +227,10 @@ class ApiService {
       return {
         'statusCode': 500,
         'success': false,
-        'message': _formatExceptionMessage(e, defaultMessage: 'Connection failed'),
+        'message': _formatExceptionMessage(
+          e,
+          defaultMessage: 'Connection failed',
+        ),
         'error': e.toString(),
       };
     }
@@ -262,7 +278,8 @@ class ApiService {
       return {
         'statusCode': response.statusCode,
         'success': data['success'] ?? false,
-        'message': data['message'] ?? 'Google sign in status (${response.statusCode})',
+        'message':
+            data['message'] ?? 'Google sign in status (${response.statusCode})',
         'data': data['data'] ?? {},
         'errors': data['errors'] ?? {},
       };
@@ -270,7 +287,10 @@ class ApiService {
       return {
         'statusCode': 500,
         'success': false,
-        'message': _formatExceptionMessage(e, defaultMessage: 'Connection error during Google login'),
+        'message': _formatExceptionMessage(
+          e,
+          defaultMessage: 'Connection error during Google login',
+        ),
         'error': e.toString(),
       };
     }
@@ -442,11 +462,7 @@ class ApiService {
       }
       request.fields['folder'] = folder;
       request.files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          fileBytes,
-          filename: fileName,
-        ),
+        http.MultipartFile.fromBytes('file', fileBytes, filename: fileName),
       );
 
       final streamedResponse = await request.send();
@@ -471,7 +487,9 @@ class ApiService {
   }
 
   /// Get list of active campaigns / announcements
-  static Future<List<Map<String, dynamic>>> getCampaigns({String status = 'active'}) async {
+  static Future<List<Map<String, dynamic>>> getCampaigns({
+    String status = 'active',
+  }) async {
     final url = Uri.parse('$baseUrl/campaigns?status=$status');
 
     try {
@@ -497,7 +515,9 @@ class ApiService {
   }
 
   /// Get list of active / upcoming quizzes
-  static Future<List<Map<String, dynamic>>> getQuizzes({String status = 'active'}) async {
+  static Future<List<Map<String, dynamic>>> getQuizzes({
+    String status = 'active',
+  }) async {
     final url = Uri.parse('$baseUrl/quizzes?status=$status');
 
     try {
@@ -632,7 +652,9 @@ class ApiService {
   // --- ACADEMIC STRUCTURE FETCHERS FOR DROPDOWNS ---
   static Future<List<Map<String, dynamic>>> getUniversities() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/academic/universities'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/academic/universities'),
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return List<Map<String, dynamic>>.from(data['data'] ?? []);
@@ -654,7 +676,9 @@ class ApiService {
 
   static Future<List<Map<String, dynamic>>> getDepartments() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/academic/departments'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/academic/departments'),
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return List<Map<String, dynamic>>.from(data['data'] ?? []);
@@ -709,7 +733,9 @@ class ApiService {
 
   static Future<List<Map<String, dynamic>>> getSubsections() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/academic/subsections'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/academic/subsections'),
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return List<Map<String, dynamic>>.from(data['data'] ?? []);
@@ -793,8 +819,13 @@ class ApiService {
   }
 
   /// Helper to extract clean user-facing error message from API response
-  static String getErrorMessage(Map<String, dynamic> res, [String defaultMsg = 'An error occurred']) {
-    if (res['errors'] != null && res['errors'] is Map && (res['errors'] as Map).isNotEmpty) {
+  static String getErrorMessage(
+    Map<String, dynamic> res, [
+    String defaultMsg = 'An error occurred',
+  ]) {
+    if (res['errors'] != null &&
+        res['errors'] is Map &&
+        (res['errors'] as Map).isNotEmpty) {
       final errMap = res['errors'] as Map;
       final firstKey = errMap.keys.first;
       final firstVal = errMap[firstKey];
@@ -804,7 +835,9 @@ class ApiService {
         return firstVal;
       }
     }
-    if (res['message'] != null && res['message'].toString().isNotEmpty && res['message'] != 'Validation errors occurred') {
+    if (res['message'] != null &&
+        res['message'].toString().isNotEmpty &&
+        res['message'] != 'Validation errors occurred') {
       return res['message'].toString();
     }
     return defaultMsg;
@@ -1116,8 +1149,6 @@ class ApiService {
     return false;
   }
 
-
-
   /// Import Questions via CSV File (Faculty / Admin)
   static Future<Map<String, dynamic>> importQuestionsCsv({
     required int quizId,
@@ -1134,16 +1165,17 @@ class ApiService {
       request.headers['Accept'] = 'application/json';
 
       if (bytes != null && bytes.isNotEmpty) {
-        request.files.add(http.MultipartFile.fromBytes(
-          'csv_file',
-          bytes,
-          filename: filename ?? 'questions.csv',
-        ));
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'csv_file',
+            bytes,
+            filename: filename ?? 'questions.csv',
+          ),
+        );
       } else if (filePath != null && filePath.isNotEmpty) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'csv_file',
-          filePath,
-        ));
+        request.files.add(
+          await http.MultipartFile.fromPath('csv_file', filePath),
+        );
       } else {
         return {'success': false, 'message': 'No CSV file provided'};
       }
@@ -1168,20 +1200,29 @@ class ApiService {
     final role = (userData['role'] ?? 'student').toString().toLowerCase();
 
     if (role == 'faculty') {
-      return (userData['phone'] == null || userData['phone'].toString().trim().isEmpty) ||
-             (userData['university_id'] == null && userData['university'] == null) ||
-             (userData['faculty_id'] == null || userData['faculty_id'].toString().trim().isEmpty);
+      return (userData['phone'] == null ||
+              userData['phone'].toString().trim().isEmpty) ||
+          (userData['university_id'] == null &&
+              userData['university'] == null) ||
+          (userData['faculty_id'] == null ||
+              userData['faculty_id'].toString().trim().isEmpty);
     } else {
-      return (userData['phone'] == null || userData['phone'].toString().trim().isEmpty) ||
-             (userData['roll_number'] == null || userData['roll_number'].toString().trim().isEmpty) ||
-             (userData['university_id'] == null && userData['university'] == null) ||
-             (userData['college_id'] == null && userData['college'] == null) ||
-             (userData['department_id'] == null && userData['department_model'] == null) ||
-             (userData['course_id'] == null && userData['course'] == null) ||
-             (userData['branch_id'] == null && userData['branch'] == null) ||
-             (userData['section_id'] == null && userData['section'] == null) ||
-             (userData['subsection_id'] == null && userData['subsection'] == null) ||
-             (userData['semester'] == null || userData['semester'].toString().trim().isEmpty);
+      return (userData['phone'] == null ||
+              userData['phone'].toString().trim().isEmpty) ||
+          (userData['roll_number'] == null ||
+              userData['roll_number'].toString().trim().isEmpty) ||
+          (userData['university_id'] == null &&
+              userData['university'] == null) ||
+          (userData['college_id'] == null && userData['college'] == null) ||
+          (userData['department_id'] == null &&
+              userData['department_model'] == null) ||
+          (userData['course_id'] == null && userData['course'] == null) ||
+          (userData['branch_id'] == null && userData['branch'] == null) ||
+          (userData['section_id'] == null && userData['section'] == null) ||
+          (userData['subsection_id'] == null &&
+              userData['subsection'] == null) ||
+          (userData['semester'] == null ||
+              userData['semester'].toString().trim().isEmpty);
     }
   }
 }
