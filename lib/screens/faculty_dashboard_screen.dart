@@ -25,14 +25,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
   bool _isLoading = true;
   int _selectedTab = 0; // 0: Active Quizzes, 1: Scheduled, 2: Campaign, 3: Submissions
 
-  // Faculty Data
-  Map<String, dynamic> _facultyStats = {
-    'total_quizzes': 0,
-    'active_quizzes': 0,
-    'completed_quizzes': 0,
-    'total_submissions': 0,
-    'avg_accuracy': 0.0,
-  };
+
 
   List<Map<String, dynamic>> _quizzes = [];
   List<Map<String, dynamic>> _submissions = [];
@@ -77,11 +70,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
         }
       }
 
-      // 2. Fetch Faculty Stats
-      final stats = await ApiService.getFacultyStats();
-      if (stats != null) {
-        _facultyStats = stats;
-      }
+      
 
       // 3. Fetch Managed Quizzes
       final rawQuizzes = await ApiService.getQuizzes(status: 'all');
