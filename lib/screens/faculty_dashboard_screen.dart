@@ -3,6 +3,7 @@ import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'academic_profile_screen.dart';
+import 'create_quiz_screen.dart';
 import 'profile_screen.dart';
 
 class FacultyDashboardScreen extends StatefulWidget {
@@ -97,344 +98,20 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     }
   }
 
-  void _showCreateQuizModal() {
-    final titleController = TextEditingController();
-    final durationController = TextEditingController(text: '15');
-    final descriptionController = TextEditingController();
-
-    String selectedSubject = _allocations.isNotEmpty
-        ? (_allocations.first['subject_name'] ?? _user['department'] ?? 'Computer Science')
-        : (_user['department'] ?? 'Computer Science');
-    String selectedStatus = 'active';
-
-    List<dynamic> targetDeptIds = ['all'];
-    List<dynamic> targetCourseIds = ['all'];
-    List<dynamic> targetBranchIds = ['all'];
-    List<dynamic> targetSectionIds = ['all'];
-    List<dynamic> targetSubjectIds = ['all'];
-
-    String formatBatchLabel(Map<String, dynamic> alloc) {
-      final branchCode = alloc['branch_code'] ??
-          alloc['code'] ??
-          alloc['branchModel']?['code'] ??
-          alloc['branch_name']?.toString().split(' ').first ??
-          alloc['branch'] ??
-          'Branch';
-      final sec = alloc['section_name'] ?? alloc['section'] ?? 'A';
-      final subject = alloc['subject_name'] ?? alloc['subject'] ?? 'Subject';
-      final rawSem = alloc['semester'] ?? alloc['sem'] ?? alloc['academic_year'] ?? '';
-      
-      String semStr = rawSem.toString().trim();
-      if (semStr.isNotEmpty) {
-        // Format semester into short form, e.g. "3rd Semester" -> "Sem 3", "3" -> "Sem 3"
-        final numMatch = RegExp(r'\d+').firstMatch(semStr);
-        if (numMatch != null) {
-          semStr = 'Sem ${numMatch.group(0)}';
-        } else {
-          semStr = 'Sem $semStr';
-        }
-      } else {
-        semStr = 'Sem N/A';
-      }
-
-      return '$branchCode ($sec) - $subject - $semStr';
-    }
-
-    // Pre-populate target batches with all allocated batches by default
-    Set<String> selectedBatches = _allocations.map((a) => formatBatchLabel(a)).toSet();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (modalCtx, setModalState) {
-            final bool isAllBatchesSelected = _allocations.isNotEmpty &&
-                selectedBatches.length == _allocations.length;
-
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-              ),
-              child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
-                ),
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'Create New Quiz',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.mainText,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // 1. Quiz Title
-                      TextField(
-                        controller: titleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Quiz Title *',
-                          prefixIcon: Icon(Icons.quiz_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 2. Description / Instructions
-                      TextField(
-                        controller: descriptionController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Description / Instructions',
-                          prefixIcon: Icon(Icons.description_rounded),
-                          hintText: 'Enter quiz rules, guidelines, or instructions...',
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 3. Target Batches (Allocated Batches with Checkboxes & Select All)
-                      if (_allocations.isNotEmpty) ...[
-                        const Text(
-                          'Target Batches *',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.mainText),
-                        ),
-                        const SizedBox(height: 6),
-                        Material(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          clipBehavior: Clip.antiAlias,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Column(
-                              children: [
-                                // Select All row
-                                CheckboxListTile(
-                                  dense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                  title: const Text(
-                                    'Select All Batches',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.primary),
-                                  ),
-                                  value: isAllBatchesSelected,
-                                  activeColor: AppTheme.primary,
-                                  onChanged: (val) {
-                                    setModalState(() {
-                                      if (val == true) {
-                                        selectedBatches = _allocations.map((a) => formatBatchLabel(a)).toSet();
-                                      } else {
-                                        selectedBatches.clear();
-                                      }
-                                    });
-                                  },
-                                ),
-                                const Divider(height: 1),
-                                // Individual allocated batch checkboxes
-                                ..._allocations.map((alloc) {
-                                  final batchLabel = formatBatchLabel(alloc);
-                                  final isSelected = selectedBatches.contains(batchLabel);
-
-                                  return CheckboxListTile(
-                                    dense: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                    title: Text(
-                                      batchLabel,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                                    ),
-                                    value: isSelected,
-                                    activeColor: AppTheme.primary,
-                                    onChanged: (checked) {
-                                      setModalState(() {
-                                        if (checked == true) {
-                                          selectedBatches.add(batchLabel);
-                                        } else {
-                                          selectedBatches.remove(batchLabel);
-                                        }
-                                      });
-                                    },
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // 4 & 5. Duration and Status
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: durationController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Duration (Mins) *',
-                                prefixIcon: Icon(Icons.timer_rounded),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              isExpanded: true,
-                              initialValue: selectedStatus,
-                              decoration: const InputDecoration(
-                                labelText: 'Status *',
-                                prefixIcon: Icon(Icons.flag_rounded),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                              ),
-                              items: const [
-                                DropdownMenuItem(value: 'active', child: Text('Active', overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(value: 'upcoming', child: Text('Upcoming', overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(value: 'completed', child: Text('Completed', overflow: TextOverflow.ellipsis)),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) setModalState(() => selectedStatus = val);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            final title = titleController.text.trim();
-                            final duration = int.tryParse(durationController.text.trim()) ?? 15;
-
-                            if (title.isEmpty) {
-                              CustomToast.show(
-                                sheetContext,
-                                message: 'Please enter quiz title',
-                                type: ToastType.warning,
-                              );
-                              return;
-                            }
-
-                            List<Map<String, dynamic>> targetGroups = [];
-
-                            // If specific batches were selected, update target filters and build specific target pairs (target_groups)
-                            if (selectedBatches.isNotEmpty) {
-                              final matchingAllocs = _allocations.where((a) {
-                                return selectedBatches.contains(formatBatchLabel(a));
-                              }).toList();
-
-                              targetSectionIds = matchingAllocs.map((a) => a['section_id']).where((id) => id != null).toList();
-                              targetDeptIds = matchingAllocs.map((a) => a['department_id']).where((id) => id != null).toList();
-                              targetCourseIds = matchingAllocs.map((a) => a['course_id']).where((id) => id != null).toList();
-                              targetBranchIds = matchingAllocs.map((a) => a['branch_id']).where((id) => id != null).toList();
-                              targetSubjectIds = matchingAllocs.map((a) => a['subject_id'] ?? a['subject_name']).where((id) => id != null).toList();
-
-                              // Construct explicit Target Pairs (target_groups) matching Admin Panel schema
-                              targetGroups = matchingAllocs.map((alloc) {
-                                final branchVal = alloc['branch_name'] ?? alloc['branch_code'] ?? alloc['branch_id'] ?? 'all';
-                                final secVal = (alloc['section_name'] ?? alloc['section_id'] ?? 'all').toString();
-                                final rawSem = alloc['semester'] ?? alloc['sem'] ?? alloc['academic_year'] ?? '';
-
-                                String semVal = rawSem.toString().trim();
-                                if (semVal.isNotEmpty) {
-                                  final numMatch = RegExp(r'\d+').firstMatch(semVal);
-                                  if (numMatch != null) {
-                                    semVal = numMatch.group(0)!;
-                                  }
-                                }
-
-                                return {
-                                  'branch_id': branchVal,
-                                  'section_id': secVal,
-                                  'section_ids': [secVal],
-                                  if (semVal.isNotEmpty) 'semester': semVal,
-                                  if (alloc['department_id'] != null) 'department_id': alloc['department_id'],
-                                  if (alloc['course_id'] != null) 'course_id': alloc['course_id'],
-                                };
-                              }).toList();
-
-                              if (matchingAllocs.isNotEmpty) {
-                                selectedSubject = matchingAllocs.first['subject_name'] ?? selectedSubject;
-                              }
-                            }
-
-                            Navigator.pop(sheetContext);
-
-                            if (!mounted) return;
-
-                            final res = await ApiService.createQuiz(
-                              title: title,
-                              subject: selectedSubject,
-                              instructor: (_user['name'] ?? _user['full_name'] ?? 'Faculty').toString(),
-                              durationMinutes: duration,
-                              status: selectedStatus,
-                              description: descriptionController.text.trim(),
-                              departmentIds: targetDeptIds,
-                              courseIds: targetCourseIds,
-                              branchIds: targetBranchIds,
-                              sectionIds: targetSectionIds,
-                              subjectIds: targetSubjectIds,
-                              targetGroups: targetGroups.isNotEmpty ? targetGroups : null,
-                            );
-
-                            if (mounted) {
-                              if (res['success'] == true) {
-                                CustomToast.show(
-                                  context,
-                                  title: 'Quiz Created',
-                                  message: 'Quiz "$title" created for applicable students!',
-                                  type: ToastType.success,
-                                );
-                                _fetchFacultyData();
-                              } else {
-                                CustomToast.show(
-                                  context,
-                                  title: 'Creation Failed',
-                                  message: ApiService.getErrorMessage(res, 'Could not create quiz'),
-                                  type: ToastType.error,
-                                );
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.add_task_rounded),
-                          label: const Text('Create Quiz', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+  Future<void> _navigateToCreateQuizScreen() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateQuizScreen(
+          userData: _user,
+          allocations: _allocations,
+        ),
+      ),
     );
+
+    if (created == true && mounted) {
+      _fetchFacultyData();
+    }
   }
 
   void _showAddQuestionModal(Map<String, dynamic> quiz) {
@@ -746,7 +423,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                             width: double.infinity,
                             height: 44,
                             child: ElevatedButton.icon(
-                              onPressed: _showCreateQuizModal,
+                              onPressed: _navigateToCreateQuizScreen,
                               icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
                               label: const Text('Create New Quiz', style: TextStyle(fontWeight: FontWeight.bold)),
                               style: ElevatedButton.styleFrom(
@@ -815,7 +492,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                           ),
                           const SizedBox(height: 24),
                           OutlinedButton.icon(
-                            onPressed: _showCreateQuizModal,
+                            onPressed: _navigateToCreateQuizScreen,
                             icon: const Icon(Icons.add_rounded, size: 18),
                             label: const Text('Create New Quiz', style: TextStyle(fontWeight: FontWeight.w600)),
                             style: OutlinedButton.styleFrom(
