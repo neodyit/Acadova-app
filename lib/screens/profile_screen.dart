@@ -986,7 +986,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.08),
+            color: const Color.fromARGB(255, 180, 83, 9).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: AppTheme.primary, size: 18),
@@ -1196,12 +1196,12 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6C5CE7).withValues(alpha: 0.12),
+                      color: const Color.fromARGB(255, 223, 74, 23).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.lock_reset_rounded,
-                      color: Color(0xFF6C5CE7),
+                      color: const Color.fromARGB(255, 223, 74, 23),
                       size: 24,
                     ),
                   ),
@@ -1224,7 +1224,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                 obscureText: _obscureNew,
                 decoration: InputDecoration(
                   labelText: 'New Password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF6C5CE7)),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: const Color.fromARGB(255, 223, 74, 23)),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -1239,7 +1239,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF6C5CE7), width: 2),
+                    borderSide: const BorderSide(color: const Color.fromARGB(255, 223, 74, 23), width: 2),
                   ),
                 ),
               ),
@@ -1251,7 +1251,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                 obscureText: _obscureConfirm,
                 decoration: InputDecoration(
                   labelText: 'Confirm New Password',
-                  prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF6C5CE7)),
+                  prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: const Color.fromARGB(255, 223, 74, 23)),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -1266,7 +1266,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF6C5CE7), width: 2),
+                    borderSide: const BorderSide(color:const Color.fromARGB(255, 223, 74, 23), width: 2),
                   ),
                 ),
               ),
@@ -1310,7 +1310,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleUpdatePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C5CE7),
+                    backgroundColor: const Color.fromARGB(255, 223, 74, 23),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
