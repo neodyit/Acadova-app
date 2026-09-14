@@ -31,6 +31,23 @@ class QuizResultScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.mainText),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          tooltip: 'Back',
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded, color: AppTheme.primary, size: 26),
+            onPressed: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            tooltip: 'Return to Dashboard',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -189,10 +206,11 @@ class QuizResultScreen extends StatelessWidget {
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(context).popUntil((route) => route.isFirst);
                   },
+                  icon: const Icon(Icons.home_rounded, size: 20),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
@@ -201,8 +219,8 @@ class QuizResultScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Back to Dashboard',
+                  label: const Text(
+                    'Return to Dashboard',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                 ),
