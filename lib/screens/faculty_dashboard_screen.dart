@@ -35,6 +35,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
   List<Map<String, dynamic>> _submissions = [];
   List<Map<String, dynamic>> _allocations = [];
 
+  List<Map<String, dynamic>> _dbDepartments = [];
+  List<Map<String, dynamic>> _dbCourses = [];
+  List<Map<String, dynamic>> _dbBranches = [];
+  List<Map<String, dynamic>> _dbSections = [];
+  List<Map<String, dynamic>> _dbSubjects = [];
+
   @override
   void initState() {
     super.initState();
@@ -90,6 +96,13 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
       // 5. Fetch Faculty Allocations (Subjects & Sections)
       _allocations = await ApiService.getMyFacultyAllocations();
+
+      // 6. Fetch Database Academic Structures
+      _dbDepartments = await ApiService.getDepartments();
+      _dbCourses = await ApiService.getCourses();
+      _dbBranches = await ApiService.getBranches();
+      _dbSections = await ApiService.getSections();
+      _dbSubjects = await ApiService.getSubjects();
     } catch (_) {}
 
     if (mounted) {
@@ -97,20 +110,178 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     }
   }
 
+  Future<List<dynamic>?> _showTargetMultiSelectDialog({
+    required String title,
+    required List<Map<String, dynamic>> items,
+    required List<dynamic> currentSelections,
+    required String Function(Map<String, dynamic> item) labelGetter,
+    required dynamic Function(Map<String, dynamic> item) idGetter,
+  }) async {
+    List<dynamic> selectedIds = List<dynamic>.from(currentSelections);
+    bool isAllSelected = selectedIds.isEmpty || selectedIds.contains('all');
+
+    return showDialog<List<dynamic>>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  const Icon(Icons.hub_rounded, color: AppTheme.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text('Target $title', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isAllSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isAllSelected ? AppTheme.primary : Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.done_all_rounded, color: AppTheme.primary, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Target ALL $title',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isAllSelected ? AppTheme.primary : AppTheme.mainText,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ),
+                          Switch(
+                            value: isAllSelected,
+                            activeColor: AppTheme.primary,
+                            onChanged: (val) {
+                              setDialogState(() {
+                                isAllSelected = val;
+                                if (val) {
+                                  selectedIds = ['all'];
+                                } else {
+                                  selectedIds.clear();
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (!isAllSelected) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                selectedIds = items.map((e) => idGetter(e)).toList();
+                              });
+                            },
+                            child: const Text('Select All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                selectedIds.clear();
+                              });
+                            },
+                            child: const Text('Clear All', style: TextStyle(fontSize: 12, color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 1),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.35,
+                        ),
+                        child: items.isEmpty
+                            ? const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text('No database entries found.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: items.length,
+                                itemBuilder: (ctx, idx) {
+                                  final item = items[idx];
+                                  final itemId = idGetter(item);
+                                  final itemLabel = labelGetter(item);
+                                  final isChecked = selectedIds.contains(itemId) || selectedIds.contains(itemId.toString());
+
+                                  return CheckboxListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                                    dense: true,
+                                    title: Text(itemLabel, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                                    value: isChecked,
+                                    activeColor: AppTheme.primary,
+                                    onChanged: (checked) {
+                                      setDialogState(() {
+                                        if (checked == true) {
+                                          selectedIds.add(itemId);
+                                        } else {
+                                          selectedIds.remove(itemId);
+                                          selectedIds.remove(itemId.toString());
+                                        }
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, null),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (isAllSelected || selectedIds.isEmpty) {
+                      Navigator.pop(dialogCtx, ['all']);
+                    } else {
+                      Navigator.pop(dialogCtx, selectedIds);
+                    }
+                  },
+                  child: const Text('Confirm'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showCreateQuizModal() {
     final titleController = TextEditingController();
     final customSubjectController = TextEditingController();
-    final customSectionController = TextEditingController();
     final durationController = TextEditingController(text: '15');
     final descriptionController = TextEditingController();
 
     String selectedSubject = _allocations.isNotEmpty
         ? (_allocations.first['subject_name'] ?? _user['department'] ?? 'Computer Science')
         : (_user['department'] ?? 'Computer Science');
-    String selectedSection = _allocations.isNotEmpty
-        ? (_allocations.first['section_name'] ?? 'All Sections')
-        : 'All Sections';
     String selectedStatus = 'active';
+
+    List<dynamic> targetDeptIds = ['all'];
+    List<dynamic> targetCourseIds = ['all'];
+    List<dynamic> targetBranchIds = ['all'];
+    List<dynamic> targetSectionIds = ['all'];
+    List<dynamic> targetSubjectIds = ['all'];
 
     showModalBottomSheet(
       context: context,
@@ -119,17 +290,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
-            final allocatedSubjects = _allocations
-                .map((a) => a['subject_name']?.toString() ?? '')
-                .where((s) => s.isNotEmpty)
-                .toSet()
-                .toList();
-
-            final allocatedSections = _allocations
-                .map((a) => a['section_name']?.toString() ?? '')
-                .where((s) => s.isNotEmpty)
-                .toSet()
-                .toList();
+            String formatTargetSummary(List<dynamic> targets, String label) {
+              if (targets.isEmpty || targets.contains('all')) {
+                return 'ALL (Targeting All $label)';
+              }
+              return '${targets.length} Selected';
+            }
 
             return Padding(
               padding: EdgeInsets.only(
@@ -174,54 +340,121 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      if (allocatedSubjects.isNotEmpty) ...[
-                        DropdownButtonFormField<String>(
-                          initialValue: allocatedSubjects.contains(selectedSubject) ? selectedSubject : allocatedSubjects.first,
-                          decoration: const InputDecoration(
-                            labelText: 'Assigned Subject *',
-                            prefixIcon: Icon(Icons.school_rounded),
-                          ),
-                          items: allocatedSubjects.map((sub) {
-                            return DropdownMenuItem(value: sub, child: Text(sub));
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setModalState(() => selectedSubject = val);
-                          },
+                      TextField(
+                        controller: customSubjectController,
+                        decoration: InputDecoration(
+                          labelText: 'Primary Subject / Name *',
+                          prefixIcon: const Icon(Icons.school_rounded),
+                          hintText: selectedSubject,
                         ),
-                      ] else ...[
-                        TextField(
-                          controller: customSubjectController,
-                          decoration: const InputDecoration(
-                            labelText: 'Subject / Category *',
-                            prefixIcon: Icon(Icons.school_rounded),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Target Audience Header
+                      Row(
+                        children: [
+                          const Icon(Icons.groups_rounded, color: AppTheme.primary, size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Target Student Scope (Select Database Filters)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.mainText),
                           ),
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-                      if (allocatedSections.isNotEmpty) ...[
-                        DropdownButtonFormField<String>(
-                          initialValue: allocatedSections.contains(selectedSection) ? selectedSection : allocatedSections.first,
-                          decoration: const InputDecoration(
-                            labelText: 'Target Section / Batch *',
-                            prefixIcon: Icon(Icons.groups_rounded),
-                          ),
-                          items: allocatedSections.map((sec) {
-                            return DropdownMenuItem(value: sec, child: Text(sec));
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setModalState(() => selectedSection = val);
-                          },
-                        ),
-                      ] else ...[
-                        TextField(
-                          controller: customSectionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Target Section (Optional)',
-                            prefixIcon: Icon(Icons.groups_rounded),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 14),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Target Selector Chips / Buttons
+                      _buildTargetPickerTile(
+                        icon: Icons.account_balance_rounded,
+                        title: 'Departments',
+                        summary: formatTargetSummary(targetDeptIds, 'Departments'),
+                        onTap: () async {
+                          final selected = await _showTargetMultiSelectDialog(
+                            title: 'Departments',
+                            items: _dbDepartments,
+                            currentSelections: targetDeptIds,
+                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
+                            idGetter: (item) => item['id'],
+                          );
+                          if (selected != null) {
+                            setModalState(() => targetDeptIds = selected);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTargetPickerTile(
+                        icon: Icons.school_rounded,
+                        title: 'Courses',
+                        summary: formatTargetSummary(targetCourseIds, 'Courses'),
+                        onTap: () async {
+                          final selected = await _showTargetMultiSelectDialog(
+                            title: 'Courses',
+                            items: _dbCourses,
+                            currentSelections: targetCourseIds,
+                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
+                            idGetter: (item) => item['id'],
+                          );
+                          if (selected != null) {
+                            setModalState(() => targetCourseIds = selected);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTargetPickerTile(
+                        icon: Icons.alt_route_rounded,
+                        title: 'Branches',
+                        summary: formatTargetSummary(targetBranchIds, 'Branches'),
+                        onTap: () async {
+                          final selected = await _showTargetMultiSelectDialog(
+                            title: 'Branches',
+                            items: _dbBranches,
+                            currentSelections: targetBranchIds,
+                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
+                            idGetter: (item) => item['id'],
+                          );
+                          if (selected != null) {
+                            setModalState(() => targetBranchIds = selected);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTargetPickerTile(
+                        icon: Icons.class_rounded,
+                        title: 'Sections',
+                        summary: formatTargetSummary(targetSectionIds, 'Sections'),
+                        onTap: () async {
+                          final selected = await _showTargetMultiSelectDialog(
+                            title: 'Sections',
+                            items: _dbSections,
+                            currentSelections: targetSectionIds,
+                            labelGetter: (item) => item['name'].toString(),
+                            idGetter: (item) => item['id'],
+                          );
+                          if (selected != null) {
+                            setModalState(() => targetSectionIds = selected);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTargetPickerTile(
+                        icon: Icons.menu_book_rounded,
+                        title: 'Subjects',
+                        summary: formatTargetSummary(targetSubjectIds, 'Subjects'),
+                        onTap: () async {
+                          final selected = await _showTargetMultiSelectDialog(
+                            title: 'Subjects',
+                            items: _dbSubjects,
+                            currentSelections: targetSubjectIds,
+                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
+                            idGetter: (item) => item['name'],
+                          );
+                          if (selected != null) {
+                            setModalState(() => targetSubjectIds = selected);
+                          }
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
@@ -270,17 +503,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         child: ElevatedButton.icon(
                           onPressed: () async {
                             final title = titleController.text.trim();
-                            final finalSubject = allocatedSubjects.isNotEmpty
-                                ? selectedSubject
-                                : (customSubjectController.text.trim().isNotEmpty
-                                    ? customSubjectController.text.trim()
-                                    : (_user['department'] ?? 'General'));
-                            final finalSection = allocatedSections.isNotEmpty
-                                ? selectedSection
-                                : (customSectionController.text.trim().isNotEmpty
-                                    ? customSectionController.text.trim()
-                                    : 'All Sections');
-
+                            final typedSub = customSubjectController.text.trim();
+                            final finalSubject = typedSub.isNotEmpty ? typedSub : selectedSubject;
                             final duration = int.tryParse(durationController.text.trim()) ?? 15;
 
                             if (title.isEmpty) {
@@ -303,6 +527,11 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                               durationMinutes: duration,
                               status: selectedStatus,
                               description: descriptionController.text.trim(),
+                              departmentIds: targetDeptIds,
+                              courseIds: targetCourseIds,
+                              branchIds: targetBranchIds,
+                              sectionIds: targetSectionIds,
+                              subjectIds: targetSubjectIds,
                             );
 
                             if (mounted) {
@@ -310,7 +539,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                                 CustomToast.show(
                                   context,
                                   title: 'Quiz Created',
-                                  message: 'Quiz "$title" created for $finalSubject ($finalSection)!',
+                                  message: 'Quiz "$title" created for applicable students!',
                                   type: ToastType.success,
                                 );
                                 _fetchFacultyData();
@@ -336,6 +565,30 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildTargetPickerTile({
+    required IconData icon,
+    required String title,
+    required String summary,
+    required VoidCallback onTap,
+  }) {
+    final bool isAll = summary.startsWith('ALL');
+    return Container(
+      decoration: BoxDecoration(
+        color: isAll ? Colors.grey.shade50 : AppTheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isAll ? Colors.grey.shade300 : AppTheme.primary.withValues(alpha: 0.4)),
+      ),
+      child: ListTile(
+        dense: true,
+        onTap: onTap,
+        leading: Icon(icon, color: isAll ? Colors.grey.shade700 : AppTheme.primary, size: 20),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        subtitle: Text(summary, style: TextStyle(fontSize: 12, color: isAll ? Colors.grey.shade600 : AppTheme.primary, fontWeight: FontWeight.w600)),
+        trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
+      ),
     );
   }
 

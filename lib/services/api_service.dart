@@ -696,6 +696,17 @@ class ApiService {
     return [];
   }
 
+  static Future<List<Map<String, dynamic>>> getSubjects() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/academic/subjects'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data['data'] ?? []);
+      }
+    } catch (_) {}
+    return [];
+  }
+
   static Future<List<Map<String, dynamic>>> getSubsections() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/academic/subsections'));
@@ -847,7 +858,7 @@ class ApiService {
     return [];
   }
 
-  /// Create a new Quiz (Faculty)
+  /// Create a new Quiz (Faculty / Admin)
   static Future<Map<String, dynamic>> createQuiz({
     required String title,
     required String subject,
@@ -856,6 +867,11 @@ class ApiService {
     required String status,
     String? description,
     String? scheduledAt,
+    List<dynamic>? departmentIds,
+    List<dynamic>? courseIds,
+    List<dynamic>? branchIds,
+    List<dynamic>? sectionIds,
+    List<dynamic>? subjectIds,
   }) async {
     final url = Uri.parse('$baseUrl/quizzes');
     try {
@@ -874,6 +890,11 @@ class ApiService {
           'status': status,
           'description': description ?? '',
           'scheduled_at': scheduledAt,
+          'department_ids': departmentIds,
+          'course_ids': courseIds,
+          'branch_ids': branchIds,
+          'section_ids': sectionIds,
+          'subject_ids': subjectIds,
         }),
       );
       _checkUnauthorized(response.statusCode);
@@ -886,6 +907,59 @@ class ApiService {
       };
     } catch (e) {
       return {'success': false, 'message': 'Failed to create quiz ($e)'};
+    }
+  }
+
+  /// Update an existing Quiz (Faculty / Admin)
+  static Future<Map<String, dynamic>> updateQuiz({
+    required int quizId,
+    required String title,
+    required String subject,
+    required String instructor,
+    required int durationMinutes,
+    required String status,
+    String? description,
+    String? scheduledAt,
+    List<dynamic>? departmentIds,
+    List<dynamic>? courseIds,
+    List<dynamic>? branchIds,
+    List<dynamic>? sectionIds,
+    List<dynamic>? subjectIds,
+  }) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId');
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({
+          'title': title,
+          'subject': subject,
+          'instructor': instructor,
+          'duration_minutes': durationMinutes,
+          'status': status,
+          'description': description ?? '',
+          'scheduled_at': scheduledAt,
+          'department_ids': departmentIds,
+          'course_ids': courseIds,
+          'branch_ids': branchIds,
+          'section_ids': sectionIds,
+          'subject_ids': subjectIds,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Quiz update response',
+        'data': data['data'],
+        'errors': data['errors'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to update quiz ($e)'};
     }
   }
 
