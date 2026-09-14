@@ -521,6 +521,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
                       const SizedBox(height: 16),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: TextField(
@@ -529,21 +530,24 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Duration (Mins) *',
                                 prefixIcon: Icon(Icons.timer_rounded),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: DropdownButtonFormField<String>(
+                              isExpanded: true,
                               initialValue: selectedStatus,
                               decoration: const InputDecoration(
                                 labelText: 'Status',
                                 prefixIcon: Icon(Icons.flag_rounded),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                               ),
                               items: const [
-                                DropdownMenuItem(value: 'active', child: Text('Active')),
-                                DropdownMenuItem(value: 'upcoming', child: Text('Upcoming')),
-                                DropdownMenuItem(value: 'completed', child: Text('Completed')),
+                                DropdownMenuItem(value: 'active', child: Text('Active', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'upcoming', child: Text('Upcoming', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'completed', child: Text('Completed', overflow: TextOverflow.ellipsis)),
                               ],
                               onChanged: (val) {
                                 if (val != null) setModalState(() => selectedStatus = val);
