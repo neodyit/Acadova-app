@@ -390,13 +390,16 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  questionType == 'single'
-                                      ? 'Answer Choices (Select 1 correct option):'
-                                      : 'Answer Choices (Select ALL correct options):',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mainText),
+                                Expanded(
+                                  child: Text(
+                                    questionType == 'single'
+                                        ? 'Answer Choices (Select 1 correct option):'
+                                        : 'Answer Choices (Select ALL correct options):',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mainText),
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
                                 if (optionControllers.length < 6)
                                   TextButton.icon(
                                     onPressed: () {
