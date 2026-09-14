@@ -46,3 +46,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Keystore & Secrets
+*.jks
+*.keystore
+*.pem
+key.properties
+android/key.properties
+
