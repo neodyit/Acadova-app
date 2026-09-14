@@ -1012,28 +1012,6 @@ class ApiService {
     return [];
   }
 
-  /// Get single Quiz details with questions
-  static Future<Map<String, dynamic>?> getQuizDetails(int quizId) async {
-    final url = Uri.parse('$baseUrl/quizzes/$quizId');
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Accept': 'application/json',
-          if (authToken != null) 'Authorization': 'Bearer $authToken',
-        },
-      );
-      _checkUnauthorized(response.statusCode);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          return Map<String, dynamic>.from(data['data']);
-        }
-      }
-    } catch (_) {}
-    return null;
-  }
-
   /// Add a Question to Quiz (Faculty)
   static Future<Map<String, dynamic>> addQuestionToQuiz({
     required int quizId,
