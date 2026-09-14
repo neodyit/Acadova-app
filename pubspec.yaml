@@ -40,6 +40,7 @@ dependencies:
   google_sign_in: ^6.2.2
   geolocator: ^14.0.2
   geocoding: ^5.0.0
+  app_links: ^6.3.2
 
 dev_dependencies:
   flutter_test:
