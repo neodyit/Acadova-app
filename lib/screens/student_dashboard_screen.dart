@@ -171,9 +171,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 : (isLiveNow ? const Color(0xFF6C5CE7) : const Color(0xFF0984E3)),
           };
 
-          if (isAttempted || isLiveNow || isAfterEnd) {
+          if (isAttempted || isLiveNow) {
             _activeQuizzes.add(quizItem);
-          } else {
+          } else if (isBeforeStart) {
             _upcomingQuizzes.add({
               'id': qId,
               'title': q['title'],
@@ -1063,24 +1063,36 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     decoration: BoxDecoration(
                       color: isAttempted
                           ? AppTheme.primary.withValues(alpha: 0.12)
-                          : AppTheme.primary.withValues(alpha: 0.12),
+                          : (quiz['isAfterEnd'] == true
+                              ? AppTheme.error.withValues(alpha: 0.12)
+                              : AppTheme.primary.withValues(alpha: 0.12)),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isAttempted ? Icons.check_circle_rounded : Icons.sensors_rounded,
+                          isAttempted
+                              ? Icons.check_circle_rounded
+                              : (quiz['isAfterEnd'] == true
+                                  ? Icons.timer_off_rounded
+                                  : Icons.sensors_rounded),
                           size: 14,
-                          color: AppTheme.primary,
+                          color: isAttempted
+                              ? AppTheme.primary
+                              : (quiz['isAfterEnd'] == true ? AppTheme.error : AppTheme.primary),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          isAttempted ? 'Completed' : 'Available',
-                          style: const TextStyle(
-                            fontSize: 12,
+                          isAttempted
+                              ? 'Completed'
+                              : (quiz['isAfterEnd'] == true ? 'Expired' : 'Available'),
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primary,
+                            fontSize: 13,
+                            color: isAttempted
+                                ? AppTheme.primary
+                                : (quiz['isAfterEnd'] == true ? AppTheme.error : AppTheme.primary),
                           ),
                         ),
                       ],
@@ -1216,131 +1228,122 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    if (isAttempted) {
-                      Navigator.pop(sheetContext);
-                      CustomToast.show(
-                        context,
-                        title: 'Already Attempted',
-                        message: 'You have already submitted your response for this quiz.',
-                        type: ToastType.info,
-                      );
-                      return;
-                    }
+                  onPressed: (isAttempted || quiz['isAfterEnd'] == true)
+                      ? null
+                      : () async {
+                          if (quiz['isBeforeStart'] == true) {
+                            Navigator.pop(sheetContext);
+                            CustomToast.show(
+                              context,
+                              title: 'Quiz Not Started',
+                              message: 'This quiz is scheduled to start at ${quiz['due']}.',
+                              type: ToastType.warning,
+                              customIcon: Icons.schedule_rounded,
+                            );
+                            return;
+                          }
 
-                    if (quiz['isAfterEnd'] == true) {
-                      Navigator.pop(sheetContext);
-                      CustomToast.show(
-                        context,
-                        title: 'Quiz Expired / Missed',
-                        message: 'This quiz has ended and can no longer be attempted.',
-                        type: ToastType.error,
-                        customIcon: Icons.timer_off_rounded,
-                      );
-                      return;
-                    }
+                          Navigator.pop(sheetContext); // Close modal sheet
 
-                    if (quiz['isBeforeStart'] == true) {
-                      Navigator.pop(sheetContext);
-                      CustomToast.show(
-                        context,
-                        title: 'Quiz Not Started',
-                        message: 'This quiz is scheduled to start at ${quiz['due']}.',
-                        type: ToastType.warning,
-                        customIcon: Icons.schedule_rounded,
-                      );
-                      return;
-                    }
+                          if (!mounted) return;
 
-                    Navigator.pop(sheetContext); // Close modal sheet
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                          );
 
-                    if (!mounted) return;
-
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-                    );
-
-                    List<Map<String, dynamic>> questions = [];
-                    if (quiz['id'] != null) {
-                      final quizDetails = await ApiService.getQuizDetails(quiz['id']);
-                      if (quizDetails != null && quizDetails['questions'] is List && (quizDetails['questions'] as List).isNotEmpty) {
-                        questions = List<Map<String, dynamic>>.from(
-                          (quizDetails['questions'] as List).map((q) {
-                            List<String> parsedOptions = [];
-                            if (q['options'] is List) {
-                              parsedOptions = List<String>.from((q['options'] as List).map((e) => e?.toString() ?? ''));
-                            } else if (q['options'] is String && (q['options'] as String).isNotEmpty) {
-                              try {
-                                final decoded = jsonDecode(q['options']);
-                                if (decoded is List) {
-                                  parsedOptions = List<String>.from(decoded.map((e) => e?.toString() ?? ''));
-                                }
-                              } catch (_) {}
+                          List<Map<String, dynamic>> questions = [];
+                          if (quiz['id'] != null) {
+                            final quizDetails = await ApiService.getQuizDetails(quiz['id']);
+                            if (quizDetails != null && quizDetails['questions'] is List && (quizDetails['questions'] as List).isNotEmpty) {
+                              questions = List<Map<String, dynamic>>.from(
+                                (quizDetails['questions'] as List).map((q) {
+                                  List<String> parsedOptions = [];
+                                  if (q['options'] is List) {
+                                    parsedOptions = List<String>.from((q['options'] as List).map((e) => e?.toString() ?? ''));
+                                  } else if (q['options'] is String && (q['options'] as String).isNotEmpty) {
+                                    try {
+                                      final decoded = jsonDecode(q['options']);
+                                      if (decoded is List) {
+                                        parsedOptions = List<String>.from(decoded.map((e) => e?.toString() ?? ''));
+                                      }
+                                    } catch (_) {}
+                                  }
+                                  return {
+                                    'id': q['id'],
+                                    'question': q['question'] ?? '',
+                                    'type': q['type'] ?? 'single',
+                                    'options': parsedOptions,
+                                    'correct_option': q['correct_option'],
+                                  };
+                                }),
+                              );
                             }
-                            return {
-                              'id': q['id'],
-                              'question': q['question'] ?? '',
-                              'type': q['type'] ?? 'single',
-                              'options': parsedOptions,
-                              'correct_option': q['correct_option'],
-                            };
-                          }),
-                        );
-                      }
-                    }
+                          }
 
-                    if (!mounted) return;
-                    Navigator.of(context, rootNavigator: true).pop(); // Close loader
+                          if (!mounted) return;
+                          Navigator.of(context, rootNavigator: true).pop(); // Close loader
 
-                    if (questions.isEmpty) {
-                      CustomToast.show(
-                        context,
-                        title: 'No Questions',
-                        message: 'This quiz does not have any questions added yet.',
-                        type: ToastType.warning,
-                      );
-                      return;
-                    }
+                          if (questions.isEmpty) {
+                            CustomToast.show(
+                              context,
+                              title: 'No Questions',
+                              message: 'This quiz does not have any questions added yet.',
+                              type: ToastType.warning,
+                            );
+                            return;
+                          }
 
-                    if (!mounted) return;
+                          if (!mounted) return;
 
-                    final locationData = await LocationPermissionBannerDialog.requestAndFetchLocation(
-                      context,
-                      quiz['title'] ?? 'Quiz',
-                    );
+                          final locationData = await LocationPermissionBannerDialog.requestAndFetchLocation(
+                            context,
+                            quiz['title'] ?? 'Quiz',
+                          );
 
-                    if (locationData == null) {
-                      return; // User cancelled or denied location permission
-                    }
+                          if (locationData == null) {
+                            return; // User cancelled or denied location permission
+                          }
 
-                    if (!mounted) return;
+                          if (!mounted) return;
 
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => QuizAttemptScreen(
-                          quizId: quiz['id'],
-                          quizTitle: quiz['title'],
-                          subject: quiz['subject'],
-                          durationMinutes: quiz['durationMinutes'] ?? 15,
-                          questions: questions,
-                          location: locationData['location'],
-                          latitude: locationData['latitude'],
-                          longitude: locationData['longitude'],
-                        ),
-                      ),
-                    ).then((_) {
-                      if (mounted) _fetchBackendData();
-                    });
-                  },
-                  icon: Icon(isAttempted ? Icons.check_circle_rounded : Icons.play_arrow_rounded),
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => QuizAttemptScreen(
+                                quizId: quiz['id'],
+                                quizTitle: quiz['title'],
+                                subject: quiz['subject'],
+                                durationMinutes: quiz['durationMinutes'] ?? 15,
+                                questions: questions,
+                                location: locationData['location'],
+                                latitude: locationData['latitude'],
+                                longitude: locationData['longitude'],
+                              ),
+                            ),
+                          ).then((_) {
+                            if (mounted) _fetchBackendData();
+                          });
+                        },
+                  icon: Icon(
+                    isAttempted
+                        ? Icons.check_circle_rounded
+                        : (quiz['isAfterEnd'] == true ? Icons.timer_off_rounded : Icons.play_arrow_rounded),
+                  ),
                   label: Text(
-                    isAttempted ? 'Already Attempted' : 'Start Attempt Now',
+                    isAttempted
+                        ? 'Already Attempted'
+                        : (quiz['isAfterEnd'] == true ? 'Quiz Expired' : 'Start Attempt Now'),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isAttempted ? AppTheme.success : AppTheme.primary,
+                    backgroundColor: isAttempted
+                        ? AppTheme.success
+                        : (quiz['isAfterEnd'] == true ? Colors.grey.shade400 : AppTheme.primary),
+                    disabledBackgroundColor: isAttempted
+                        ? AppTheme.success.withValues(alpha: 0.7)
+                        : Colors.grey.shade300,
+                    disabledForegroundColor: Colors.white,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
