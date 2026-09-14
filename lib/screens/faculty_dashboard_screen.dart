@@ -35,12 +35,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
   List<Map<String, dynamic>> _submissions = [];
   List<Map<String, dynamic>> _allocations = [];
 
-  List<Map<String, dynamic>> _dbDepartments = [];
-  List<Map<String, dynamic>> _dbCourses = [];
-  List<Map<String, dynamic>> _dbBranches = [];
-  List<Map<String, dynamic>> _dbSections = [];
-  List<Map<String, dynamic>> _dbSubjects = [];
-
   @override
   void initState() {
     super.initState();
@@ -96,13 +90,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
       // 5. Fetch Faculty Allocations (Subjects & Sections)
       _allocations = await ApiService.getMyFacultyAllocations();
-
-      // 6. Fetch Database Academic Structures
-      _dbDepartments = await ApiService.getDepartments();
-      _dbCourses = await ApiService.getCourses();
-      _dbBranches = await ApiService.getBranches();
-      _dbSections = await ApiService.getSections();
-      _dbSubjects = await ApiService.getSubjects();
     } catch (_) {}
 
     if (mounted) {
@@ -110,165 +97,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     }
   }
 
-  Future<List<dynamic>?> _showTargetMultiSelectDialog({
-    required String title,
-    required List<Map<String, dynamic>> items,
-    required List<dynamic> currentSelections,
-    required String Function(Map<String, dynamic> item) labelGetter,
-    required dynamic Function(Map<String, dynamic> item) idGetter,
-  }) async {
-    List<dynamic> selectedIds = List<dynamic>.from(currentSelections);
-    bool isAllSelected = selectedIds.isEmpty || selectedIds.contains('all');
-
-    return showDialog<List<dynamic>>(
-      context: context,
-      builder: (dialogCtx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Row(
-                children: [
-                  const Icon(Icons.hub_rounded, color: AppTheme.primary, size: 22),
-                  const SizedBox(width: 8),
-                  Text('Target $title', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                ],
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isAllSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isAllSelected ? AppTheme.primary : Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.done_all_rounded, color: AppTheme.primary, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Target ALL $title',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isAllSelected ? AppTheme.primary : AppTheme.mainText,
-                                fontSize: 13.5,
-                              ),
-                            ),
-                          ),
-                          Switch(
-                            value: isAllSelected,
-                            activeColor: AppTheme.primary,
-                            onChanged: (val) {
-                              setDialogState(() {
-                                isAllSelected = val;
-                                if (val) {
-                                  selectedIds = ['all'];
-                                } else {
-                                  selectedIds.clear();
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (!isAllSelected) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              setDialogState(() {
-                                selectedIds = items.map((e) => idGetter(e)).toList();
-                              });
-                            },
-                            child: const Text('Select All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setDialogState(() {
-                                selectedIds.clear();
-                              });
-                            },
-                            child: const Text('Clear All', style: TextStyle(fontSize: 12, color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 1),
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: MediaQuery.of(context).size.height * 0.35,
-                        ),
-                        child: items.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Text('No database entries found.', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                              )
-                            : ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: items.length,
-                                itemBuilder: (ctx, idx) {
-                                  final item = items[idx];
-                                  final itemId = idGetter(item);
-                                  final itemLabel = labelGetter(item);
-                                  final isChecked = selectedIds.contains(itemId) || selectedIds.contains(itemId.toString());
-
-                                  return CheckboxListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                                    dense: true,
-                                    title: Text(itemLabel, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-                                    value: isChecked,
-                                    activeColor: AppTheme.primary,
-                                    onChanged: (checked) {
-                                      setDialogState(() {
-                                        if (checked == true) {
-                                          selectedIds.add(itemId);
-                                        } else {
-                                          selectedIds.remove(itemId);
-                                          selectedIds.remove(itemId.toString());
-                                        }
-                                      });
-                                    },
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx, null),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (isAllSelected || selectedIds.isEmpty) {
-                      Navigator.pop(dialogCtx, ['all']);
-                    } else {
-                      Navigator.pop(dialogCtx, selectedIds);
-                    }
-                  },
-                  child: const Text('Confirm'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   void _showCreateQuizModal() {
     final titleController = TextEditingController();
-    final customSubjectController = TextEditingController();
     final durationController = TextEditingController(text: '15');
     final descriptionController = TextEditingController();
 
@@ -276,7 +106,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
         ? (_allocations.first['subject_name'] ?? _user['department'] ?? 'Computer Science')
         : (_user['department'] ?? 'Computer Science');
     String selectedStatus = 'active';
-    Map<String, dynamic>? selectedAllocation = _allocations.isNotEmpty ? _allocations.first : null;
 
     List<dynamic> targetDeptIds = ['all'];
     List<dynamic> targetCourseIds = ['all'];
@@ -284,16 +113,35 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     List<dynamic> targetSectionIds = ['all'];
     List<dynamic> targetSubjectIds = ['all'];
 
-    // Pre-populate target filters if allocation selected initially
-    if (selectedAllocation != null) {
-      if (selectedAllocation['section_id'] != null) targetSectionIds = [selectedAllocation['section_id']];
-      if (selectedAllocation['department_id'] != null) targetDeptIds = [selectedAllocation['department_id']];
-      if (selectedAllocation['course_id'] != null) targetCourseIds = [selectedAllocation['course_id']];
-      if (selectedAllocation['branch_id'] != null) targetBranchIds = [selectedAllocation['branch_id']];
-      if (selectedAllocation['subject_id'] != null || selectedAllocation['subject_name'] != null) {
-        targetSubjectIds = [selectedAllocation['subject_id'] ?? selectedAllocation['subject_name']];
+    String formatBatchLabel(Map<String, dynamic> alloc) {
+      final branchCode = alloc['branch_code'] ??
+          alloc['code'] ??
+          alloc['branchModel']?['code'] ??
+          alloc['branch_name']?.toString().split(' ').first ??
+          alloc['branch'] ??
+          'Branch';
+      final sec = alloc['section_name'] ?? alloc['section'] ?? 'A';
+      final subject = alloc['subject_name'] ?? alloc['subject'] ?? 'Subject';
+      final rawSem = alloc['semester'] ?? alloc['sem'] ?? alloc['academic_year'] ?? '';
+      
+      String semStr = rawSem.toString().trim();
+      if (semStr.isNotEmpty) {
+        // Format semester into short form, e.g. "3rd Semester" -> "Sem 3", "3" -> "Sem 3"
+        final numMatch = RegExp(r'\d+').firstMatch(semStr);
+        if (numMatch != null) {
+          semStr = 'Sem ${numMatch.group(0)}';
+        } else {
+          semStr = 'Sem $semStr';
+        }
+      } else {
+        semStr = 'Sem N/A';
       }
+
+      return '$branchCode ($sec) - $subject - $semStr';
     }
+
+    // Pre-populate target batches with all allocated batches by default
+    Set<String> selectedBatches = _allocations.map((a) => formatBatchLabel(a)).toSet();
 
     showModalBottomSheet(
       context: context,
@@ -303,12 +151,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
-            String formatTargetSummary(List<dynamic> targets, String label) {
-              if (targets.isEmpty || targets.contains('all')) {
-                return 'ALL (Targeting All $label)';
-              }
-              return '${targets.length} Selected';
-            }
+            final bool isAllBatchesSelected = _allocations.isNotEmpty &&
+                selectedBatches.length == _allocations.length;
 
             return Padding(
               padding: EdgeInsets.only(
@@ -349,6 +193,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // 1. Quiz Title
                       TextField(
                         controller: titleController,
                         decoration: const InputDecoration(
@@ -358,168 +203,90 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Assigned Allocation Selector (Batches & Sections)
-                      if (_allocations.isNotEmpty) ...[
-                        DropdownButtonFormField<Map<String, dynamic>>(
-                          isExpanded: true,
-                          initialValue: selectedAllocation,
-                          decoration: const InputDecoration(
-                            labelText: 'Assigned Allocation (Batch & Section) *',
-                            prefixIcon: Icon(Icons.assignment_ind_rounded, color: AppTheme.primary),
-                            helperText: 'Auto-targets your assigned subject, section, and batch',
-                          ),
-                          items: _allocations.map((alloc) {
-                            final subName = alloc['subject_name'] ?? 'Subject';
-                            final secName = alloc['section_name'] ?? 'Section';
-                            final batchName = alloc['batch_name'] ?? alloc['batch'] ?? alloc['academic_year'] ?? 'Batch';
-                            return DropdownMenuItem<Map<String, dynamic>>(
-                              value: alloc,
-                              child: Text(
-                                '$subName - Section $secName ($batchName)',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (alloc) {
-                            if (alloc != null) {
-                              setModalState(() {
-                                selectedAllocation = alloc;
-                                selectedSubject = alloc['subject_name'] ?? selectedSubject;
-                                customSubjectController.text = selectedSubject;
-
-                                if (alloc['section_id'] != null) targetSectionIds = [alloc['section_id']];
-                                if (alloc['department_id'] != null) targetDeptIds = [alloc['department_id']];
-                                if (alloc['course_id'] != null) targetCourseIds = [alloc['course_id']];
-                                if (alloc['branch_id'] != null) targetBranchIds = [alloc['branch_id']];
-                                if (alloc['subject_id'] != null || alloc['subject_name'] != null) {
-                                  targetSubjectIds = [alloc['subject_id'] ?? alloc['subject_name']];
-                                }
-                              });
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-
+                      // 2. Description / Instructions
                       TextField(
-                        controller: customSubjectController,
-                        decoration: InputDecoration(
-                          labelText: 'Primary Subject / Name *',
-                          prefixIcon: const Icon(Icons.school_rounded),
-                          hintText: selectedSubject,
+                        controller: descriptionController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Description / Instructions',
+                          prefixIcon: Icon(Icons.description_rounded),
+                          hintText: 'Enter quiz rules, guidelines, or instructions...',
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 16),
 
-                      // Target Audience Header
-                      Row(
-                        children: [
-                          const Icon(Icons.groups_rounded, color: AppTheme.primary, size: 20),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Text(
-                              'Target Student Scope (Database Filters)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.mainText),
-                              overflow: TextOverflow.ellipsis,
+                      // 3. Target Batches (Allocated Batches with Checkboxes & Select All)
+                      if (_allocations.isNotEmpty) ...[
+                        const Text(
+                          'Target Batches *',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.mainText),
+                        ),
+                        const SizedBox(height: 6),
+                        Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          clipBehavior: Clip.antiAlias,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Column(
+                              children: [
+                                // Select All row
+                                CheckboxListTile(
+                                  dense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                  title: const Text(
+                                    'Select All Batches',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.primary),
+                                  ),
+                                  value: isAllBatchesSelected,
+                                  activeColor: AppTheme.primary,
+                                  onChanged: (val) {
+                                    setModalState(() {
+                                      if (val == true) {
+                                        selectedBatches = _allocations.map((a) => formatBatchLabel(a)).toSet();
+                                      } else {
+                                        selectedBatches.clear();
+                                      }
+                                    });
+                                  },
+                                ),
+                                const Divider(height: 1),
+                                // Individual allocated batch checkboxes
+                                ..._allocations.map((alloc) {
+                                  final batchLabel = formatBatchLabel(alloc);
+                                  final isSelected = selectedBatches.contains(batchLabel);
+
+                                  return CheckboxListTile(
+                                    dense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                    title: Text(
+                                      batchLabel,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                    ),
+                                    value: isSelected,
+                                    activeColor: AppTheme.primary,
+                                    onChanged: (checked) {
+                                      setModalState(() {
+                                        if (checked == true) {
+                                          selectedBatches.add(batchLabel);
+                                        } else {
+                                          selectedBatches.remove(batchLabel);
+                                        }
+                                      });
+                                    },
+                                  );
+                                }),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
-                      // Target Selector Chips / Buttons
-                      _buildTargetPickerTile(
-                        icon: Icons.account_balance_rounded,
-                        title: 'Departments',
-                        summary: formatTargetSummary(targetDeptIds, 'Departments'),
-                        onTap: () async {
-                          final selected = await _showTargetMultiSelectDialog(
-                            title: 'Departments',
-                            items: _dbDepartments,
-                            currentSelections: targetDeptIds,
-                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
-                            idGetter: (item) => item['id'],
-                          );
-                          if (selected != null) {
-                            setModalState(() => targetDeptIds = selected);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTargetPickerTile(
-                        icon: Icons.school_rounded,
-                        title: 'Courses',
-                        summary: formatTargetSummary(targetCourseIds, 'Courses'),
-                        onTap: () async {
-                          final selected = await _showTargetMultiSelectDialog(
-                            title: 'Courses',
-                            items: _dbCourses,
-                            currentSelections: targetCourseIds,
-                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
-                            idGetter: (item) => item['id'],
-                          );
-                          if (selected != null) {
-                            setModalState(() => targetCourseIds = selected);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTargetPickerTile(
-                        icon: Icons.alt_route_rounded,
-                        title: 'Branches',
-                        summary: formatTargetSummary(targetBranchIds, 'Branches'),
-                        onTap: () async {
-                          final selected = await _showTargetMultiSelectDialog(
-                            title: 'Branches',
-                            items: _dbBranches,
-                            currentSelections: targetBranchIds,
-                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
-                            idGetter: (item) => item['id'],
-                          );
-                          if (selected != null) {
-                            setModalState(() => targetBranchIds = selected);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTargetPickerTile(
-                        icon: Icons.class_rounded,
-                        title: 'Sections',
-                        summary: formatTargetSummary(targetSectionIds, 'Sections'),
-                        onTap: () async {
-                          final selected = await _showTargetMultiSelectDialog(
-                            title: 'Sections',
-                            items: _dbSections,
-                            currentSelections: targetSectionIds,
-                            labelGetter: (item) => item['name'].toString(),
-                            idGetter: (item) => item['id'],
-                          );
-                          if (selected != null) {
-                            setModalState(() => targetSectionIds = selected);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTargetPickerTile(
-                        icon: Icons.menu_book_rounded,
-                        title: 'Subjects',
-                        summary: formatTargetSummary(targetSubjectIds, 'Subjects'),
-                        onTap: () async {
-                          final selected = await _showTargetMultiSelectDialog(
-                            title: 'Subjects',
-                            items: _dbSubjects,
-                            currentSelections: targetSubjectIds,
-                            labelGetter: (item) => '${item['name']} (${item['code'] ?? ''})',
-                            idGetter: (item) => item['name'],
-                          );
-                          if (selected != null) {
-                            setModalState(() => targetSubjectIds = selected);
-                          }
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
+                      // 4 & 5. Duration and Status
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -540,7 +307,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                               isExpanded: true,
                               initialValue: selectedStatus,
                               decoration: const InputDecoration(
-                                labelText: 'Status',
+                                labelText: 'Status *',
                                 prefixIcon: Icon(Icons.flag_rounded),
                                 contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                               ),
@@ -556,15 +323,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: descriptionController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Instructions / Description',
-                          prefixIcon: Icon(Icons.description_rounded),
-                        ),
-                      ),
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
@@ -572,8 +330,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         child: ElevatedButton.icon(
                           onPressed: () async {
                             final title = titleController.text.trim();
-                            final typedSub = customSubjectController.text.trim();
-                            final finalSubject = typedSub.isNotEmpty ? typedSub : selectedSubject;
                             final duration = int.tryParse(durationController.text.trim()) ?? 15;
 
                             if (title.isEmpty) {
@@ -585,14 +341,44 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                               return;
                             }
 
+                            List<Map<String, dynamic>> targetGroups = [];
+
+                            // If specific batches were selected, update target filters and build specific target pairs (target_groups)
+                            if (selectedBatches.isNotEmpty) {
+                              final matchingAllocs = _allocations.where((a) {
+                                return selectedBatches.contains(formatBatchLabel(a));
+                              }).toList();
+
+                              targetSectionIds = matchingAllocs.map((a) => a['section_id']).where((id) => id != null).toList();
+                              targetDeptIds = matchingAllocs.map((a) => a['department_id']).where((id) => id != null).toList();
+                              targetCourseIds = matchingAllocs.map((a) => a['course_id']).where((id) => id != null).toList();
+                              targetBranchIds = matchingAllocs.map((a) => a['branch_id']).where((id) => id != null).toList();
+                              targetSubjectIds = matchingAllocs.map((a) => a['subject_id'] ?? a['subject_name']).where((id) => id != null).toList();
+
+                              // Construct explicit Target Pairs (target_groups) for accurate backend & admin panel display
+                              targetGroups = matchingAllocs.map((alloc) {
+                                return {
+                                  'branch_id': alloc['branch_id'] ?? 'all',
+                                  'section_id': alloc['section_id'] ?? 'all',
+                                  'section_ids': alloc['section_id'] != null ? [alloc['section_id']] : ['all'],
+                                  if (alloc['department_id'] != null) 'department_id': alloc['department_id'],
+                                  if (alloc['course_id'] != null) 'course_id': alloc['course_id'],
+                                };
+                              }).toList();
+
+                              if (matchingAllocs.isNotEmpty) {
+                                selectedSubject = matchingAllocs.first['subject_name'] ?? selectedSubject;
+                              }
+                            }
+
                             Navigator.pop(sheetContext);
 
                             if (!mounted) return;
 
                             final res = await ApiService.createQuiz(
                               title: title,
-                              subject: finalSubject,
-                              instructor: _user['name'] ?? 'Faculty',
+                              subject: selectedSubject,
+                              instructor: (_user['name'] ?? _user['full_name'] ?? 'Faculty').toString(),
                               durationMinutes: duration,
                               status: selectedStatus,
                               description: descriptionController.text.trim(),
@@ -601,6 +387,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                               branchIds: targetBranchIds,
                               sectionIds: targetSectionIds,
                               subjectIds: targetSubjectIds,
+                              targetGroups: targetGroups.isNotEmpty ? targetGroups : null,
                             );
 
                             if (mounted) {
@@ -634,30 +421,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildTargetPickerTile({
-    required IconData icon,
-    required String title,
-    required String summary,
-    required VoidCallback onTap,
-  }) {
-    final bool isAll = summary.startsWith('ALL');
-    return Container(
-      decoration: BoxDecoration(
-        color: isAll ? Colors.grey.shade50 : AppTheme.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isAll ? Colors.grey.shade300 : AppTheme.primary.withValues(alpha: 0.4)),
-      ),
-      child: ListTile(
-        dense: true,
-        onTap: onTap,
-        leading: Icon(icon, color: isAll ? Colors.grey.shade700 : AppTheme.primary, size: 20),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        subtitle: Text(summary, style: TextStyle(fontSize: 12, color: isAll ? Colors.grey.shade600 : AppTheme.primary, fontWeight: FontWeight.w600)),
-        trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
-      ),
     );
   }
 

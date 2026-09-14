@@ -872,6 +872,7 @@ class ApiService {
     List<dynamic>? branchIds,
     List<dynamic>? sectionIds,
     List<dynamic>? subjectIds,
+    List<Map<String, dynamic>>? targetGroups,
   }) async {
     final url = Uri.parse('$baseUrl/quizzes');
     try {
@@ -895,6 +896,7 @@ class ApiService {
           'branch_ids': branchIds,
           'section_ids': sectionIds,
           'subject_ids': subjectIds,
+          'target_groups': targetGroups,
         }),
       );
       _checkUnauthorized(response.statusCode);
