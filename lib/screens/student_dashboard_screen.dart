@@ -446,6 +446,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 title: 'Active Quizzes',
                 badgeCount: _activeQuizzes.length,
                 actionText: 'View All',
+                actionIcon: Icons.apps_rounded,
                 onActionTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -478,7 +479,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               _buildSectionHeader(
                 title: 'Campaigns & Announcements',
                 actionText: 'Explore',
-                onActionTap: () {},
+                actionIcon: Icons.explore_rounded,
+                onActionTap: _showExploreAnnouncementsModal,
               ),
               const SizedBox(height: 12),
               _campaigns.isEmpty
@@ -506,7 +508,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               _buildSectionHeader(
                 title: 'Upcoming Quizzes',
                 actionText: 'Calendar',
-                onActionTap: () {},
+                actionIcon: Icons.calendar_month_rounded,
+                onActionTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 12),
               _upcomingQuizzes.isEmpty
@@ -532,7 +541,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               _buildSectionHeader(
                 title: 'Recent Submissions',
                 actionText: 'History',
-                onActionTap: () {},
+                actionIcon: Icons.history_rounded,
+                onActionTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 12),
               _recentSubmissions.isEmpty
@@ -809,11 +825,165 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  // Section Header Builder
+  void _showExploreAnnouncementsModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.campaign_rounded, color: AppTheme.primary, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Campaigns & Announcements',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.mainText,
+                        ),
+                      ),
+                      Text(
+                        'Events, updates & official notices',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _campaigns.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                      child: Center(
+                        child: Text(
+                          'No active announcements at this moment.',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                        ),
+                      ),
+                    )
+                  : ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.5,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _campaigns.length,
+                        separatorBuilder: (ctx, idx) => const SizedBox(height: 12),
+                        itemBuilder: (ctx, idx) {
+                          final c = _campaigns[idx];
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.background,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        c['badge'] ?? 'Notice',
+                                        style: const TextStyle(
+                                          color: AppTheme.primary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    const Icon(Icons.campaign_outlined, size: 16, color: AppTheme.textMuted),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  c['title'] ?? '',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
+                                if (c['description'] != null && c['description'].toString().trim().isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    c['description'].toString(),
+                                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.3),
+                                  ),
+                                ],
+                                if (c['linkUrl'] != null && c['linkUrl'].toString().trim().isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  InkWell(
+                                    onTap: () async {
+                                      final Uri uri = Uri.parse(c['linkUrl'].toString());
+                                      if (await canLaunchUrl(uri)) {
+                                        await launchUrl(uri);
+                                      }
+                                    },
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text('Open Link', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                                        SizedBox(width: 4),
+                                        Icon(Icons.open_in_new_rounded, size: 14, color: AppTheme.primary),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Section Header Builder with Pill Action Buttons
   Widget _buildSectionHeader({
     required String title,
     int? badgeCount,
     required String actionText,
+    required IconData actionIcon,
     required VoidCallback onActionTap,
   }) {
     return Row(
@@ -821,7 +991,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         Text(
           title,
           style: const TextStyle(
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.bold,
             color: AppTheme.mainText,
           ),
@@ -845,14 +1015,45 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           ),
         ],
         const Spacer(),
-        GestureDetector(
-          onTap: onActionTap,
-          child: Text(
-            actionText,
-            style: const TextStyle(
-              color: AppTheme.primary,
-              fontWeight: FontWeight.w600,
-              fontSize: 13.5,
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onActionTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    actionIcon,
+                    size: 14,
+                    color: AppTheme.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    actionText,
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: AppTheme.primary,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
