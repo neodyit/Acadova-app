@@ -184,6 +184,82 @@ class ApiService {
     }
   }
 
+  /// Send Password Reset Email with rate limiting & Hostinger SMTP protection
+  static Future<Map<String, dynamic>> forgotPassword({required String email}) async {
+    final url = Uri.parse('$baseUrl/forgot-password');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email}),
+      );
+
+      Map<String, dynamic> data = {};
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {}
+
+      return {
+        'statusCode': response.statusCode,
+        'success': data['success'] ?? (response.statusCode == 200),
+        'message': data['message'] ?? 'Password reset link status (${response.statusCode})',
+        'retry_after': data['retry_after'],
+        'cooldown_seconds': data['cooldown_seconds'],
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'success': false,
+        'message': _formatExceptionMessage(e, defaultMessage: 'Unable to connect to server.'),
+      };
+    }
+  }
+
+  /// Complete Reset Password with token validation
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String token,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final url = Uri.parse('$baseUrl/reset-password');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+          'token': token,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        }),
+      );
+
+      Map<String, dynamic> data = {};
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {}
+
+      return {
+        'statusCode': response.statusCode,
+        'success': data['success'] ?? (response.statusCode == 200),
+        'message': data['message'] ?? 'Reset password status (${response.statusCode})',
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'success': false,
+        'message': _formatExceptionMessage(e, defaultMessage: 'Unable to reset password.'),
+      };
+    }
+  }
+
   /// Login user and retrieve Sanctum Bearer token
   static Future<Map<String, dynamic>> login({
     required String email,

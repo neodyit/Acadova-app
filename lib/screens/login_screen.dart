@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'academic_profile_screen.dart';
+import 'forgot_password_screen.dart';
 import 'google_complete_profile_screen.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
@@ -380,13 +381,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        CustomToast.show(
+                        Navigator.push(
                           context,
-                          title: 'Reset Link Sent',
-                          message:
-                              'A password reset link has been sent to your email.',
-                          type: ToastType.success,
-                          customIcon: Icons.mark_email_read_rounded,
+                          MaterialPageRoute(
+                            builder: (context) => ForgotPasswordScreen(
+                              initialEmail: _emailController.text.trim(),
+                            ),
+                          ),
                         );
                       },
                       child: const Text(
