@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'academic_profile_screen.dart';
 import 'create_quiz_screen.dart';
+import 'faculty_quizzes_screen.dart';
 import 'login_screen.dart';
 import 'manage_questions_screen.dart';
 import 'profile_screen.dart';
@@ -170,6 +171,19 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     }
   }
 
+  void _openFacultyQuizzes([int initialTab = 0]) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FacultyQuizzesScreen(
+          initialTabIndex: initialTab,
+          userData: _user,
+        ),
+      ),
+    ).then((_) {
+      if (mounted) _fetchFacultyData();
+    });
+  }
+
 
 
   String _formatDateAmPm(String? dateIso) {
@@ -288,14 +302,24 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   },
                 ),
                 _buildDrawerItem(
+                  icon: Icons.quiz_outlined,
+                  activeIcon: Icons.quiz_rounded,
+                  title: 'All Quizzes (Active, Scheduled, Completed)',
+                  badgeCount: _quizzes.length,
+                  iconColor: AppTheme.primary,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openFacultyQuizzes(0);
+                  },
+                ),
+                _buildDrawerItem(
                   icon: Icons.bolt_outlined,
                   activeIcon: Icons.bolt_rounded,
                   title: 'Active Quizzes',
                   badgeCount: _activeQuizzes.length,
-                  isSelected: _selectedTab == 0,
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _selectedTab = 0);
+                    _openFacultyQuizzes(0);
                   },
                 ),
                 _buildDrawerItem(
@@ -303,21 +327,19 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   activeIcon: Icons.calendar_today_rounded,
                   title: 'Scheduled Quizzes',
                   badgeCount: _scheduledQuizzes.length,
-                  isSelected: _selectedTab == 1,
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _selectedTab = 1);
+                    _openFacultyQuizzes(1);
                   },
                 ),
                 _buildDrawerItem(
-                  icon: Icons.campaign_outlined,
-                  activeIcon: Icons.campaign_rounded,
-                  title: 'Campaign & Completed',
+                  icon: Icons.check_circle_outline_rounded,
+                  activeIcon: Icons.check_circle_rounded,
+                  title: 'Completed Quizzes',
                   badgeCount: _campaignQuizzes.length,
-                  isSelected: _selectedTab == 2,
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _selectedTab = 2);
+                    _openFacultyQuizzes(2);
                   },
                 ),
                 _buildDrawerItem(
@@ -652,8 +674,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                             count: _activeQuizzes.length,
                             icon: Icons.bolt_rounded,
                             color: AppTheme.success,
-                            onTap: () => setState(() => _selectedTab = 0),
-                            isSelected: _selectedTab == 0,
+                            onTap: () => _openFacultyQuizzes(0),
+                            isSelected: false,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -663,53 +685,86 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                             count: _scheduledQuizzes.length,
                             icon: Icons.calendar_today_rounded,
                             color: AppTheme.primary,
-                            onTap: () => setState(() => _selectedTab = 1),
-                            isSelected: _selectedTab == 1,
+                            onTap: () => _openFacultyQuizzes(1),
+                            isSelected: false,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: _buildMetricCard(
-                            title: 'Campaign',
+                            title: 'Completed',
                             count: _campaignQuizzes.length,
-                            icon: Icons.campaign_rounded,
+                            icon: Icons.check_circle_rounded,
                             color: Colors.purple,
-                            onTap: () => setState(() => _selectedTab = 2),
-                            isSelected: _selectedTab == 2,
+                            onTap: () => _openFacultyQuizzes(2),
+                            isSelected: false,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                    // Navigation Filter Tab Buttons
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                    // Dedicated Manage Quizzes Banner Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: Row(
                         children: [
-                          _buildTabButton(
-                            index: 0,
-                            title: 'Active Quizzes (${_activeQuizzes.length})',
-                            icon: Icons.bolt_rounded,
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.quiz_rounded, color: AppTheme.primary, size: 26),
                           ),
-                          const SizedBox(width: 8),
-                          _buildTabButton(
-                            index: 1,
-                            title: 'Scheduled (${_scheduledQuizzes.length})',
-                            icon: Icons.calendar_today_rounded,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'My Quizzes',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Active, Scheduled & Completed',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          _buildTabButton(
-                            index: 2,
-                            title: 'Campaign (${_campaignQuizzes.length})',
-                            icon: Icons.campaign_rounded,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildTabButton(
-                            index: 3,
-                            title: 'Submissions (${_submissions.length})',
-                            icon: Icons.assignment_rounded,
+                          ElevatedButton.icon(
+                            onPressed: () => _openFacultyQuizzes(0),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            ),
+                            icon: const Icon(Icons.tab_rounded, size: 16, color: Colors.white),
+                            label: const Text('View All', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
                         ],
                       ),
@@ -717,7 +772,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Tab Content Display
+                    // Tab Content Display (e.g. Submissions)
                     _buildSelectedTabContent(),
                   ],
                 ),
