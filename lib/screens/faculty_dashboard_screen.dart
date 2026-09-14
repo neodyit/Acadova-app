@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'academic_profile_screen.dart';
 import 'create_quiz_screen.dart';
+import 'login_screen.dart';
 import 'profile_screen.dart';
 
 class FacultyDashboardScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class FacultyDashboardScreen extends StatefulWidget {
 class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
   late Map<String, dynamic> _user;
   bool _isLoading = true;
-  int _currentTabIndex = 0; // 0: Quizzes, 1: Submissions
+  int _selectedTab = 0; // 0: Active Quizzes, 1: Scheduled, 2: Campaign, 3: Submissions
 
   // Faculty Data
   Map<String, dynamic> _facultyStats = {
@@ -98,6 +99,39 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     }
   }
 
+  // Quiz Category Getters
+  List<Map<String, dynamic>> get _activeQuizzes {
+    return _quizzes.where((q) {
+      final st = (q['status'] ?? '').toString().toLowerCase();
+      final isActive = q['is_active'] == 1 || q['is_active'] == true;
+      if (st == 'active' || st == 'published' || isActive) return true;
+      if (st != 'scheduled' && st != 'completed' && st != 'draft' && st != 'archived') {
+        return true;
+      }
+      return false;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _scheduledQuizzes {
+    return _quizzes.where((q) {
+      final st = (q['status'] ?? '').toString().toLowerCase();
+      if (st == 'scheduled') return true;
+      if (q['scheduled_at'] != null || q['starts_at'] != null) {
+        final rawDate = q['scheduled_at'] ?? q['starts_at'];
+        final dt = DateTime.tryParse(rawDate.toString());
+        if (dt != null && dt.isAfter(DateTime.now()) && st != 'completed') return true;
+      }
+      return false;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _campaignQuizzes {
+    return _quizzes.where((q) {
+      final st = (q['status'] ?? '').toString().toLowerCase();
+      return st == 'completed' || st == 'finished' || st == 'campaign' || st == 'archived';
+    }).toList();
+  }
+
   Future<void> _navigateToCreateQuizScreen() async {
     final created = await Navigator.push<bool>(
       context,
@@ -155,94 +189,120 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      Text(
-                        'Add Question to "${quiz['title']}"',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.mainText,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.add_task_rounded, color: AppTheme.primary, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Add MCQ Question',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.mainText),
+                                ),
+                                Text(
+                                  quiz['title'] ?? 'Quiz',
+                                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       TextField(
                         controller: questionController,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Question Statement *',
-                          prefixIcon: Icon(Icons.help_outline_rounded),
+                        decoration: InputDecoration(
+                          labelText: 'Question Text',
+                          hintText: 'Enter question prompt...',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                       ),
                       const SizedBox(height: 14),
                       const Text(
-                        'Answer Options (Select correct answer) *',
+                        'Answer Options (Select the correct one):',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mainText),
                       ),
-                      const SizedBox(height: 10),
-                      _buildOptionField(opt1Controller, 'Option A', 0, correctIndex, (idx) => setModalState(() => correctIndex = idx)),
                       const SizedBox(height: 8),
-                      _buildOptionField(opt2Controller, 'Option B', 1, correctIndex, (idx) => setModalState(() => correctIndex = idx)),
-                      const SizedBox(height: 8),
-                      _buildOptionField(opt3Controller, 'Option C', 2, correctIndex, (idx) => setModalState(() => correctIndex = idx)),
-                      const SizedBox(height: 8),
-                      _buildOptionField(opt4Controller, 'Option D', 3, correctIndex, (idx) => setModalState(() => correctIndex = idx)),
-                      const SizedBox(height: 24),
+                      ...List.generate(4, (index) {
+                        final controllers = [opt1Controller, opt2Controller, opt3Controller, opt4Controller];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Row(
+                            children: [
+                              Radio<int>(
+                                value: index,
+                                groupValue: correctIndex,
+                                activeColor: AppTheme.primary,
+                                onChanged: (val) {
+                                  if (val != null) setModalState(() => correctIndex = val);
+                                },
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  controller: controllers[index],
+                                  decoration: InputDecoration(
+                                    labelText: 'Option ${index + 1}',
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         height: 48,
-                        child: ElevatedButton.icon(
+                        child: ElevatedButton(
                           onPressed: () async {
                             final qText = questionController.text.trim();
-                            final options = [
+                            final opts = [
                               opt1Controller.text.trim(),
                               opt2Controller.text.trim(),
                               opt3Controller.text.trim(),
                               opt4Controller.text.trim(),
-                            ].where((e) => e.isNotEmpty).toList();
+                            ];
 
-                            if (qText.isEmpty || options.length < 2) {
-                              CustomToast.show(
-                                sheetContext,
-                                message: 'Question and at least 2 options are required.',
-                                type: ToastType.warning,
-                              );
+                            if (qText.isEmpty || opts.any((o) => o.isEmpty)) {
+                              CustomToast.show(context, message: 'Please fill in question and all 4 options', type: ToastType.error);
                               return;
                             }
-
-                            final correctOptStr = options[correctIndex < options.length ? correctIndex : 0];
-
-                            Navigator.pop(sheetContext);
-
-                            if (!mounted) return;
 
                             final res = await ApiService.addQuestionToQuiz(
                               quizId: quiz['id'],
                               question: qText,
-                              type: 'single',
-                              options: options,
-                              correctOption: correctOptStr,
+                              type: 'mcq',
+                              options: opts,
+                              correctOption: correctIndex,
                             );
 
                             if (mounted) {
                               if (res['success'] == true) {
-                                CustomToast.show(
-                                  context,
-                                  title: 'Question Added',
-                                  message: 'Question added to quiz successfully!',
-                                  type: ToastType.success,
-                                );
+                                if (modalCtx.mounted) Navigator.pop(modalCtx);
+                                CustomToast.show(context, message: 'Question added successfully!', type: ToastType.success);
                                 _fetchFacultyData();
                               } else {
-                                CustomToast.show(
-                                  context,
-                                  title: 'Failed',
-                                  message: ApiService.getErrorMessage(res, 'Could not add question'),
-                                  type: ToastType.error,
-                                );
+                                CustomToast.show(context, message: res['message'] ?? 'Failed to add question', type: ToastType.error);
                               }
                             }
                           },
-                          icon: const Icon(Icons.playlist_add_check_rounded),
-                          label: const Text('Add Question', style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('Save Question', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
                         ),
                       ),
                     ],
@@ -256,19 +316,273 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     );
   }
 
-  Widget _buildOptionField(TextEditingController controller, String label, int index, int selectedIndex, ValueChanged<int> onSelected) {
-    final isSelected = index == selectedIndex;
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: IconButton(
-          icon: Icon(
-            isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-            color: isSelected ? AppTheme.primary : Colors.grey,
+  String _formatDateAmPm(String? dateIso) {
+    if (dateIso == null || dateIso.isEmpty) return 'N/A';
+    final dt = DateTime.tryParse(dateIso)?.toLocal();
+    if (dt == null) return dateIso;
+    
+    final day = dt.day.toString().padLeft(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final month = months[dt.month - 1];
+    final year = dt.year;
+
+    final hourNum = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final hour = hourNum.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+
+    return '$day $month $year, $hour:$minute $period';
+  }
+
+  Widget _buildFacultyDrawer(BuildContext context) {
+    final String facultyName = _user['name'] ?? 'Faculty Member';
+    final String email = _user['email'] ?? 'faculty@college.edu';
+    final String facultyId = _user['faculty_id'] ?? 'FAC-ID';
+
+    return Drawer(
+      backgroundColor: Colors.white,
+      child: Column(
+        children: [
+          // Drawer Header
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 20,
+              bottom: 20,
+              left: 20,
+              right: 20,
+            ),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.primaryDark, AppTheme.primary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  backgroundImage: (_user['avatar'] != null && _user['avatar'].toString().isNotEmpty)
+                      ? NetworkImage(_user['avatar'])
+                      : null,
+                  child: (_user['avatar'] == null || _user['avatar'].toString().isEmpty)
+                      ? Text(
+                          facultyName.isNotEmpty ? facultyName[0].toUpperCase() : 'F',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  facultyName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  email,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'FACULTY • $facultyId',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          onPressed: () => onSelected(index),
+
+          // Drawer Navigation Items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              children: [
+                _buildDrawerItem(
+                  icon: Icons.dashboard_outlined,
+                  activeIcon: Icons.dashboard_rounded,
+                  title: 'My Dashboard',
+                  isSelected: _selectedTab == 0,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _selectedTab = 0);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.bolt_outlined,
+                  activeIcon: Icons.bolt_rounded,
+                  title: 'Active Quizzes',
+                  badgeCount: _activeQuizzes.length,
+                  isSelected: _selectedTab == 0,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _selectedTab = 0);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.calendar_today_outlined,
+                  activeIcon: Icons.calendar_today_rounded,
+                  title: 'Scheduled Quizzes',
+                  badgeCount: _scheduledQuizzes.length,
+                  isSelected: _selectedTab == 1,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _selectedTab = 1);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.campaign_outlined,
+                  activeIcon: Icons.campaign_rounded,
+                  title: 'Campaign & Completed',
+                  badgeCount: _campaignQuizzes.length,
+                  isSelected: _selectedTab == 2,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _selectedTab = 2);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.assignment_outlined,
+                  activeIcon: Icons.assignment_rounded,
+                  title: 'Student Submissions',
+                  badgeCount: _submissions.length,
+                  isSelected: _selectedTab == 3,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _selectedTab = 3);
+                  },
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12),
+                  child: Divider(color: AppTheme.border),
+                ),
+                _buildDrawerItem(
+                  icon: Icons.add_circle_outline_rounded,
+                  activeIcon: Icons.add_circle_rounded,
+                  title: 'Create New Quiz',
+                  iconColor: AppTheme.primary,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToCreateQuizScreen();
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.person_outline_rounded,
+                  activeIcon: Icons.person_rounded,
+                  title: 'My Profile',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final updated = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfileScreen(userData: _user)),
+                    );
+                    if (updated != null && updated is Map<String, dynamic>) {
+                      setState(() => _user = updated);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Drawer Footer Logout Button
+          const Divider(height: 1, color: AppTheme.border),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
+            title: const Text(
+              'Logout',
+              style: TextStyle(
+                color: AppTheme.error,
+                fontWeight: FontWeight.bold,
+                fontSize: 14.5,
+              ),
+            ),
+            onTap: () async {
+              Navigator.pop(context);
+              await ApiService.logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String title,
+    required VoidCallback onTap,
+    bool isSelected = false,
+    int? badgeCount,
+    Color? iconColor,
+  }) {
+    final color = isSelected ? AppTheme.primary : (iconColor ?? AppTheme.mainText);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        dense: true,
+        leading: Icon(isSelected ? activeIcon : icon, color: color, size: 22),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: color,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
         ),
+        trailing: (badgeCount != null && badgeCount > 0)
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primary : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.mainText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : null,
+        onTap: onTap,
       ),
     );
   }
@@ -277,53 +591,72 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
   Widget build(BuildContext context) {
     final String facultyName = _user['name'] ?? 'Faculty Member';
     final String facultyId = _user['faculty_id'] ?? 'FAC-ID';
-    final String department = _user['department'] ?? 'Computer Science & Engineering';
+    final String department = _user['department'] ?? 'Faculty Department';
 
     return Scaffold(
       backgroundColor: AppTheme.background,
+      drawer: _buildFacultyDrawer(context),
       appBar: AppBar(
         backgroundColor: AppTheme.background,
         elevation: 0,
         centerTitle: false,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu_rounded, color: AppTheme.mainText, size: 26),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: 'Open Sidebar Menu',
+          ),
+        ),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.school_rounded, color: AppTheme.primary, size: 20),
             ),
-            const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Acadova Faculty',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.mainText,
-                  ),
-                ),
-                Text(
-                  'Faculty Dashboard & Controls',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                ),
-              ],
+            const SizedBox(width: 8),
+            const Text(
+              'My Dashboard',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.mainText,
+              ),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppTheme.mainText),
-            onPressed: _fetchFacultyData,
-            tooltip: 'Refresh Data',
+          // Notification Icon with Badge
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.mainText, size: 24),
+                onPressed: () {
+                  CustomToast.show(context, message: 'No new notifications', type: ToastType.info);
+                },
+                tooltip: 'Notifications',
+              ),
+              Positioned(
+                right: 12,
+                top: 12,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.person_outline_rounded, color: AppTheme.mainText),
-            onPressed: () async {
+          // Profile Pic Avatar
+          GestureDetector(
+            onTap: () async {
               final updated = await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => ProfileScreen(userData: _user)),
@@ -332,9 +665,23 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                 setState(() => _user = updated);
               }
             },
-            tooltip: 'Faculty Profile',
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16.0, left: 4.0),
+              child: CircleAvatar(
+                radius: 17,
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+                backgroundImage: (_user['avatar'] != null && _user['avatar'].toString().isNotEmpty)
+                    ? NetworkImage(_user['avatar'])
+                    : null,
+                child: (_user['avatar'] == null || _user['avatar'].toString().isEmpty)
+                    ? Text(
+                        facultyName.isNotEmpty ? facultyName[0].toUpperCase() : 'F',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
+                      )
+                    : null,
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
@@ -438,73 +785,84 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
-                    // Clean Blank Dashboard Placeholder State Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppTheme.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 14,
-                            offset: const Offset(0, 4),
+                    // Quick Stats Metric Cards Overview
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Active',
+                            count: _activeQuizzes.length,
+                            icon: Icons.bolt_rounded,
+                            color: AppTheme.success,
+                            onTap: () => setState(() => _selectedTab = 0),
+                            isSelected: _selectedTab == 0,
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Scheduled',
+                            count: _scheduledQuizzes.length,
+                            icon: Icons.calendar_today_rounded,
+                            color: AppTheme.primary,
+                            onTap: () => setState(() => _selectedTab = 1),
+                            isSelected: _selectedTab == 1,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Campaign',
+                            count: _campaignQuizzes.length,
+                            icon: Icons.campaign_rounded,
+                            color: Colors.purple,
+                            onTap: () => setState(() => _selectedTab = 2),
+                            isSelected: _selectedTab == 2,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Navigation Filter Tab Buttons
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.08),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.dashboard_outlined,
-                              size: 48,
-                              color: AppTheme.primary,
-                            ),
+                          _buildTabButton(
+                            index: 0,
+                            title: 'Active Quizzes (${_activeQuizzes.length})',
+                            icon: Icons.bolt_rounded,
                           ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Faculty Dashboard',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.mainText,
-                            ),
+                          const SizedBox(width: 8),
+                          _buildTabButton(
+                            index: 1,
+                            title: 'Scheduled (${_scheduledQuizzes.length})',
+                            icon: Icons.calendar_today_rounded,
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Your dashboard is currently blank. There are no active quizzes or submissions listed.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.textMuted,
-                              height: 1.4,
-                            ),
+                          const SizedBox(width: 8),
+                          _buildTabButton(
+                            index: 2,
+                            title: 'Campaign (${_campaignQuizzes.length})',
+                            icon: Icons.campaign_rounded,
                           ),
-                          const SizedBox(height: 24),
-                          OutlinedButton.icon(
-                            onPressed: _navigateToCreateQuizScreen,
-                            icon: const Icon(Icons.add_rounded, size: 18),
-                            label: const Text('Create New Quiz', style: TextStyle(fontWeight: FontWeight.w600)),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primary,
-                              side: const BorderSide(color: AppTheme.primary),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            ),
+                          const SizedBox(width: 8),
+                          _buildTabButton(
+                            index: 3,
+                            title: 'Submissions (${_submissions.length})',
+                            icon: Icons.assignment_rounded,
                           ),
                         ],
                       ),
                     ),
+
+                    const SizedBox(height: 20),
+
+                    // Tab Content Display
+                    _buildSelectedTabContent(),
                   ],
                 ),
               ),
@@ -512,93 +870,92 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     );
   }
 
-  Widget _buildFacultyMetricCard({
-    required IconData icon,
+  Widget _buildMetricCard({
     required String title,
-    required String value,
+    required int count,
+    required IconData icon,
     required Color color,
+    required VoidCallback onTap,
+    required bool isSelected,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected ? color : AppTheme.border,
+            width: isSelected ? 1.5 : 1.0,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.mainText,
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? color : AppTheme.mainText,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppTheme.textMuted,
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 2),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? color : AppTheme.textMuted,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTabButton({
+    required int index,
     required String title,
     required IconData icon,
-    required int index,
   }) {
-    final bool isSelected = _currentTabIndex == index;
+    final bool isSelected = _selectedTab == index;
     return GestureDetector(
-      onTap: () => setState(() => _currentTabIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      onTap: () => setState(() => _selectedTab = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primary : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppTheme.primary : AppTheme.border,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : [],
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: 0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+          ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 18,
+              size: 16,
               color: isSelected ? Colors.white : AppTheme.textMuted,
             ),
             const SizedBox(width: 6),
@@ -616,11 +973,49 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     );
   }
 
-  Widget _buildManagedQuizzesTab() {
-    if (_quizzes.isEmpty) {
+  Widget _buildSelectedTabContent() {
+    switch (_selectedTab) {
+      case 0:
+        return _buildQuizList(
+          quizzes: _activeQuizzes,
+          emptyTitle: 'No Active Quizzes Right Now',
+          emptySubtitle: 'Quizzes assigned by you that are currently active will appear here live.',
+          badgeColor: AppTheme.success,
+          badgeLabel: 'ACTIVE',
+        );
+      case 1:
+        return _buildQuizList(
+          quizzes: _scheduledQuizzes,
+          emptyTitle: 'No Scheduled Quizzes',
+          emptySubtitle: 'Quizzes scheduled for future start dates and times will appear here.',
+          badgeColor: AppTheme.primary,
+          badgeLabel: 'SCHEDULED',
+        );
+      case 2:
+        return _buildQuizList(
+          quizzes: _campaignQuizzes,
+          emptyTitle: 'No Quiz Campaigns Found',
+          emptySubtitle: 'Completed quiz campaigns and past assessments will be listed here.',
+          badgeColor: Colors.purple,
+          badgeLabel: 'CAMPAIGN',
+        );
+      case 3:
+      default:
+        return _buildSubmissionsTab();
+    }
+  }
+
+  Widget _buildQuizList({
+    required List<Map<String, dynamic>> quizzes,
+    required String emptyTitle,
+    required String emptySubtitle,
+    required Color badgeColor,
+    required String badgeLabel,
+  }) {
+    if (quizzes.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -630,15 +1025,26 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
           children: [
             Icon(Icons.quiz_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 12),
-            const Text(
-              'No Quizzes Created Yet',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.mainText),
+            Text(
+              emptyTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.mainText),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Click "Create New Quiz" above to add your first assessment.',
+            Text(
+              emptySubtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _navigateToCreateQuizScreen,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Create New Quiz', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                side: const BorderSide(color: AppTheme.primary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ],
         ),
@@ -646,12 +1052,14 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     }
 
     return Column(
-      children: _quizzes.map((quiz) {
+      children: quizzes.map((quiz) {
         final int questionCount = quiz['questions_count'] ?? (quiz['questions'] is List ? (quiz['questions'] as List).length : 0);
-        final String status = (quiz['status'] ?? 'active').toString();
+        final String status = (quiz['status'] ?? badgeLabel).toString().toUpperCase();
+        final String startStr = _formatDateAmPm(quiz['scheduled_at'] ?? quiz['starts_at']);
+        final String endStr = _formatDateAmPm(quiz['ends_at']);
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -682,7 +1090,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            quiz['subject'] ?? 'General',
+                            quiz['subject'] ?? 'General Subject',
                             style: const TextStyle(
                               color: AppTheme.primary,
                               fontSize: 11.5,
@@ -692,7 +1100,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          quiz['title'] ?? 'Quiz',
+                          quiz['title'] ?? 'Quiz Assessment',
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
@@ -705,17 +1113,15 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: status == 'active'
-                          ? AppTheme.success.withValues(alpha: 0.12)
-                          : Colors.grey.shade200,
+                      color: badgeColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      status.toUpperCase(),
+                      status,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: status == 'active' ? AppTheme.success : Colors.grey.shade700,
+                        color: badgeColor,
                       ),
                     ),
                   ),
@@ -739,6 +1145,23 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   ),
                 ],
               ),
+              if (startStr != 'N/A' || endStr != 'N/A') ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 15, color: AppTheme.primary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Start: $startStr ${endStr != 'N/A' ? '• End: $endStr' : ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.mainText),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const Divider(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
