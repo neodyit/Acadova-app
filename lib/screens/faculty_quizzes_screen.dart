@@ -260,33 +260,42 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                   indicatorSize: TabBarIndicatorSize.tab,
                   tabs: [
                     Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.bolt_rounded, size: 15),
-                          const SizedBox(width: 4),
-                          Text('Active (${activeList.length})'),
-                        ],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.bolt_rounded, size: 14),
+                            const SizedBox(width: 3),
+                            Text('Active (${activeList.length})'),
+                          ],
+                        ),
                       ),
                     ),
                     Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.schedule_rounded, size: 15),
-                          const SizedBox(width: 4),
-                          Text('Scheduled (${scheduledList.length})'),
-                        ],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.schedule_rounded, size: 14),
+                            const SizedBox(width: 3),
+                            Text('Scheduled (${scheduledList.length})'),
+                          ],
+                        ),
                       ),
                     ),
                     Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check_circle_outline_rounded, size: 15),
-                          const SizedBox(width: 4),
-                          Text('Completed (${completedList.length})'),
-                        ],
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.check_circle_outline_rounded, size: 14),
+                            const SizedBox(width: 3),
+                            Text('Completed (${completedList.length})'),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -441,7 +450,10 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -459,8 +471,7 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                               ),
                             ),
                           ),
-                          if (code.isNotEmpty) ...[
-                            const SizedBox(width: 8),
+                          if (code.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
@@ -476,7 +487,6 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                                 ),
                               ),
                             ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 8),
