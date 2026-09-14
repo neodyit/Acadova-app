@@ -931,186 +931,151 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
           return qId == quiz['id']?.toString();
         }).length;
 
-        return GestureDetector(
-          onTap: () => _showQuizPopout(context, quiz),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  quiz['subject'] ?? 'General Subject',
-                                  style: const TextStyle(
-                                    color: AppTheme.primary,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.assignment_turned_in_rounded, size: 12, color: Colors.purple),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '$quizSubCount Subs',
-                                      style: const TextStyle(
-                                        color: Colors.purple,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            quiz['title'] ?? 'Quiz Assessment',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.mainText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: badgeColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: badgeColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.help_outline_rounded, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$questionCount Questions',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(Icons.timer_outlined, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${quiz['duration_minutes'] ?? 15} mins',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                    ),
-                  ],
-                ),
-                if (startStr != 'N/A' || endStr != 'N/A') ...[
-                  const SizedBox(height: 8),
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _showQuizPopout(context, quiz),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.025),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
                     children: [
-                      Icon(Icons.schedule_rounded, size: 15, color: AppTheme.primary),
-                      const SizedBox(width: 6),
-                      Expanded(
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         child: Text(
-                          'Start: $startStr ${endStr != 'N/A' ? '• End: $endStr' : ''}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.mainText),
+                          quiz['subject'] ?? 'General Subject',
+                          style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.assignment_turned_in_rounded, size: 12, color: Colors.purple),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$quizSubCount Subs',
+                              style: const TextStyle(
+                                color: Colors.purple,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: badgeColor,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ],
-                const Divider(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final updated = await Navigator.push<bool>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ManageQuestionsScreen(quiz: quiz),
-                            ),
-                          );
-                          if (updated == true && mounted) {
-                            _fetchFacultyData();
-                          }
-                        },
-                        icon: const Icon(Icons.quiz_rounded, size: 16),
-                        label: Text('Manage Questions ($questionCount)', style: const TextStyle(fontSize: 12)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                          foregroundColor: AppTheme.primary,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          quiz['title'] ?? 'Quiz Assessment',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: () => _showQuizPopout(context, quiz),
-                      icon: const Icon(Icons.tune_rounded, size: 16),
-                      label: const Text('Actions & Report', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primary,
-                        side: const BorderSide(color: AppTheme.primary),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 24),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.help_outline_rounded, size: 15, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$questionCount Questions',
+                        style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
-                      tooltip: 'Delete Quiz',
-                      onPressed: () => _confirmDeleteQuiz(context, quiz),
+                      const SizedBox(width: 14),
+                      Icon(Icons.timer_outlined, size: 15, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${quiz['duration_minutes'] ?? 15} mins',
+                        style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                  if (startStr != 'N/A' || endStr != 'N/A') ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_rounded, size: 14, color: AppTheme.primary),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Start: $startStr ${endStr != 'N/A' ? '• End: $endStr' : ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.mainText),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: const [
+                      Text(
+                        'Tap for Details & Actions',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.primary),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(Icons.arrow_forward_rounded, size: 13, color: AppTheme.primary),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -1256,62 +1221,68 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   const Divider(height: 1, color: AppTheme.border),
                   Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              Navigator.pop(modalCtx);
-                              final updated = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ManageQuestionsScreen(quiz: quiz),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(modalCtx);
+                                  final updated = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ManageQuestionsScreen(quiz: quiz),
+                                    ),
+                                  );
+                                  if (updated == true && mounted) {
+                                    _fetchFacultyData();
+                                  }
+                                },
+                                icon: const Icon(Icons.quiz_rounded, size: 18),
+                                label: Text('Manage Questions ($questionCount)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
-                              );
-                              if (updated == true && mounted) {
-                                _fetchFacultyData();
-                              }
-                            },
-                            icon: const Icon(Icons.quiz_rounded, size: 16),
-                            label: const Text('Questions', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(modalCtx);
-                              _showEditQuizModal(context, quiz);
-                            },
-                            icon: const Icon(Icons.edit_rounded, size: 16),
-                            label: const Text('Edit Quiz', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primary,
-                              side: const BorderSide(color: AppTheme.primary),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(modalCtx);
+                                  _showEditQuizModal(context, quiz);
+                                },
+                                icon: const Icon(Icons.edit_rounded, size: 16),
+                                label: const Text('Edit Quiz', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppTheme.primary,
+                                  side: const BorderSide(color: AppTheme.primary),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          style: IconButton.styleFrom(
-                            backgroundColor: AppTheme.error.withValues(alpha: 0.1),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 20),
-                          tooltip: 'Delete Quiz',
-                          onPressed: () async {
-                            Navigator.pop(modalCtx);
-                            _confirmDeleteQuiz(context, quiz);
-                          },
+                            const SizedBox(width: 8),
+                            IconButton(
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppTheme.error.withValues(alpha: 0.1),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 20),
+                              tooltip: 'Delete Quiz',
+                              onPressed: () async {
+                                Navigator.pop(modalCtx);
+                                _confirmDeleteQuiz(context, quiz);
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
