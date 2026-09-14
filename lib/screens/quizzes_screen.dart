@@ -57,11 +57,24 @@ class _QuizzesScreenState extends State<QuizzesScreen>
       setState(() {
         final List<Map<String, dynamic>> mappedList = [];
 
-        // Active quizzes
-        for (var q in activeList) {
+        // Combine active and upcoming lists to categorize dynamically based on current time
+        final List<dynamic> rawQuizzes = [...activeList, ...upcomingList];
+        final Set<int> processedIds = {};
+        final now = DateTime.now();
+
+        for (var q in rawQuizzes) {
           final int qId = q['id'];
+          if (processedIds.contains(qId)) continue;
+          processedIds.add(qId);
+
           final bool isAttempted = attemptMap.containsKey(qId);
           final att = attemptMap[qId];
+
+          DateTime? startsAt = ApiService.parseDateTime(q['starts_at'] ?? q['scheduled_at']);
+          DateTime? endsAt = ApiService.parseDateTime(q['ends_at']);
+
+          final bool isBeforeStart = startsAt != null && now.isBefore(startsAt);
+          final bool isAfterEnd = endsAt != null && now.isAfter(endsAt);
 
           if (isAttempted) {
             final score = att?['score'] ?? 0;
@@ -77,6 +90,7 @@ class _QuizzesScreenState extends State<QuizzesScreen>
               'description': q['description'] ?? 'No description provided.',
               'questions': total,
               'duration': '${q['duration_minutes'] ?? 15} mins',
+              'durationMinutes': q['duration_minutes'] ?? 15,
               'score': '$pct%',
               'marks': '$score / $total',
               'date': 'Completed',
@@ -87,7 +101,33 @@ class _QuizzesScreenState extends State<QuizzesScreen>
               'color': passed ? const Color(0xFF00B894) : const Color(0xFFFF7675),
               'icon': Icons.task_alt_rounded,
             });
-          } else {
+          } else if (isBeforeStart) {
+            final hour = startsAt.hour % 12 == 0 ? 12 : startsAt.hour % 12;
+            final minute = startsAt.minute.toString().padLeft(2, '0');
+            final ampm = startsAt.hour >= 12 ? 'PM' : 'AM';
+            final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            String dateStr = '${startsAt.day} ${months[startsAt.month - 1]} ${startsAt.year}, $hour:$minute $ampm';
+
+            mappedList.add({
+              'id': qId,
+              'title': q['title'],
+              'subject': q['subject'] ?? 'General',
+              'category': 'upcoming',
+              'description': q['description'] ?? 'No description provided.',
+              'questions': q['questions_count'] ?? 0,
+              'duration': '${q['duration_minutes'] ?? 15} mins',
+              'durationMinutes': q['duration_minutes'] ?? 15,
+              'date': dateStr,
+              'startsAt': startsAt,
+              'due': 'Starts $dateStr',
+              'instructor': q['instructor'] ?? 'Faculty',
+              'isAttempted': false,
+              'isBeforeStart': true,
+              'isAfterEnd': false,
+              'color': const Color(0xFF0984E3),
+              'icon': Icons.memory_rounded,
+            });
+          } else if (!isAfterEnd) {
             mappedList.add({
               'id': qId,
               'title': q['title'],
@@ -100,39 +140,12 @@ class _QuizzesScreenState extends State<QuizzesScreen>
               'due': 'Available Now',
               'instructor': q['instructor'] ?? 'Faculty',
               'isAttempted': false,
+              'isBeforeStart': false,
+              'isAfterEnd': false,
               'color': AppTheme.primary,
               'icon': Icons.account_tree_rounded,
             });
           }
-        }
-
-        // Upcoming quizzes
-        for (var q in upcomingList) {
-          String dateStr = 'Scheduled Soon';
-          final DateTime? startsAt = ApiService.parseDateTime(q['starts_at'] ?? q['scheduled_at']);
-          if (startsAt != null) {
-            final hour = startsAt.hour % 12 == 0 ? 12 : startsAt.hour % 12;
-            final minute = startsAt.minute.toString().padLeft(2, '0');
-            final ampm = startsAt.hour >= 12 ? 'PM' : 'AM';
-            final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            dateStr = '${startsAt.day} ${months[startsAt.month - 1]} ${startsAt.year}, $hour:$minute $ampm';
-          }
-
-          mappedList.add({
-            'id': q['id'],
-            'title': q['title'],
-            'subject': q['subject'] ?? 'General',
-            'category': 'upcoming',
-            'description': q['description'] ?? 'No description provided.',
-            'questions': q['questions_count'] ?? 0,
-            'duration': '${q['duration_minutes'] ?? 15} mins',
-            'durationMinutes': q['duration_minutes'] ?? 15,
-            'date': dateStr,
-            'startsAt': startsAt,
-            'instructor': q['instructor'] ?? 'Faculty',
-            'color': const Color(0xFF0984E3),
-            'icon': Icons.memory_rounded,
-          });
         }
 
         // Archived/Backend completed quizzes
@@ -851,96 +864,289 @@ class _QuizzesScreenState extends State<QuizzesScreen>
     );
   }
 
-  // Card for Upcoming Quiz
-  Widget _buildUpcomingQuizCard(Map<String, dynamic> quiz) {
-    final Color themeColor = AppTheme.primary;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.border,
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+  void _showUpcomingQuizDetailsModal(Map<String, dynamic> quiz) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: themeColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Icon(Icons.event_note_rounded, color: AppTheme.primary, size: 22),
               ),
-              const SizedBox(width: 12),
-              Expanded(
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            quiz['subject'] ?? 'General',
+                            style: const TextStyle(
+                              color: AppTheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          quiz['title'] ?? 'Upcoming Quiz',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D3436),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0984E3).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.schedule_rounded, size: 14, color: Color(0xFF0984E3)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Scheduled',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0984E3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.person_outline_rounded, size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Instructor: ${quiz['instructor']}',
+                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceLight.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      quiz['title'],
-                      style: const TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.mainText,
-                      ),
+                    const Text(
+                      'Quiz Description & Details',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mainText),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 6),
                     Text(
-                      'Subject: ${quiz['subject']}  •  By ${quiz['instructor']}',
-                      style: const TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
+                      quiz['description'] ?? 'No description provided.',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricTile(
+                      icon: Icons.help_outline_rounded,
+                      label: 'Total Questions',
+                      value: '${quiz['questions']} Qs',
+                      color: AppTheme.info,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricTile(
+                      icon: Icons.timer_outlined,
+                      label: 'Duration',
+                      value: quiz['duration'] ?? '15 mins',
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.event_available_rounded, color: Colors.amber.shade900, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Scheduled for: ${quiz['date']}',
+                        style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(sheetContext),
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: const Text('Close Overview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D3436),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceLight.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.border),
+        );
+      },
+    );
+  }
+
+  // Card for Upcoming Quiz
+  Widget _buildUpcomingQuizCard(Map<String, dynamic> quiz) {
+    final Color themeColor = AppTheme.primary;
+
+    return InkWell(
+      onTap: () => _showUpcomingQuizDetailsModal(quiz),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.border,
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.event_rounded, size: 16, color: AppTheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      quiz['date'],
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.mainText,
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: themeColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.event_note_rounded, color: AppTheme.primary, size: 22),
                 ),
-                Text(
-                  '${quiz['questions']} Qs (${quiz['duration']})',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        quiz['title'],
+                        style: const TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.mainText,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Subject: ${quiz['subject']}  •  By ${quiz['instructor']}',
+                        style: const TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceLight.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.event_rounded, size: 16, color: AppTheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        quiz['date'],
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.mainText,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${quiz['questions']} Qs (${quiz['duration']})',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
