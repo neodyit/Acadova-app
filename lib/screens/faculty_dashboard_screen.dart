@@ -916,81 +916,73 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
-                    // Faculty Live Metrics Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildFacultyMetricCard(
-                            icon: Icons.quiz_rounded,
-                            title: 'Total Quizzes',
-                            value: '${_facultyStats['total_quizzes'] ?? 0}',
-                            color: const Color(0xFF6C5CE7),
+                    // Clean Blank Dashboard Placeholder State Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppTheme.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildFacultyMetricCard(
-                            icon: Icons.sensors_rounded,
-                            title: 'Active Now',
-                            value: '${_facultyStats['active_quizzes'] ?? 0}',
-                            color: AppTheme.success,
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.dashboard_outlined,
+                              size: 48,
+                              color: AppTheme.primary,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Faculty Dashboard',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.mainText,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Your dashboard is currently blank. There are no active quizzes or submissions listed.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textMuted,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          OutlinedButton.icon(
+                            onPressed: _showCreateQuizModal,
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('Create New Quiz', style: TextStyle(fontWeight: FontWeight.w600)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primary,
+                              side: const BorderSide(color: AppTheme.primary),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildFacultyMetricCard(
-                            icon: Icons.assignment_turned_in_rounded,
-                            title: 'Submissions',
-                            value: '${_facultyStats['total_submissions'] ?? 0}',
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildFacultyMetricCard(
-                            icon: Icons.analytics_rounded,
-                            title: 'Avg Class Score',
-                            value: '${_facultyStats['avg_accuracy'] ?? 0}%',
-                            color: const Color(0xFF0984E3),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Tab Navigation Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTabButton(
-                            title: 'Managed Quizzes',
-                            icon: Icons.menu_book_rounded,
-                            index: 0,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildTabButton(
-                            title: 'Submissions (${_submissions.length})',
-                            icon: Icons.people_alt_rounded,
-                            index: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Tab Contents
-                    if (_currentTabIndex == 0) _buildManagedQuizzesTab(),
-                    if (_currentTabIndex == 1) _buildSubmissionsTab(),
                   ],
                 ),
               ),
