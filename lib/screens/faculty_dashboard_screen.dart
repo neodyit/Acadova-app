@@ -84,11 +84,43 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
       // 3. Fetch Managed Quizzes
       final rawQuizzes = await ApiService.getQuizzes(status: 'all');
-      _quizzes = List<Map<String, dynamic>>.from(rawQuizzes);
+      final allQuizzes = List<Map<String, dynamic>>.from(rawQuizzes);
+
+      final currentUserId = _user['id']?.toString();
+      final currentName = (_user['name'] ?? _user['full_name'] ?? '').toString().trim().toLowerCase();
+
+      _quizzes = allQuizzes.where((q) {
+        final qUserId = q['user_id']?.toString() ?? q['created_by']?.toString();
+        final qInstructor = (q['instructor'] ?? '').toString().trim().toLowerCase();
+
+        if (currentUserId != null && qUserId != null) {
+          return qUserId == currentUserId;
+        }
+        if (currentName.isNotEmpty && qInstructor.isNotEmpty) {
+          return qInstructor == currentName;
+        }
+        return true;
+      }).toList();
 
       // 4. Fetch Student Submissions
       final rawSubmissions = await ApiService.getFacultySubmissions();
-      _submissions = List<Map<String, dynamic>>.from(rawSubmissions);
+      final allSubmissions = List<Map<String, dynamic>>.from(rawSubmissions);
+
+      _submissions = allSubmissions.where((sub) {
+        final quiz = sub['quiz'] is Map ? sub['quiz'] : {};
+        if (quiz.isEmpty) return true;
+
+        final qUserId = quiz['user_id']?.toString() ?? quiz['created_by']?.toString();
+        final qInstructor = (quiz['instructor'] ?? '').toString().trim().toLowerCase();
+
+        if (currentUserId != null && qUserId != null) {
+          return qUserId == currentUserId;
+        }
+        if (currentName.isNotEmpty && qInstructor.isNotEmpty) {
+          return qInstructor == currentName;
+        }
+        return true;
+      }).toList();
 
       // 5. Fetch Faculty Allocations (Subjects & Sections)
       _allocations = await ApiService.getMyFacultyAllocations();
