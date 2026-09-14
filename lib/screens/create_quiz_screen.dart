@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
+import 'manage_questions_screen.dart';
 
 class CreateQuizScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -256,10 +257,20 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
       CustomToast.show(
         context,
         title: 'Quiz Created',
-        message: 'Quiz "$title" created successfully!',
+        message: 'Quiz "$title" created successfully! Add your questions below.',
         type: ToastType.success,
       );
-      Navigator.pop(context, true);
+
+      final createdQuiz = (res['data'] is Map && res['data']['id'] != null)
+          ? res['data']
+          : {'id': res['quiz_id'], 'title': title, 'subject': selectedSubject, 'duration_minutes': duration};
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ManageQuestionsScreen(quiz: Map<String, dynamic>.from(createdQuiz)),
+        ),
+      );
     } else {
       CustomToast.show(
         context,

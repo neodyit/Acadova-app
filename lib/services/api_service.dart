@@ -1012,6 +1012,28 @@ class ApiService {
     return [];
   }
 
+  /// Get single Quiz details with questions
+  static Future<Map<String, dynamic>?> getQuizDetails(int quizId) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return Map<String, dynamic>.from(data['data']);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Add a Question to Quiz (Faculty)
   static Future<Map<String, dynamic>> addQuestionToQuiz({
     required int quizId,
@@ -1019,6 +1041,7 @@ class ApiService {
     required String type,
     required List<String> options,
     required dynamic correctOption,
+    String? difficulty,
   }) async {
     final url = Uri.parse('$baseUrl/quizzes/$quizId/questions');
     try {
@@ -1032,6 +1055,7 @@ class ApiService {
         body: jsonEncode({
           'question': question,
           'type': type,
+          'difficulty': difficulty ?? 'easy',
           'options': options,
           'correct_option': correctOption,
         }),
@@ -1046,6 +1070,110 @@ class ApiService {
       };
     } catch (e) {
       return {'success': false, 'message': 'Failed to add question ($e)'};
+    }
+  }
+
+  /// Update an existing Question
+  static Future<Map<String, dynamic>> updateQuestion({
+    required int questionId,
+    required String question,
+    required String type,
+    required List<String> options,
+    required dynamic correctOption,
+    String? difficulty,
+  }) async {
+    final url = Uri.parse('$baseUrl/questions/$questionId');
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({
+          'question': question,
+          'type': type,
+          'difficulty': difficulty ?? 'easy',
+          'options': options,
+          'correct_option': correctOption,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Question update response',
+        'data': data['data'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to update question ($e)'};
+    }
+  }
+
+  /// Delete a Question
+  static Future<bool> deleteQuestion(int questionId) async {
+    final url = Uri.parse('$baseUrl/questions/$questionId');
+    try {
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// Import Questions via CSV File (Faculty / Admin)
+  static Future<Map<String, dynamic>> importQuestionsCsv({
+    required int quizId,
+    String? filePath,
+    List<int>? bytes,
+    String? filename,
+  }) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId/import-csv');
+    try {
+      final request = http.MultipartRequest('POST', url);
+      if (authToken != null) {
+        request.headers['Authorization'] = 'Bearer $authToken';
+      }
+      request.headers['Accept'] = 'application/json';
+
+      if (bytes != null && bytes.isNotEmpty) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'csv_file',
+          bytes,
+          filename: filename ?? 'questions.csv',
+        ));
+      } else if (filePath != null && filePath.isNotEmpty) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'csv_file',
+          filePath,
+        ));
+      } else {
+        return {'success': false, 'message': 'No CSV file provided'};
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'CSV import response',
+        'data': data['data'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'CSV import failed: $e'};
     }
   }
 

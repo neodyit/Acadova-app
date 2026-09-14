@@ -5,6 +5,7 @@ import '../widgets/custom_toast.dart';
 import 'academic_profile_screen.dart';
 import 'create_quiz_screen.dart';
 import 'login_screen.dart';
+import 'manage_questions_screen.dart';
 import 'profile_screen.dart';
 
 class FacultyDashboardScreen extends StatefulWidget {
@@ -180,173 +181,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     }
   }
 
-  void _showAddQuestionModal(Map<String, dynamic> quiz) {
-    final questionController = TextEditingController();
-    final opt1Controller = TextEditingController();
-    final opt2Controller = TextEditingController();
-    final opt3Controller = TextEditingController();
-    final opt4Controller = TextEditingController();
-    int correctIndex = 0;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (modalCtx, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.add_task_rounded, color: AppTheme.primary, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Add MCQ Question',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.mainText),
-                                ),
-                                Text(
-                                  quiz['title'] ?? 'Quiz',
-                                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: questionController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: 'Question Text',
-                          hintText: 'Enter question prompt...',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Answer Options (Select the correct one):',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mainText),
-                      ),
-                      const SizedBox(height: 8),
-                      ...List.generate(4, (index) {
-                        final controllers = [opt1Controller, opt2Controller, opt3Controller, opt4Controller];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            children: [
-                              Radio<int>(
-                                value: index,
-                                groupValue: correctIndex,
-                                activeColor: AppTheme.primary,
-                                onChanged: (val) {
-                                  if (val != null) setModalState(() => correctIndex = val);
-                                },
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: controllers[index],
-                                  decoration: InputDecoration(
-                                    labelText: 'Option ${index + 1}',
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final qText = questionController.text.trim();
-                            final opts = [
-                              opt1Controller.text.trim(),
-                              opt2Controller.text.trim(),
-                              opt3Controller.text.trim(),
-                              opt4Controller.text.trim(),
-                            ];
-
-                            if (qText.isEmpty || opts.any((o) => o.isEmpty)) {
-                              CustomToast.show(context, message: 'Please fill in question and all 4 options', type: ToastType.error);
-                              return;
-                            }
-
-                            final res = await ApiService.addQuestionToQuiz(
-                              quizId: quiz['id'],
-                              question: qText,
-                              type: 'mcq',
-                              options: opts,
-                              correctOption: correctIndex,
-                            );
-
-                            if (mounted) {
-                              if (res['success'] == true) {
-                                if (modalCtx.mounted) Navigator.pop(modalCtx);
-                                CustomToast.show(context, message: 'Question added successfully!', type: ToastType.success);
-                                _fetchFacultyData();
-                              } else {
-                                CustomToast.show(context, message: res['message'] ?? 'Failed to add question', type: ToastType.error);
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: const Text('Save Question', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   String _formatDateAmPm(String? dateIso) {
     if (dateIso == null || dateIso.isEmpty) return 'N/A';
@@ -1198,12 +1033,25 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () => _showAddQuestionModal(quiz),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Question'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final updated = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManageQuestionsScreen(quiz: quiz),
+                        ),
+                      );
+                      if (updated == true && mounted) {
+                        _fetchFacultyData();
+                      }
+                    },
+                    icon: const Icon(Icons.quiz_rounded, size: 18),
+                    label: Text('Manage Questions ($questionCount)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                      foregroundColor: AppTheme.primary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
