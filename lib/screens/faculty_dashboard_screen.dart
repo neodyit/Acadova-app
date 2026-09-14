@@ -1115,14 +1115,68 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     final Map<String, List<Map<String, dynamic>>> groupWiseSubmissions = {};
     for (var sub in quizSubmissions) {
       final u = sub['user'] is Map ? sub['user'] : {};
-      final branch = (u['branch'] ?? u['branch_code'] ?? u['branch_name'] ?? 'General Branch').toString();
-      final sec = (u['section'] ?? u['section_name'] ?? 'A').toString();
-      final dept = (u['department'] ?? u['department_name'] ?? '').toString();
 
-      String groupKey = '$branch - Sec $sec';
-      if (dept.isNotEmpty && !groupKey.contains(dept)) {
-        groupKey = '$groupKey ($dept)';
+      // Extract Branch Code/Name (e.g., 'CSE' or 'Computer Science')
+      String branchStr = '';
+      if (u['branch'] != null) {
+        if (u['branch'] is Map) {
+          branchStr = (u['branch']['code'] ?? u['branch']['name'] ?? '').toString();
+        } else if (u['branch'] is String) {
+          branchStr = u['branch'].toString();
+        }
       }
+      if (branchStr.isEmpty && u['branch_code'] != null) {
+        branchStr = u['branch_code'].toString();
+      }
+      if (branchStr.isEmpty && u['branch_name'] != null) {
+        branchStr = u['branch_name'].toString();
+      }
+      if (branchStr.isEmpty && u['department'] != null) {
+        branchStr = u['department'].toString();
+      }
+      if (branchStr.isEmpty) {
+        branchStr = 'General Branch';
+      }
+
+      // Extract Section Name (e.g., 'E' or 'Sec E' -> 'E')
+      String secStr = '';
+      if (u['section'] != null) {
+        if (u['section'] is Map) {
+          secStr = (u['section']['name'] ?? u['section']['code'] ?? '').toString();
+        } else if (u['section'] is String) {
+          secStr = u['section'].toString();
+        }
+      }
+      if (secStr.isEmpty && u['section_name'] != null) {
+        secStr = u['section_name'].toString();
+      }
+      if (secStr.toLowerCase().startsWith('sec ')) {
+        secStr = secStr.substring(4).trim();
+      } else if (secStr.toLowerCase().startsWith('section ')) {
+        secStr = secStr.substring(8).trim();
+      }
+
+      // Extract Semester (e.g., '3' -> 'Sem 3')
+      String semStr = '';
+      final rawSem = u['semester'] ?? u['sem'];
+      if (rawSem != null && rawSem.toString().isNotEmpty) {
+        final semNum = rawSem.toString().replaceAll(RegExp(r'[^0-9]'), '');
+        if (semNum.isNotEmpty) {
+          semStr = 'Sem $semNum';
+        } else {
+          semStr = rawSem.toString();
+        }
+      }
+
+      // Format as "CSE (E) • Sem 3"
+      String groupKey = branchStr;
+      if (secStr.isNotEmpty) {
+        groupKey += ' ($secStr)';
+      }
+      if (semStr.isNotEmpty) {
+        groupKey += ' • $semStr';
+      }
+
       groupWiseSubmissions.putIfAbsent(groupKey, () => []).add(sub);
     }
 
@@ -1500,33 +1554,29 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(height: 8),
-                                            Wrap(
-                                              spacing: 6,
-                                              runSpacing: 6,
-                                              children: [
-                                                _buildInfoPill(
-                                                  icon: Icons.location_on_outlined,
-                                                  text: loc,
-                                                  color: Colors.grey.shade700,
-                                                  bgColor: Colors.grey.shade100,
-                                                ),
-                                                if (violations > 0)
-                                                  _buildInfoPill(
-                                                    icon: Icons.warning_amber_rounded,
-                                                    text: '$violations Violation${violations > 1 ? 's' : ''}',
-                                                    color: AppTheme.error,
-                                                    bgColor: AppTheme.error.withValues(alpha: 0.1),
-                                                  ),
-                                                if (autoReason != null && autoReason.toString().isNotEmpty)
-                                                  _buildInfoPill(
-                                                    icon: Icons.timer_off_outlined,
-                                                    text: 'Auto-Submitted: $autoReason',
-                                                    color: Colors.orange.shade800,
-                                                    bgColor: Colors.orange.withValues(alpha: 0.1),
-                                                  ),
-                                              ],
-                                            ),
+                                            if (violations > 0 || (autoReason != null && autoReason.toString().isNotEmpty)) ...[
+                                              const SizedBox(height: 8),
+                                              Wrap(
+                                                spacing: 6,
+                                                runSpacing: 6,
+                                                children: [
+                                                  if (violations > 0)
+                                                    _buildInfoPill(
+                                                      icon: Icons.warning_amber_rounded,
+                                                      text: '$violations Violation${violations > 1 ? 's' : ''}',
+                                                      color: AppTheme.error,
+                                                      bgColor: AppTheme.error.withValues(alpha: 0.1),
+                                                    ),
+                                                  if (autoReason != null && autoReason.toString().isNotEmpty)
+                                                    _buildInfoPill(
+                                                      icon: Icons.timer_off_outlined,
+                                                      text: 'Auto-Submitted: $autoReason',
+                                                      color: Colors.orange.shade800,
+                                                      bgColor: Colors.orange.withValues(alpha: 0.1),
+                                                    ),
+                                                ],
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       );
@@ -1740,21 +1790,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                       'Roll: $rollNo  •  $quizTitle',
                       style: const TextStyle(fontSize: 12.5, color: AppTheme.textMuted),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade600),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            location,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                          ),
-                        ),
-                      ],
-                    ),
+
                   ],
                 ),
               ),
