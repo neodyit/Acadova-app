@@ -276,12 +276,24 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
         ? (_allocations.first['subject_name'] ?? _user['department'] ?? 'Computer Science')
         : (_user['department'] ?? 'Computer Science');
     String selectedStatus = 'active';
+    Map<String, dynamic>? selectedAllocation = _allocations.isNotEmpty ? _allocations.first : null;
 
     List<dynamic> targetDeptIds = ['all'];
     List<dynamic> targetCourseIds = ['all'];
     List<dynamic> targetBranchIds = ['all'];
     List<dynamic> targetSectionIds = ['all'];
     List<dynamic> targetSubjectIds = ['all'];
+
+    // Pre-populate target filters if allocation selected initially
+    if (selectedAllocation != null) {
+      if (selectedAllocation['section_id'] != null) targetSectionIds = [selectedAllocation['section_id']];
+      if (selectedAllocation['department_id'] != null) targetDeptIds = [selectedAllocation['department_id']];
+      if (selectedAllocation['course_id'] != null) targetCourseIds = [selectedAllocation['course_id']];
+      if (selectedAllocation['branch_id'] != null) targetBranchIds = [selectedAllocation['branch_id']];
+      if (selectedAllocation['subject_id'] != null || selectedAllocation['subject_name'] != null) {
+        targetSubjectIds = [selectedAllocation['subject_id'] ?? selectedAllocation['subject_name']];
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -340,6 +352,51 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
+
+                      // Assigned Allocation Selector (Batches & Sections)
+                      if (_allocations.isNotEmpty) ...[
+                        DropdownButtonFormField<Map<String, dynamic>>(
+                          isExpanded: true,
+                          initialValue: selectedAllocation,
+                          decoration: const InputDecoration(
+                            labelText: 'Assigned Allocation (Batch & Section) *',
+                            prefixIcon: Icon(Icons.assignment_ind_rounded, color: AppTheme.primary),
+                            helperText: 'Auto-targets your assigned subject, section, and batch',
+                          ),
+                          items: _allocations.map((alloc) {
+                            final subName = alloc['subject_name'] ?? 'Subject';
+                            final secName = alloc['section_name'] ?? 'Section';
+                            final batchName = alloc['batch_name'] ?? alloc['batch'] ?? alloc['academic_year'] ?? 'Batch';
+                            return DropdownMenuItem<Map<String, dynamic>>(
+                              value: alloc,
+                              child: Text(
+                                '$subName - Section $secName ($batchName)',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (alloc) {
+                            if (alloc != null) {
+                              setModalState(() {
+                                selectedAllocation = alloc;
+                                selectedSubject = alloc['subject_name'] ?? selectedSubject;
+                                customSubjectController.text = selectedSubject;
+
+                                if (alloc['section_id'] != null) targetSectionIds = [alloc['section_id']];
+                                if (alloc['department_id'] != null) targetDeptIds = [alloc['department_id']];
+                                if (alloc['course_id'] != null) targetCourseIds = [alloc['course_id']];
+                                if (alloc['branch_id'] != null) targetBranchIds = [alloc['branch_id']];
+                                if (alloc['subject_id'] != null || alloc['subject_name'] != null) {
+                                  targetSubjectIds = [alloc['subject_id'] ?? alloc['subject_name']];
+                                }
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+
                       TextField(
                         controller: customSubjectController,
                         decoration: InputDecoration(
