@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'config/app_theme.dart';
 import 'screens/login_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 
@@ -95,6 +96,21 @@ class AcadovaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
+      onGenerateRoute: (settings) {
+        if (settings.name != null) {
+          final uri = Uri.parse(settings.name!);
+          if (uri.path == '/reset-password' || uri.host == 'reset-password') {
+            final token = uri.queryParameters['token'] ?? '';
+            final email = uri.queryParameters['email'] ?? '';
+            if (token.isNotEmpty && email.isNotEmpty) {
+              return MaterialPageRoute(
+                builder: (_) => ResetPasswordScreen(email: email, token: token),
+              );
+            }
+          }
+        }
+        return null;
+      },
     );
   }
 }
