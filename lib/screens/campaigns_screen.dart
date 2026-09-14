@@ -483,16 +483,45 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     height: 44,
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final String urlStr = c['linkUrl'].toString().trim();
-                        final Uri? uri = Uri.tryParse(urlStr);
-                        if (uri != null && await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
+                        final String rawUrl = c['linkUrl'].toString().trim();
+                        if (rawUrl.isEmpty || rawUrl.toLowerCase() == 'null') return;
+
+                        var formattedUrl = rawUrl;
+                        if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+                          formattedUrl = 'https://$formattedUrl';
+                        }
+
+                        final Uri? uri = Uri.tryParse(formattedUrl);
+                        if (uri != null && uri.host.isNotEmpty) {
+                          try {
+                            bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            if (!launched) {
+                              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+                            }
+                            if (!launched && mounted) {
+                              CustomToast.show(
+                                context,
+                                title: 'Link Error',
+                                message: 'Cannot launch URL: $formattedUrl',
+                                type: ToastType.warning,
+                              );
+                            }
+                          } catch (_) {
+                            if (mounted) {
+                              CustomToast.show(
+                                context,
+                                title: 'Link Error',
+                                message: 'Unable to open link in browser',
+                                type: ToastType.warning,
+                              );
+                            }
+                          }
                         } else {
                           if (mounted) {
                             CustomToast.show(
                               context,
                               title: 'Link Error',
-                              message: 'Cannot launch URL: $urlStr',
+                              message: 'Invalid URL format: $rawUrl',
                               type: ToastType.warning,
                             );
                           }
