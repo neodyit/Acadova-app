@@ -285,7 +285,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
       targetGroups = matchingAllocs.map((alloc) {
         final branchVal = alloc['branch_name'] ?? alloc['branch_code'] ?? alloc['branch_id'] ?? 'all';
+        final branchIdRaw = alloc['branch_id'];
         final secVal = (alloc['section_name'] ?? alloc['section_id'] ?? 'all').toString();
+        final secIdRaw = alloc['section_id'];
         final rawSem = alloc['semester'] ?? alloc['sem'] ?? alloc['academic_year'] ?? '';
 
         String semVal = rawSem.toString().trim();
@@ -298,8 +300,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
         return {
           'branch_id': branchVal,
+          if (branchIdRaw != null) 'branch_db_id': branchIdRaw,
           'section_id': secVal,
-          'section_ids': [secVal],
+          'section_ids': secIdRaw != null ? [secVal, secIdRaw.toString()] : [secVal],
           if (semVal.isNotEmpty) 'semester': semVal,
           if (alloc['department_id'] != null) 'department_id': alloc['department_id'],
           if (alloc['course_id'] != null) 'course_id': alloc['course_id'],
