@@ -1604,160 +1604,21 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     );
   }
 
-  void _showEditQuizModal(BuildContext context, Map<String, dynamic> quiz) {
-    final titleController = TextEditingController(text: quiz['title'] ?? '');
-    final subjectController = TextEditingController(text: quiz['subject'] ?? '');
-    final durationController = TextEditingController(text: (quiz['duration_minutes'] ?? 15).toString());
-    final descriptionController = TextEditingController(text: quiz['description'] ?? '');
-    String selectedStatus = (quiz['status'] ?? 'active').toString().toLowerCase();
-
-    bool isUpdating = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (modalCtx) {
-        return StatefulBuilder(
-          builder: (stCtx, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(stCtx).viewInsets.bottom),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Edit Quiz Details',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.mainText),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () => Navigator.pop(modalCtx),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: titleController,
-                        decoration: InputDecoration(
-                          labelText: 'Quiz Title',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: subjectController,
-                        decoration: InputDecoration(
-                          labelText: 'Subject',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: durationController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Duration (Minutes)',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Quiz Status',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mainText),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: ['active', 'scheduled', 'completed'].map((st) {
-                          final isSel = selectedStatus == st;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 6.0),
-                              child: ChoiceChip(
-                                label: Text(st.toUpperCase(), style: TextStyle(fontSize: 11, color: isSel ? Colors.white : AppTheme.mainText)),
-                                selected: isSel,
-                                selectedColor: AppTheme.primary,
-                                onSelected: (val) {
-                                  if (val) setModalState(() => selectedStatus = st);
-                                },
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: descriptionController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: 'Description (Optional)',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: isUpdating
-                              ? null
-                              : () async {
-                                  if (titleController.text.trim().isEmpty) {
-                                    CustomToast.show(context, message: 'Please enter quiz title', type: ToastType.error);
-                                    return;
-                                  }
-
-                                  setModalState(() => isUpdating = true);
-
-                                  final dur = int.tryParse(durationController.text.trim()) ?? 15;
-                                  final res = await ApiService.updateQuiz(
-                                    quizId: quiz['id'],
-                                    title: titleController.text.trim(),
-                                    subject: subjectController.text.trim(),
-                                    durationMinutes: dur,
-                                    status: selectedStatus,
-                                    description: descriptionController.text.trim(),
-                                  );
-
-                                  if (context.mounted) {
-                                    Navigator.pop(modalCtx);
-                                    if (res['success'] == true) {
-                                      CustomToast.show(context, message: 'Quiz updated successfully', type: ToastType.success);
-                                      _fetchFacultyData();
-                                    } else {
-                                      CustomToast.show(context, message: res['message'] ?? 'Failed to update quiz', type: ToastType.error);
-                                    }
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: isUpdating
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+  Future<void> _showEditQuizModal(BuildContext context, Map<String, dynamic> quiz) async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateQuizScreen(
+          userData: _user,
+          allocations: _allocations,
+          quizToEdit: quiz,
+        ),
+      ),
     );
+
+    if (updated == true && mounted) {
+      _fetchFacultyData();
+    }
   }
 
   Future<void> _confirmDeleteQuiz(BuildContext context, Map<String, dynamic> quiz) async {

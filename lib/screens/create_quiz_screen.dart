@@ -7,11 +7,13 @@ import 'manage_questions_screen.dart';
 class CreateQuizScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
   final List<Map<String, dynamic>> allocations;
+  final Map<String, dynamic>? quizToEdit;
 
   const CreateQuizScreen({
     super.key,
     required this.userData,
     required this.allocations,
+    this.quizToEdit,
   });
 
   @override
@@ -40,8 +42,58 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     _descriptionController = TextEditingController();
     _durationController = TextEditingController(text: '15');
 
-    // Pre-select all allocations by default
-    _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+    if (widget.quizToEdit != null) {
+      final quiz = widget.quizToEdit!;
+      _titleController.text = quiz['title'] ?? '';
+      _descriptionController.text = quiz['description'] ?? '';
+      _durationController.text = (quiz['duration_minutes'] ?? 15).toString();
+      _selectedStatus = (quiz['status'] ?? 'active').toString().toLowerCase();
+
+      final startIso = quiz['scheduled_at'] ?? quiz['starts_at'];
+      if (startIso != null && startIso.toString().isNotEmpty) {
+        final dt = DateTime.tryParse(startIso.toString())?.toLocal();
+        if (dt != null) {
+          _startDate = dt;
+          _startTime = TimeOfDay(hour: dt.hour, minute: dt.minute);
+        }
+      }
+
+      final endIso = quiz['ends_at'];
+      if (endIso != null && endIso.toString().isNotEmpty) {
+        final dt = DateTime.tryParse(endIso.toString())?.toLocal();
+        if (dt != null) {
+          _endDate = dt;
+          _endTime = TimeOfDay(hour: dt.hour, minute: dt.minute);
+        }
+      }
+
+      final targetGroups = quiz['target_groups'] is List ? List<Map<String, dynamic>>.from(quiz['target_groups']) : [];
+      if (targetGroups.isNotEmpty) {
+        final selected = <String>{};
+        for (var alloc in widget.allocations) {
+          final label = _formatBatchLabel(alloc);
+          final allocSec = (alloc['section_name'] ?? alloc['section_id'] ?? '').toString();
+          final allocBranch = (alloc['branch_code'] ?? alloc['branch_id'] ?? alloc['branch_name'] ?? '').toString();
+
+          for (var group in targetGroups) {
+            final grpSec = (group['section_id'] ?? '').toString();
+            final grpBranch = (group['branch_id'] ?? '').toString();
+            if ((grpSec == 'all' || grpSec == allocSec) && (grpBranch == 'all' || grpBranch == allocBranch)) {
+              selected.add(label);
+            }
+          }
+        }
+        if (selected.isNotEmpty) {
+          _selectedBatches = selected;
+        } else {
+          _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+        }
+      } else {
+        _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+      }
+    } else {
+      _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+    }
   }
 
   @override
@@ -232,50 +284,84 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     final startIso = _formatIsoDateTime(_startDate, _startTime);
     final endIso = _formatIsoDateTime(_endDate, _endTime);
 
-    final res = await ApiService.createQuiz(
-      title: title,
-      subject: selectedSubject,
-      instructor: (widget.userData['name'] ?? widget.userData['full_name'] ?? 'Faculty').toString(),
-      durationMinutes: duration,
-      status: _selectedStatus,
-      description: description,
-      scheduledAt: startIso,
-      startsAt: startIso,
-      endsAt: endIso,
-      departmentIds: targetDeptIds,
-      courseIds: targetCourseIds,
-      branchIds: targetBranchIds,
-      sectionIds: targetSectionIds,
-      subjectIds: targetSubjectIds,
-      targetGroups: targetGroups.isNotEmpty ? targetGroups : null,
-    );
+    final isEditing = widget.quizToEdit != null;
+    final Map<String, dynamic> res;
+
+    if (isEditing) {
+      res = await ApiService.updateQuiz(
+        quizId: widget.quizToEdit!['id'],
+        title: title,
+        subject: selectedSubject,
+        instructor: (widget.userData['name'] ?? widget.userData['full_name'] ?? 'Faculty').toString(),
+        durationMinutes: duration,
+        status: _selectedStatus,
+        description: description,
+        scheduledAt: startIso,
+        startsAt: startIso,
+        endsAt: endIso,
+        departmentIds: targetDeptIds,
+        courseIds: targetCourseIds,
+        branchIds: targetBranchIds,
+        sectionIds: targetSectionIds,
+        subjectIds: targetSubjectIds,
+        targetGroups: targetGroups.isNotEmpty ? targetGroups : null,
+      );
+    } else {
+      res = await ApiService.createQuiz(
+        title: title,
+        subject: selectedSubject,
+        instructor: (widget.userData['name'] ?? widget.userData['full_name'] ?? 'Faculty').toString(),
+        durationMinutes: duration,
+        status: _selectedStatus,
+        description: description,
+        scheduledAt: startIso,
+        startsAt: startIso,
+        endsAt: endIso,
+        departmentIds: targetDeptIds,
+        courseIds: targetCourseIds,
+        branchIds: targetBranchIds,
+        sectionIds: targetSectionIds,
+        subjectIds: targetSubjectIds,
+        targetGroups: targetGroups.isNotEmpty ? targetGroups : null,
+      );
+    }
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
     if (res['success'] == true) {
-      CustomToast.show(
-        context,
-        title: 'Quiz Created',
-        message: 'Quiz "$title" created successfully! Add your questions below.',
-        type: ToastType.success,
-      );
+      if (isEditing) {
+        CustomToast.show(
+          context,
+          title: 'Quiz Updated',
+          message: 'Quiz "$title" updated successfully!',
+          type: ToastType.success,
+        );
+        Navigator.pop(context, true);
+      } else {
+        CustomToast.show(
+          context,
+          title: 'Quiz Created',
+          message: 'Quiz "$title" created successfully! Add your questions below.',
+          type: ToastType.success,
+        );
 
-      final createdQuiz = (res['data'] is Map && res['data']['id'] != null)
-          ? res['data']
-          : {'id': res['quiz_id'], 'title': title, 'subject': selectedSubject, 'duration_minutes': duration};
+        final createdQuiz = (res['data'] is Map && res['data']['id'] != null)
+            ? res['data']
+            : {'id': res['quiz_id'], 'title': title, 'subject': selectedSubject, 'duration_minutes': duration};
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ManageQuestionsScreen(quiz: Map<String, dynamic>.from(createdQuiz)),
-        ),
-      );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ManageQuestionsScreen(quiz: Map<String, dynamic>.from(createdQuiz)),
+          ),
+        );
+      }
     } else {
       CustomToast.show(
         context,
-        title: 'Creation Failed',
-        message: ApiService.getErrorMessage(res, 'Could not create quiz'),
+        title: isEditing ? 'Update Failed' : 'Creation Failed',
+        message: ApiService.getErrorMessage(res, isEditing ? 'Could not update quiz' : 'Could not create quiz'),
         type: ToastType.error,
       );
     }
@@ -295,9 +381,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
           icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.mainText),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Create New Quiz',
-          style: TextStyle(
+        title: Text(
+          widget.quizToEdit != null ? 'Edit Quiz Details' : 'Create New Quiz',
+          style: const TextStyle(
             fontSize: 19,
             fontWeight: FontWeight.bold,
             color: AppTheme.mainText,
@@ -573,9 +659,11 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.add_task_rounded),
+                      : Icon(widget.quizToEdit != null ? Icons.save_rounded : Icons.add_task_rounded),
                   label: Text(
-                    _isSubmitting ? 'Creating Quiz...' : 'Create Quiz',
+                    _isSubmitting
+                        ? (widget.quizToEdit != null ? 'Saving Changes...' : 'Creating Quiz...')
+                        : (widget.quizToEdit != null ? 'Save Changes' : 'Create Quiz'),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   style: ElevatedButton.styleFrom(
