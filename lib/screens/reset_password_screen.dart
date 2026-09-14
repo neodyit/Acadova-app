@@ -158,7 +158,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                     validator: (val) {
                       if (val == null || val.isEmpty) return 'Please enter new password';
-                      if (val.length < 6) return 'Password must be at least 6 characters';
+                      if (val.length < 8) return 'Password must be at least 8 characters long';
+                      if (!RegExp(r'[A-Z]').hasMatch(val)) return 'Must contain at least 1 uppercase letter (A-Z)';
+                      if (!RegExp(r'[a-z]').hasMatch(val)) return 'Must contain at least 1 lowercase letter (a-z)';
+                      if (!RegExp(r'[0-9]').hasMatch(val)) return 'Must contain at least 1 number (0-9)';
+                      const String specialChars = r'!@#$%^&*(),.?":{}|<>_-';
+                      bool hasSpecial = false;
+                      for (int i = 0; i < val.length; i++) {
+                        if (specialChars.contains(val[i])) {
+                          hasSpecial = true;
+                          break;
+                        }
+                      }
+                      if (!hasSpecial) return 'Must contain at least 1 special character';
                       return null;
                     },
                   ),
