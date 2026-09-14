@@ -223,10 +223,40 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     final description = _descriptionController.text.trim();
     final duration = int.tryParse(_durationController.text.trim()) ?? 15;
 
-    if (_selectedStatus == 'upcoming' && (_startDate == null || _startTime == null)) {
+    if (widget.allocations.isNotEmpty && _selectedBatches.isEmpty) {
       CustomToast.show(
         context,
-        message: 'Please select Quiz Start Date & Time for upcoming status',
+        message: 'Please select at least one Target Batch for the quiz',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    if (_startDate == null || _startTime == null) {
+      CustomToast.show(
+        context,
+        message: 'Please select Start Date & Time for the quiz',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    if (_endDate == null || _endTime == null) {
+      CustomToast.show(
+        context,
+        message: 'Please select End Date & Time for the quiz',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    final startDateTime = DateTime(_startDate!.year, _startDate!.month, _startDate!.day, _startTime!.hour, _startTime!.minute);
+    final endDateTime = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, _endTime!.hour, _endTime!.minute);
+
+    if (endDateTime.isBefore(startDateTime) || endDateTime.isAtSameMomentAs(startDateTime)) {
+      CustomToast.show(
+        context,
+        message: 'End Date & Time must be after Start Date & Time',
         type: ToastType.warning,
       );
       return;
@@ -576,7 +606,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Start Date & Time',
+                              'Start Date & Time *',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
                             ),
                             const SizedBox(height: 2),
@@ -625,7 +655,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'End Date & Time (Optional)',
+                              'End Date & Time *',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
                             ),
                             const SizedBox(height: 2),
