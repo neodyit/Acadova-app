@@ -298,15 +298,16 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
           }
         }
 
-        return {
+        final map = <String, dynamic>{
           'branch_id': branchVal,
-          if (branchIdRaw != null) 'branch_db_id': branchIdRaw,
           'section_id': secVal,
           'section_ids': secIdRaw != null ? [secVal, secIdRaw.toString()] : [secVal],
-          if (semVal.isNotEmpty) 'semester': semVal,
-          if (alloc['department_id'] != null) 'department_id': alloc['department_id'],
-          if (alloc['course_id'] != null) 'course_id': alloc['course_id'],
         };
+        if (branchIdRaw != null) map['branch_db_id'] = branchIdRaw;
+        if (semVal.isNotEmpty) map['semester'] = semVal;
+        if (alloc['department_id'] != null) map['department_id'] = alloc['department_id'];
+        if (alloc['course_id'] != null) map['course_id'] = alloc['course_id'];
+        return map;
       }).toList();
 
       if (matchingAllocs.isNotEmpty) {
