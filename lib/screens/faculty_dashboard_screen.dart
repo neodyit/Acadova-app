@@ -313,16 +313,20 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
               ),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.88,
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
                         child: Container(
@@ -412,9 +416,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                         children: [
                           const Icon(Icons.groups_rounded, color: AppTheme.primary, size: 20),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Target Student Scope (Select Database Filters)',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.mainText),
+                          const Expanded(
+                            child: Text(
+                              'Target Student Scope (Database Filters)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppTheme.mainText),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -618,7 +625,8 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   ),
                 ),
               ),
-            );
+            ),
+          );
           },
         );
       },
