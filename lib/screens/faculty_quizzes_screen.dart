@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'create_quiz_screen.dart';
 import 'manage_questions_screen.dart';
+import 'quiz_responses_screen.dart';
 
 class FacultyQuizzesScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -517,7 +518,13 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                   icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   onSelected: (val) {
-                    if (val == 'edit') {
+                    if (val == 'responses') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => QuizResponsesScreen(quiz: quiz),
+                        ),
+                      );
+                    } else if (val == 'edit') {
                       _navigateToCreateQuiz(quiz);
                     } else if (val == 'questions') {
                       _navigateToManageQuestions(quiz);
@@ -526,6 +533,16 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                     }
                   },
                   itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'responses',
+                      child: Row(
+                        children: [
+                          Icon(Icons.analytics_outlined, size: 18, color: Color(0xFF8B5CF6)),
+                          SizedBox(width: 10),
+                          Text('View Responses'),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(
                       value: 'questions',
                       child: Row(

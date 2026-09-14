@@ -8,6 +8,7 @@ import 'faculty_quizzes_screen.dart';
 import 'login_screen.dart';
 import 'manage_questions_screen.dart';
 import 'profile_screen.dart';
+import 'quiz_responses_screen.dart';
 
 class FacultyDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -345,12 +346,13 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                 _buildDrawerItem(
                   icon: Icons.assignment_outlined,
                   activeIcon: Icons.assignment_rounded,
-                  title: 'Student Submissions',
+                  title: 'Student Responses / Submissions',
                   badgeCount: _submissions.length,
-                  isSelected: _selectedTab == 3,
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _selectedTab = 3);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QuizResponsesScreen()),
+                    );
                   },
                 ),
                 const Padding(
