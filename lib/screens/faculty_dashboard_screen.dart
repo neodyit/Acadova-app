@@ -355,12 +355,25 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                               targetBranchIds = matchingAllocs.map((a) => a['branch_id']).where((id) => id != null).toList();
                               targetSubjectIds = matchingAllocs.map((a) => a['subject_id'] ?? a['subject_name']).where((id) => id != null).toList();
 
-                              // Construct explicit Target Pairs (target_groups) for accurate backend & admin panel display
+                              // Construct explicit Target Pairs (target_groups) matching Admin Panel schema
                               targetGroups = matchingAllocs.map((alloc) {
+                                final branchVal = alloc['branch_name'] ?? alloc['branch_code'] ?? alloc['branch_id'] ?? 'all';
+                                final secVal = (alloc['section_name'] ?? alloc['section_id'] ?? 'all').toString();
+                                final rawSem = alloc['semester'] ?? alloc['sem'] ?? alloc['academic_year'] ?? '';
+
+                                String semVal = rawSem.toString().trim();
+                                if (semVal.isNotEmpty) {
+                                  final numMatch = RegExp(r'\d+').firstMatch(semVal);
+                                  if (numMatch != null) {
+                                    semVal = numMatch.group(0)!;
+                                  }
+                                }
+
                                 return {
-                                  'branch_id': alloc['branch_id'] ?? 'all',
-                                  'section_id': alloc['section_id'] ?? 'all',
-                                  'section_ids': alloc['section_id'] != null ? [alloc['section_id']] : ['all'],
+                                  'branch_id': branchVal,
+                                  'section_id': secVal,
+                                  'section_ids': [secVal],
+                                  if (semVal.isNotEmpty) 'semester': semVal,
                                   if (alloc['department_id'] != null) 'department_id': alloc['department_id'],
                                   if (alloc['course_id'] != null) 'course_id': alloc['course_id'],
                                 };
