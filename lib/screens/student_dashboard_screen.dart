@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/location_permission_banner.dart';
 import 'academic_profile_screen.dart';
+import 'campaigns_screen.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
@@ -480,7 +481,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 title: 'Campaigns & Announcements',
                 actionText: 'Explore',
                 actionIcon: Icons.explore_rounded,
-                onActionTap: _showExploreAnnouncementsModal,
+                onActionTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const CampaignsScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 12),
               _campaigns.isEmpty
@@ -638,6 +645,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+            ),
+          );
+        } else if (index == 4) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CampaignsScreen(),
             ),
           );
         } else if (index == 5) {
@@ -825,158 +838,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  void _showExploreAnnouncementsModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.campaign_rounded, color: AppTheme.primary, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Campaigns & Announcements',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.mainText,
-                        ),
-                      ),
-                      Text(
-                        'Events, updates & official notices',
-                        style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _campaigns.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24.0),
-                      child: Center(
-                        child: Text(
-                          'No active announcements at this moment.',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                        ),
-                      ),
-                    )
-                  : ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.5,
-                      ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: _campaigns.length,
-                        separatorBuilder: (ctx, idx) => const SizedBox(height: 12),
-                        itemBuilder: (ctx, idx) {
-                          final c = _campaigns[idx];
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.background,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primary.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        c['badge'] ?? 'Notice',
-                                        style: const TextStyle(
-                                          color: AppTheme.primary,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    const Icon(Icons.campaign_outlined, size: 16, color: AppTheme.textMuted),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  c['title'] ?? '',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                ),
-                                if (c['description'] != null && c['description'].toString().trim().isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    c['description'].toString(),
-                                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.3),
-                                  ),
-                                ],
-                                if (c['linkUrl'] != null && c['linkUrl'].toString().trim().isNotEmpty) ...[
-                                  const SizedBox(height: 10),
-                                  InkWell(
-                                    onTap: () async {
-                                      final Uri uri = Uri.parse(c['linkUrl'].toString());
-                                      if (await canLaunchUrl(uri)) {
-                                        await launchUrl(uri);
-                                      }
-                                    },
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text('Open Link', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
-                                        SizedBox(width: 4),
-                                        Icon(Icons.open_in_new_rounded, size: 14, color: AppTheme.primary),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+
 
   // Section Header Builder with Pill Action Buttons
   Widget _buildSectionHeader({
