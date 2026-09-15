@@ -8,6 +8,7 @@ import '../widgets/custom_toast.dart';
 import '../widgets/location_permission_banner.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/ad_native_widget.dart';
+import '../widgets/safe_user_avatar.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 import 'academic_profile_screen.dart';
 import 'campaigns_screen.dart';
@@ -297,20 +298,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   setState(() => _userData = Map<String, dynamic>.from(updated));
                 }
               },
-              child: CircleAvatar(
+              child: SafeUserAvatar(
+                avatarUrl: avatarUrl,
+                fallbackInitial: name,
                 radius: 17,
-                backgroundColor: const Color(0xFF6C5CE7).withValues(alpha: 0.15),
-                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                child: avatarUrl == null
-                    ? Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'S',
-                        style: const TextStyle(
-                          color: Color(0xFF6C5CE7),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      )
-                    : null,
               ),
             ),
           ),
@@ -343,19 +334,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                currentAccountPicture: CircleAvatar(
+                currentAccountPicture: SafeUserAvatar(
+                  avatarUrl: avatarUrl,
+                  fallbackInitial: name,
+                  radius: 36,
                   backgroundColor: Colors.white,
-                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                  child: avatarUrl == null
-                      ? Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : 'S',
-                          style: const TextStyle(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                          ),
-                        )
-                      : null,
+                  textColor: AppTheme.primary,
                 ),
                 accountName: Text(
                   name,

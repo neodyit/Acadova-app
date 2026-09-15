@@ -1,8 +1,19 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <dwmapi.h>
 
 #include "flutter/generated_plugin_registrant.h"
+
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
+#ifndef DWMWA_TEXT_COLOR
+#define DWMWA_TEXT_COLOR 36
+#endif
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -12,6 +23,18 @@ FlutterWindow::~FlutterWindow() {}
 bool FlutterWindow::OnCreate() {
   if (!Win32Window::OnCreate()) {
     return false;
+  }
+
+  HWND hwnd = GetHandle();
+  if (hwnd != nullptr) {
+    // AppTheme primary brand color: #B45309 (BGR format: 0x000953B4)
+    COLORREF captionColor = RGB(0xB4, 0x53, 0x09);
+    COLORREF textColor = RGB(0xFF, 0xFF, 0xFF);
+    BOOL useDarkMode = TRUE;
+
+    ::DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
+    ::DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, &captionColor, sizeof(captionColor));
+    ::DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, &textColor, sizeof(textColor));
   }
 
   RECT frame = GetClientArea();

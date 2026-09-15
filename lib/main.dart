@@ -147,6 +147,18 @@ class _AcadovaAppState extends State<AcadovaApp> {
       title: 'Acadova',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      builder: (context, child) {
+        return Container(
+          color: const Color(0xFFEFE6D5),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1280),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+        );
+      },
       home: const SplashScreen(),
       onGenerateRoute: (settings) {
         if (settings.name != null) {
