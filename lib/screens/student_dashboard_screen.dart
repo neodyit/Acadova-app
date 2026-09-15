@@ -697,25 +697,28 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           const Spacer(),
 
           // Logout Option
-          ListTile(
-            leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
-            title: const Text(
-              'Logout',
-              style: TextStyle(
-                color: AppTheme.error,
-                fontWeight: FontWeight.bold,
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
+              leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
+              title: const Text(
+                'Logout',
+                style: TextStyle(
+                  color: AppTheme.error,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+              onTap: () async {
+                if (!isDesktop) Navigator.pop(context);
+                await ApiService.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              },
             ),
-            onTap: () async {
-              if (!isDesktop) Navigator.pop(context);
-              await ApiService.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
           ),
           const SizedBox(height: 16),
         ],
@@ -944,20 +947,22 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     bool isDesktop = false,
   }) {
     final isSelected = _activeNavIndex == index;
-    return ListTile(
-      selected: isSelected,
-      selectedTileColor: AppTheme.primary.withValues(alpha: 0.1),
-      leading: Icon(
-        icon,
-        color: isSelected ? AppTheme.primary : AppTheme.textMuted,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? AppTheme.primary : AppTheme.mainText,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        selected: isSelected,
+        selectedTileColor: AppTheme.primary.withValues(alpha: 0.1),
+        leading: Icon(
+          icon,
+          color: isSelected ? AppTheme.primary : AppTheme.textMuted,
         ),
-      ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? AppTheme.primary : AppTheme.mainText,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       trailing: (badgeText != null && badgeText.isNotEmpty && badgeText != '0')
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1024,6 +1029,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           }
         }
       },
+    ),
     );
   }
 
