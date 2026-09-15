@@ -581,14 +581,28 @@ class ApiService {
     }
   }
 
-  /// Formats media URLs to use the production media route (/api/media/file/)
+  /// Formats media URLs to ensure absolute downloadable URLs on both Windows and Mobile.
   static String? formatMediaUrl(String? rawUrl) {
     if (rawUrl == null || rawUrl.trim().isEmpty) return null;
     String clean = rawUrl.trim();
+
     if (clean.contains('/storage/')) {
       clean = clean.replaceAll('/storage/', '/api/media/file/');
     }
-    return clean;
+
+    if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      return clean;
+    }
+
+    // Prepend domain if relative path
+    final Uri baseUri = Uri.parse(AppConfig.activeApiUrl);
+    final String domain = '${baseUri.scheme}://${baseUri.host}${baseUri.hasPort ? ':${baseUri.port}' : ''}';
+
+    if (clean.startsWith('/')) {
+      return '$domain$clean';
+    } else {
+      return '$domain/$clean';
+    }
   }
 
   /// Upload media file to structured backend storage (avatars, campaigns, questions, general)
