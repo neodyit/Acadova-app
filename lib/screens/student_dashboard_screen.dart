@@ -891,14 +891,30 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           ),
                         ),
 
-                        // Dashboard Main View
+                        // Dashboard Main View / Selected Screen View
                         Expanded(
-                          child: RefreshIndicator(
-                            color: const Color(0xFF6C5CE7),
-                            onRefresh: () async {
-                              await _fetchBackendData();
-                            },
-                            child: dashboardContent,
+                          child: IndexedStack(
+                            index: _activeNavIndex,
+                            children: [
+                              // 0: Dashboard
+                              RefreshIndicator(
+                                color: const Color(0xFF6C5CE7),
+                                onRefresh: () async {
+                                  await _fetchBackendData();
+                                },
+                                child: dashboardContent,
+                              ),
+                              // 1: Active Quizzes
+                              const QuizzesScreen(initialTabIndex: 0),
+                              // 2: Upcoming Quizzes
+                              const QuizzesScreen(initialTabIndex: 1),
+                              // 3: Recent Submissions / Completed Quizzes
+                              const QuizzesScreen(initialTabIndex: 2),
+                              // 4: Campaigns
+                              const CampaignsScreen(),
+                              // 5: Profile Settings
+                              ProfileScreen(userData: _userData),
+                            ],
                           ),
                         ),
                       ],
@@ -961,42 +977,48 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         setState(() {
           _activeNavIndex = index;
         });
-        if (!isDesktop) {
-          Navigator.pop(context);
-        }
-
         if (index == 1) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const QuizzesScreen(initialTabIndex: 0),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const QuizzesScreen(initialTabIndex: 0),
+              ),
+            );
+          }
         } else if (index == 2) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const QuizzesScreen(initialTabIndex: 1),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+              ),
+            );
+          }
         } else if (index == 3) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const QuizzesScreen(initialTabIndex: 2),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+              ),
+            );
+          }
         } else if (index == 4) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const CampaignsScreen(),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const CampaignsScreen(),
+              ),
+            );
+          }
         } else if (index == 5) {
-          final updated = await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => ProfileScreen(userData: _userData),
-            ),
-          );
-          if (updated != null && updated is Map<String, dynamic>) {
-            setState(() => _userData = Map<String, dynamic>.from(updated));
+          if (!isDesktop) {
+            final updated = await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(userData: _userData),
+              ),
+            );
+            if (updated != null && updated is Map<String, dynamic>) {
+              setState(() => _userData = Map<String, dynamic>.from(updated));
+            }
           }
         }
       },

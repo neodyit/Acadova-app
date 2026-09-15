@@ -202,6 +202,7 @@ class _QuizzesScreenState extends State<QuizzesScreen>
         backgroundColor: AppTheme.background,
         elevation: 0,
         foregroundColor: AppTheme.mainText,
+        automaticallyImplyLeading: !isDesktop,
         title: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
