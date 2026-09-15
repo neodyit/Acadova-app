@@ -1186,62 +1186,64 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             const SizedBox(height: 24),
 
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(child: Divider(color: Colors.grey.shade300)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Text(
-                    'OR',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
+            if (!isDesktop) ...[
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(child: Divider(color: Colors.grey.shade300)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: _isLoading ? null : _handleGoogleSignup,
-                icon: Image.asset(
-                  'assets/images/google-icon.png',
-                  width: 22,
-                  height: 22,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Image.asset(
-                    'assets/images/google_logo.png',
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _handleGoogleSignup,
+                  icon: Image.asset(
+                    'assets/images/google-icon.png',
                     width: 22,
                     height: 22,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.g_mobiledata_rounded,
-                            size: 26, color: Colors.redAccent),
+                        Image.asset(
+                      'assets/images/google_logo.png',
+                      width: 22,
+                      height: 22,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.g_mobiledata_rounded,
+                              size: 26, color: Colors.redAccent),
+                    ),
                   ),
-                ),
-                label: const Text(
-                  'Continue with Google',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2D3436),
+                  label: const Text(
+                    'Continue with Google',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2D3436),
+                    ),
                   ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  side: BorderSide(color: Colors.grey.shade300),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 24),
 
             // Already Have An Account Link
