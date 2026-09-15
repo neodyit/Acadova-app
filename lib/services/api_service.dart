@@ -1598,4 +1598,22 @@ class ApiService {
               userData['semester'].toString().trim().isEmpty);
     }
   }
+
+  /// Fetch faculty subject & section allocations for the logged in user
+  static Future<List<Map<String, dynamic>>> getMyFacultyAllocations() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/faculty/my-allocations'),
+        headers: _headers(),
+      );
+      _checkUnauthorized(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
 }
