@@ -206,12 +206,19 @@ class _QuizzesScreenState extends State<QuizzesScreen>
         title: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
-            child: const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'My Quizzes',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppTheme.mainText),
-              ),
+            child: Row(
+              children: [
+                const Text(
+                  'My Quizzes',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppTheme.mainText),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: AppTheme.mainText),
+                  onPressed: _fetchQuizzesFromBackend,
+                  tooltip: 'Refresh Quizzes',
+                ),
+              ],
             ),
           ),
         ),
