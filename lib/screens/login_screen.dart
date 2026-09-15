@@ -568,13 +568,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         TextButton(
-                          onPressed: () {
-                            CustomToast.show(
-                              context,
-                              title: 'Privacy Policy',
-                              message: 'Opening Acadova Privacy Policy...',
-                              type: ToastType.info,
-                            );
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://acadova.neodyit.com/privacy-policy');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
                           },
                           style: TextButton.styleFrom(
                             minimumSize: Size.zero,
@@ -585,20 +583,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
                         TextButton(
-                          onPressed: () {
-                            CustomToast.show(
-                              context,
-                              title: 'Terms of Service',
-                              message: 'Opening Terms of Service...',
-                              type: ToastType.info,
-                            );
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://acadova.neodyit.com/privacy-policy');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
                           },
                           style: TextButton.styleFrom(
                             minimumSize: Size.zero,
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: Text('Terms', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          child: Text('Terms of Service', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                         ),
                         Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
                         TextButton(

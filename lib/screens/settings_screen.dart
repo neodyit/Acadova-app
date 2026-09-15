@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/custom_toast.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -150,7 +151,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 leading: const Icon(Icons.privacy_tip_outlined, color: Color(0xFF0984E3)),
                 title: const Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.w600)),
                 trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey),
-                onTap: () => _showDialog('Privacy Policy', 'Acadova values your data privacy. All student quiz attempts and academic scores are strictly encrypted.'),
+                onTap: () async {
+                  final Uri url = Uri.parse('https://acadova.neodyit.com/privacy-policy');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
               ),
               const Divider(height: 1),
               ListTile(
