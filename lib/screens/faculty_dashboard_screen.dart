@@ -46,6 +46,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     super.initState();
     _user = Map<String, dynamic>.from(widget.userData);
     _fetchFacultyData();
+    ApiService.initAndSyncNotificationToken();
 
     // Auto-refresh faculty dashboard data every 20 seconds
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {

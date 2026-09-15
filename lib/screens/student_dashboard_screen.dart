@@ -51,6 +51,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     super.initState();
     _userData = Map<String, dynamic>.from(widget.userData);
     _fetchBackendData();
+    ApiService.initAndSyncNotificationToken();
 
     // Auto-refresh student dashboard data every 20 seconds
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
