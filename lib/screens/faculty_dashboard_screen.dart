@@ -337,36 +337,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   },
                 ),
                 _buildDrawerItem(
-                  icon: Icons.bolt_outlined,
-                  activeIcon: Icons.bolt_rounded,
-                  title: 'Active Quizzes',
-                  badgeCount: _activeQuizzes.length,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _openFacultyQuizzes(0);
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.calendar_today_outlined,
-                  activeIcon: Icons.calendar_today_rounded,
-                  title: 'Scheduled Quizzes',
-                  badgeCount: _scheduledQuizzes.length,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _openFacultyQuizzes(1);
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.check_circle_outline_rounded,
-                  activeIcon: Icons.check_circle_rounded,
-                  title: 'Completed Quizzes',
-                  badgeCount: _campaignQuizzes.length,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _openFacultyQuizzes(2);
-                  },
-                ),
-                _buildDrawerItem(
                   icon: Icons.assignment_outlined,
                   activeIcon: Icons.assignment_rounded,
                   title: 'Student Responses / Submissions',
