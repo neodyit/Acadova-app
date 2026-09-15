@@ -1181,35 +1181,41 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _activeQuizzes.isNotEmpty ? Icons.play_arrow_rounded : Icons.check_rounded,
-                          color: const Color(0xFF6C5CE7),
-                          size: 16,
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final unattemptedCount = _activeQuizzes.where((q) => q['isAttempted'] != true).length;
+                          final hasUnattempted = unattemptedCount > 0;
+                          return Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  hasUnattempted ? Icons.play_arrow_rounded : Icons.check_rounded,
+                                  color: const Color(0xFF6C5CE7),
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  hasUnattempted
+                                      ? '$unattemptedCount Active quiz${unattemptedCount > 1 ? 'zes' : ''} available to attempt'
+                                      : 'All assigned quizzes are up to date!',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _activeQuizzes.isNotEmpty
-                              ? '${_activeQuizzes.length} Active quiz available to attempt'
-                              : 'All assigned quizzes are up to date!',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
