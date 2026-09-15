@@ -67,11 +67,11 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
 
   Future<void> _enableProctoringSecurity() async {
     try {
-      // Hide status bar & navigation bar to prevent easy app switching / pull-down menu overlays
+      // Hide status bar & navigation bar
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-      // On Android native, prevent screenshots, screen recording & display overlays using FLAG_SECURE
-      if (!kIsWeb && Platform.isAndroid) {
+      // Invoke native security channel for both Windows desktop and Android mobile
+      if (!kIsWeb && (Platform.isWindows || Platform.isAndroid)) {
         await _securityChannel.invokeMethod('enableSecureScreen');
       }
     } catch (_) {}
@@ -82,8 +82,8 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
       // Restore default system UI
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-      // Disable FLAG_SECURE
-      if (!kIsWeb && Platform.isAndroid) {
+      // Disable secure kiosk mode
+      if (!kIsWeb && (Platform.isWindows || Platform.isAndroid)) {
         await _securityChannel.invokeMethod('disableSecureScreen');
       }
     } catch (_) {}

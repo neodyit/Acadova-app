@@ -50,6 +50,26 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  // Register Security & Proctoring MethodChannel
+  security_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(),
+      "com.neodyit.acadova/security",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  security_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() == "enableSecureScreen") {
+          this->EnableProctoringSecurity();
+          result->Success(flutter::EncodableValue(true));
+        } else if (call.method_name() == "disableSecureScreen") {
+          this->DisableProctoringSecurity();
+          result->Success(flutter::EncodableValue(true));
+        } else {
+          result->NotImplemented();
+        }
+      });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -62,7 +82,64 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+void FlutterWindow::EnableProctoringSecurity() {
+  HWND hwnd = GetHandle();
+  if (hwnd == nullptr || is_proctored_mode_) return;
+
+  is_proctored_mode_ = true;
+
+  // 1. Save current window styles & placement
+  GetWindowPlacement(hwnd, &saved_window_placement_);
+  saved_style_ = GetWindowLong(hwnd, GWL_STYLE);
+  saved_ex_style_ = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+  // 2. Set Kiosk borderless style
+  DWORD new_style = saved_style_ & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+  SetWindowLong(hwnd, GWL_STYLE, new_style);
+
+  // 3. Make window TOPMOST and prevent display capture / screen recording if supported by DWM
+  SetWindowLong(hwnd, GWL_EXSTYLE, saved_ex_style_ | WS_EX_TOPMOST);
+
+  // Prevent display capture (Windows 10 2004+ / Windows 11)
+  SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+
+  // 4. Expand window to cover entire primary monitor (Fullscreen Kiosk Mode)
+  HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO mi = { sizeof(MONITORINFO) };
+  if (GetMonitorInfo(monitor, &mi)) {
+    SetWindowPos(hwnd, HWND_TOPMOST,
+                 mi.rcMonitor.left, mi.rcMonitor.top,
+                 mi.rcMonitor.right - mi.rcMonitor.left,
+                 mi.rcMonitor.bottom - mi.rcMonitor.top,
+                 SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+  }
+
+  ::SetForegroundWindow(hwnd);
+  ::SetFocus(hwnd);
+}
+
+void FlutterWindow::DisableProctoringSecurity() {
+  HWND hwnd = GetHandle();
+  if (hwnd == nullptr || !is_proctored_mode_) return;
+
+  is_proctored_mode_ = false;
+
+  // Restore display capture affinity
+  SetWindowDisplayAffinity(hwnd, WDA_NONE);
+
+  // Restore window styles & position
+  SetWindowLong(hwnd, GWL_STYLE, saved_style_);
+  SetWindowLong(hwnd, GWL_EXSTYLE, saved_ex_style_);
+  SetWindowPlacement(hwnd, &saved_window_placement_);
+  SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+}
+
 void FlutterWindow::OnDestroy() {
+  if (is_proctored_mode_) {
+    DisableProctoringSecurity();
+  }
+
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -74,6 +151,29 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (is_proctored_mode_) {
+    switch (message) {
+      // Prevent minimizing or closing via Windows system commands / shortcut keys (Alt+F4, Win+Down)
+      case WM_SYSCOMMAND: {
+        UINT cmd = wparam & 0xFFF0;
+        if (cmd == SC_MINIMIZE || cmd == SC_CLOSE || cmd == SC_SCREENSAVE || cmd == SC_MONITORPOWER) {
+          return 0; // Block action
+        }
+        break;
+      }
+
+      // Re-claim top focus immediately if another window attempts to show over it
+      case WM_KILLFOCUS:
+      case WM_ACTIVATEAPP: {
+        if (wparam == FALSE) { // Application losing focus
+          ::SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+          ::SetForegroundWindow(hwnd);
+        }
+        break;
+      }
+    }
+  }
+
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =

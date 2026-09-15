@@ -3,6 +3,8 @@
 
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
 
 #include <memory>
 
@@ -23,11 +25,23 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
+  // Proctored mode toggles for Windows
+  void EnableProctoringSecurity();
+  void DisableProctoringSecurity();
+
   // The project to run.
   flutter::DartProject project_;
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+
+  // Method channel for security & proctoring
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> security_channel_;
+
+  bool is_proctored_mode_ = false;
+  WINDOWPLACEMENT saved_window_placement_ = { sizeof(WINDOWPLACEMENT) };
+  DWORD saved_style_ = 0;
+  DWORD saved_ex_style_ = 0;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_
