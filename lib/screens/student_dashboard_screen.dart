@@ -5,6 +5,7 @@ import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/location_permission_banner.dart';
+import '../widgets/ad_banner_widget.dart';
 import 'academic_profile_screen.dart';
 import 'campaigns_screen.dart';
 import 'login_screen.dart';
@@ -224,6 +225,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppTheme.background,
+      bottomNavigationBar: const SafeArea(
+        child: AdBannerWidget(),
+      ),
 
       // App Bar Navigation Header
       appBar: AppBar(

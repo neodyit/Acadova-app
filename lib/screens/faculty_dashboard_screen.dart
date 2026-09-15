@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
+import '../widgets/ad_banner_widget.dart';
 import 'academic_profile_screen.dart';
 import 'create_quiz_screen.dart';
 import 'faculty_quizzes_screen.dart';
@@ -475,6 +476,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
+      bottomNavigationBar: const SafeArea(
+        child: AdBannerWidget(),
+      ),
       drawer: _buildFacultyDrawer(context),
       appBar: AppBar(
         backgroundColor: AppTheme.background,

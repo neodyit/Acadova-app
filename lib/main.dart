@@ -5,11 +5,13 @@ import 'screens/login_screen.dart';
 import 'screens/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
+import 'services/ad_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdService().init();
 
   // Custom Error Boundary to prevent silent white screen crashes on device unlock/resume
   ErrorWidget.builder = (FlutterErrorDetails details) {

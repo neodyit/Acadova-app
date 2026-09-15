@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../services/ad_service.dart';
+import '../widgets/ad_banner_widget.dart';
 
-class QuizResultScreen extends StatelessWidget {
+class QuizResultScreen extends StatefulWidget {
   final String quizTitle;
   final int score;
   final int totalQuestions;
@@ -18,12 +20,40 @@ class QuizResultScreen extends StatelessWidget {
   });
 
   @override
+  State<QuizResultScreen> createState() => _QuizResultScreenState();
+}
+
+class _QuizResultScreenState extends State<QuizResultScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Try showing interstitial ad when arriving at quiz result screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AdService().showInterstitialAdIfReady();
+    });
+  }
+
+  void _returnHome() {
+    AdService().showInterstitialAdIfReady(
+      forceShow: true,
+      onDismissed: () {
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final double percentage = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+    final double percentage = widget.totalQuestions > 0 ? (widget.score / widget.totalQuestions) * 100 : 0;
     final bool passed = percentage >= 50;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
+      bottomNavigationBar: const SafeArea(
+        child: AdBannerWidget(),
+      ),
       appBar: AppBar(
         title: const Text('Quiz Summary', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.background,
@@ -41,9 +71,7 @@ class QuizResultScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.home_rounded, color: AppTheme.primary, size: 26),
-            onPressed: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
+            onPressed: _returnHome,
             tooltip: 'Return to Dashboard',
           ),
           const SizedBox(width: 8),
@@ -93,7 +121,7 @@ class QuizResultScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      quizTitle,
+                      widget.quizTitle,
                       style: const TextStyle(fontSize: 14, color: Colors.white70),
                     ),
                     const SizedBox(height: 20),
@@ -104,7 +132,7 @@ class QuizResultScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Text(
-                        '$score / $totalQuestions (${percentage.toStringAsFixed(0)}%)',
+                        '${widget.score} / ${widget.totalQuestions} (${percentage.toStringAsFixed(0)}%)',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -127,9 +155,9 @@ class QuizResultScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Question Breakdown
-              ...List.generate(questions.length, (index) {
-                final q = questions[index];
-                final dynamic userAnsRaw = userAnswers[index];
+              ...List.generate(widget.questions.length, (index) {
+                final q = widget.questions[index];
+                final dynamic userAnsRaw = widget.userAnswers[index];
                 final dynamic correctAnsRaw = q['correct_option'];
 
                 final String userAnsStr = userAnsRaw is List ? userAnsRaw.join(', ') : (userAnsRaw?.toString() ?? 'Not Answered');
