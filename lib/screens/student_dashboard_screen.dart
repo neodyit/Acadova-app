@@ -445,7 +445,16 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               // 1. Welcome Banner
               _buildStudentHeader(name, rollNumber),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // Inline Ad Banner below Welcome Card
+              const Center(
+                child: AdBannerWidget(
+                  margin: EdgeInsets.only(bottom: 4.0),
+                ),
+              ),
+
+              const SizedBox(height: 16),
 
               // 2. Active Quizzes Section
               _buildSectionHeader(
