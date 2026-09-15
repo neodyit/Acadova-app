@@ -209,7 +209,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (errStr.contains('missingpluginexception') ||
             errStr.contains('no implementation found for method')) {
-          userFriendlyMsg = 'Google Sign-In is supported on Android & Web. Please sign in with your email or use Android/Web version.';
+          // On Windows desktop, launch web browser OAuth flow directly
+          final webLoginUrl = Uri.parse('https://acadova.neodyit.com/login');
+          if (await canLaunchUrl(webLoginUrl)) {
+            await launchUrl(webLoginUrl, mode: LaunchMode.externalApplication);
+            CustomToast.show(
+              context,
+              title: 'Opening Web Browser',
+              message: 'Opened Acadova web sign-in portal in your browser.',
+              type: ToastType.info,
+              customIcon: Icons.open_in_browser_rounded,
+            );
+          } else {
+            userFriendlyMsg = 'Unable to launch web browser. Please visit https://acadova.neodyit.com/login';
+          }
+          return;
         } else if (errStr.contains('network_error') ||
             errStr.contains('socketexception') ||
             errStr.contains('failed host lookup') ||
