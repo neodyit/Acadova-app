@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
@@ -33,6 +36,8 @@ class QuizAttemptScreen extends StatefulWidget {
 }
 
 class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindingObserver {
+  static const MethodChannel _securityChannel = MethodChannel('com.neodyit.acadova/security');
+
   int _currentIndex = 0;
   late int _remainingSeconds;
   Timer? _timer;
@@ -50,6 +55,9 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
+    // Enable High-Security Proctored Kiosk Environment
+    _enableProctoringSecurity();
+
     // Shuffle questions on quiz start for each attempt
     _shuffledQuestions = List<Map<String, dynamic>>.from(widget.questions)..shuffle();
     
@@ -57,8 +65,33 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     _startTimer();
   }
 
+  Future<void> _enableProctoringSecurity() async {
+    try {
+      // Hide status bar & navigation bar to prevent easy app switching / pull-down menu overlays
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+      // On Android native, prevent screenshots, screen recording & display overlays using FLAG_SECURE
+      if (!kIsWeb && Platform.isAndroid) {
+        await _securityChannel.invokeMethod('enableSecureScreen');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _disableProctoringSecurity() async {
+    try {
+      // Restore default system UI
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+      // Disable FLAG_SECURE
+      if (!kIsWeb && Platform.isAndroid) {
+        await _securityChannel.invokeMethod('disableSecureScreen');
+      }
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
+    _disableProctoringSecurity();
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
