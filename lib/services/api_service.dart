@@ -15,6 +15,38 @@ class ApiService {
   static bool _isGoogleAuthAndroidEnabled = true;
   static bool _isGoogleAuthWindowsEnabled = true;
 
+  // App Versioning & Remote Update Management
+  static String latestAppVersion = '1.0.0';
+  static String minRequiredVersion = '1.0.0';
+  static String updateUrl = 'https://acadova.neodyit.com/download';
+  static bool isForceUpdate = false;
+  static String releaseNotes = 'Performance improvements & bug fixes.';
+
+  /// Helper to compare two semantic version strings (e.g. "1.0.0" vs "1.0.1")
+  static bool isVersionLower(String currentVer, String targetVer) {
+    List<int> parse(String v) => v.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final p1 = parse(currentVer);
+    final p2 = parse(targetVer);
+    final maxLen = p1.length > p2.length ? p1.length : p2.length;
+    for (int i = 0; i < maxLen; i++) {
+      final part1 = i < p1.length ? p1[i] : 0;
+      final part2 = i < p2.length ? p2[i] : 0;
+      if (part1 < part2) return true;
+      if (part1 > part2) return false;
+    }
+    return false;
+  }
+
+  /// Check if a newer version of the app is available on server
+  static bool isUpdateAvailable() {
+    return isVersionLower(AppConfig.appVersion, latestAppVersion);
+  }
+
+  /// Check if current version is below minimum required version or force update is active
+  static bool isForceUpdateRequired() {
+    return isForceUpdate || isVersionLower(AppConfig.appVersion, minRequiredVersion);
+  }
+
   /// Check if Google Sign-In button is enabled for the current platform (Android vs Windows)
   static bool isGoogleAuthEnabledForCurrentPlatform() {
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -25,7 +57,7 @@ class ApiService {
     return true;
   }
 
-  /// Update feature flags locally and save to SharedPreferences
+  /// Update feature & version flags locally and save to SharedPreferences
   static Future<void> updateGoogleAuthFlags(Map<String, dynamic> data) async {
     if (data.containsKey('google_auth_android')) {
       _isGoogleAuthAndroidEnabled = data['google_auth_android'] == true;
@@ -33,11 +65,36 @@ class ApiService {
     if (data.containsKey('google_auth_windows')) {
       _isGoogleAuthWindowsEnabled = data['google_auth_windows'] == true;
     }
+    if (data.containsKey('latest_app_version')) {
+      latestAppVersion = data['latest_app_version'].toString();
+    }
+    if (data.containsKey('min_required_version')) {
+      minRequiredVersion = data['min_required_version'].toString();
+    }
+    if (data.containsKey('update_url')) {
+      updateUrl = data['update_url'].toString();
+    }
+    if (data.containsKey('force_update')) {
+      isForceUpdate = data['force_update'] == true || data['force_update'].toString() == 'true';
+    }
+    if (data.containsKey('release_notes')) {
+      releaseNotes = data['release_notes'].toString();
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('google_auth_android', _isGoogleAuthAndroidEnabled);
       await prefs.setBool('google_auth_windows', _isGoogleAuthWindowsEnabled);
     } catch (_) {}
+  }
+
+  /// Helper to generate HTTP headers with optional authorization token
+  static Map<String, String> _headers({bool withAuth = true}) {
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (withAuth && authToken != null && authToken!.isNotEmpty)
+        'Authorization': 'Bearer $authToken',
+    };
   }
 
   /// Fetch public app settings (AdMob config, feature flags)

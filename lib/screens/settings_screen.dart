@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
+import '../services/api_service.dart';
+import '../widgets/app_update_dialog.dart';
 import '../widgets/custom_toast.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -337,18 +340,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded, color: Color(0xFF6C5CE7)),
                 title: const Text('App Version', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('v1.0.0 (Build 2026.1)'),
+                subtitle: Text('v${AppConfig.appVersion} (Build 2026.1)'),
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00B894).withValues(alpha: 0.15),
+                    color: ApiService.isUpdateAvailable()
+                        ? const Color(0xFFD63031).withValues(alpha: 0.15)
+                        : const Color(0xFF00B894).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'Latest',
-                    style: TextStyle(color: Color(0xFF00B894), fontSize: 12, fontWeight: FontWeight.bold),
+                  child: Text(
+                    ApiService.isUpdateAvailable() ? 'Update' : 'Latest',
+                    style: TextStyle(
+                      color: ApiService.isUpdateAvailable()
+                          ? const Color(0xFFD63031)
+                          : const Color(0xFF00B894),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+                onTap: () async {
+                  CustomToast.show(context, message: 'Checking for updates...', type: ToastType.info);
+                  await ApiService.fetchAppSettings();
+                  if (!context.mounted) return;
+
+                  if (ApiService.isUpdateAvailable()) {
+                    AppUpdateDialog.show(context, force: ApiService.isForceUpdateRequired());
+                  } else {
+                    CustomToast.show(
+                      context,
+                      message: 'You are on the latest version of Acadova (v${AppConfig.appVersion})!',
+                      type: ToastType.success,
+                    );
+                  }
+                },
               ),
               const Divider(height: 1),
               ListTile(
