@@ -92,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '764324372715-ukmddqs4ogv62njn4joalrqqd3ion6f6.apps.googleusercontent.com',
+    serverClientId: '764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com',
   );
 
   void _handleGoogleLogin() async {
