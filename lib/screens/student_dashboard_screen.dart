@@ -229,6 +229,350 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final String rollNumber = _userData['roll_number'] ?? _userData['faculty_id'] ?? 'N/A';
     final String? avatarUrl = ApiService.formatMediaUrl(_userData['avatar']?.toString());
 
+    final isDesktop = MediaQuery.of(context).size.width >= 850;
+
+    Widget dashboardContent = SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.all(isDesktop ? 28.0 : 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Welcome Banner
+          _buildStudentHeader(name, rollNumber),
+
+          const SizedBox(height: 14),
+          Center(
+            child: AdBannerWidget(margin: const EdgeInsets.only(bottom: 4.0), userData: _userData),
+          ),
+          const SizedBox(height: 16),
+
+          if (isDesktop) ...[
+            // Desktop Two-Column Layout
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column (Active Quizzes & Upcoming Quizzes) - Flex 7
+                Expanded(
+                  flex: 7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Active Quizzes Section
+                      _buildSectionHeader(
+                        title: 'Active Quizzes',
+                        badgeCount: _activeQuizzes.length,
+                        actionText: 'View All',
+                        actionIcon: Icons.apps_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QuizzesScreen(initialTabIndex: 0),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _activeQuizzes.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.assignment_rounded,
+                              title: 'No Active Quizzes Available',
+                              message: 'Check back later or pull down to refresh.',
+                            )
+                          : GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 14,
+                                crossAxisSpacing: 14,
+                                mainAxisExtent: 220,
+                              ),
+                              itemCount: _activeQuizzes.length,
+                              itemBuilder: (context, index) {
+                                final quiz = _activeQuizzes[index];
+                                return _buildActiveQuizCard(quiz);
+                              },
+                            ),
+
+                      const SizedBox(height: 24),
+
+                      // Upcoming Quizzes Section
+                      _buildSectionHeader(
+                        title: 'Upcoming Quizzes',
+                        actionText: 'Calendar',
+                        actionIcon: Icons.calendar_month_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _upcomingQuizzes.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.event_busy_rounded,
+                              title: 'No Upcoming Quizzes',
+                              message: 'There are no upcoming scheduled tests at this moment.',
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _upcomingQuizzes.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final quiz = _upcomingQuizzes[index];
+                                return _buildUpcomingQuizTile(quiz);
+                              },
+                            ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 24),
+
+                // Right Sidebar Column (Campaigns & Recent Submissions) - Flex 5
+                Expanded(
+                  flex: 5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Campaigns & Announcements
+                      _buildSectionHeader(
+                        title: 'Campaigns & Announcements',
+                        actionText: 'Explore',
+                        actionIcon: Icons.explore_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const CampaignsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _campaigns.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.campaign_rounded,
+                              title: 'No Active Announcements',
+                              message: 'There are currently no active promotional events or notices.',
+                            )
+                          : SizedBox(
+                              height: 140,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _campaigns.length,
+                                separatorBuilder: (context, index) => const SizedBox(width: 14),
+                                itemBuilder: (context, index) {
+                                  final campaign = _campaigns[index];
+                                  return _buildCampaignCard(campaign);
+                                },
+                              ),
+                            ),
+
+                      const SizedBox(height: 24),
+
+                      // Recent Submissions Section
+                      _buildSectionHeader(
+                        title: 'Recent Submissions',
+                        actionText: 'History',
+                        actionIcon: Icons.history_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _recentSubmissions.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.history_edu_rounded,
+                              title: 'No Submissions Yet',
+                              message: 'Complete active quizzes to see your score records here.',
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _recentSubmissions.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final submission = _recentSubmissions[index];
+                                return _buildSubmissionTile(submission);
+                              },
+                            ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Mobile Single-Column Stack Layout
+            // 2. Active Quizzes Section
+            _buildSectionHeader(
+              title: 'Active Quizzes',
+              badgeCount: _activeQuizzes.length,
+              actionText: 'View All',
+              actionIcon: Icons.apps_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QuizzesScreen(initialTabIndex: 0),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _activeQuizzes.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.assignment_rounded,
+                    title: 'No Active Quizzes Available',
+                    message: 'Check back later or pull down to refresh.',
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _activeQuizzes.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final quiz = _activeQuizzes[index];
+                      return _buildActiveQuizCard(quiz);
+                    },
+                  ),
+
+            // Native Ad below Active Quizzes
+            AdNativeWidget(
+              templateType: TemplateType.small,
+              margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+              userData: _userData,
+            ),
+
+            const SizedBox(height: 20),
+
+            // 3. Campaigns & Announcements Carousel / Cards
+            _buildSectionHeader(
+              title: 'Campaigns & Announcements',
+              actionText: 'Explore',
+              actionIcon: Icons.explore_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const CampaignsScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _campaigns.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.campaign_rounded,
+                    title: 'No Active Announcements',
+                    message: 'There are currently no active promotional events or notices.',
+                  )
+                : SizedBox(
+                    height: 140,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _campaigns.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: 14),
+                      itemBuilder: (context, index) {
+                        final campaign = _campaigns[index];
+                        return _buildCampaignCard(campaign);
+                      },
+                    ),
+                  ),
+
+            // Banner Ad below Campaigns
+            Center(
+              child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 4.0), userData: _userData),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 4. Upcoming Quizzes Section
+            _buildSectionHeader(
+              title: 'Upcoming Quizzes',
+              actionText: 'Calendar',
+              actionIcon: Icons.calendar_month_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _upcomingQuizzes.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.event_busy_rounded,
+                    title: 'No Upcoming Quizzes',
+                    message: 'There are no upcoming scheduled tests at this moment.',
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _upcomingQuizzes.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final quiz = _upcomingQuizzes[index];
+                      return _buildUpcomingQuizTile(quiz);
+                    },
+                  ),
+
+            // Native Ad below Upcoming Quizzes
+            AdNativeWidget(
+              templateType: TemplateType.small,
+              margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+              userData: _userData,
+            ),
+
+            const SizedBox(height: 20),
+
+            // 5. Recent Submissions Section
+            _buildSectionHeader(
+              title: 'Recent Submissions',
+              actionText: 'History',
+              actionIcon: Icons.history_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _recentSubmissions.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.history_edu_rounded,
+                    title: 'No Submissions Yet',
+                    message: 'Complete active quizzes to see your score records here.',
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _recentSubmissions.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final submission = _recentSubmissions[index];
+                      return _buildSubmissionTile(submission);
+                    },
+                  ),
+
+            // Banner Ad below Recent Submissions
+            Center(
+              child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 12.0), userData: _userData),
+            ),
+          ],
+
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppTheme.background,
@@ -338,15 +682,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   avatarUrl: avatarUrl,
                   fallbackInitial: name,
                   radius: 36,
-                  backgroundColor: Colors.white,
-                  textColor: AppTheme.primary,
                 ),
                 accountName: Text(
                   name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 accountEmail: Text(
-                  '$email  •  Roll: $rollNumber',
+                  email,
                   style: const TextStyle(color: Colors.white70, fontSize: 12.5),
                 ),
               ),
@@ -423,186 +765,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           onRefresh: () async {
             await _fetchBackendData();
           },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Welcome Banner
-              _buildStudentHeader(name, rollNumber),
-
-              const SizedBox(height: 14),
-              Center(
-                child: AdBannerWidget(margin: const EdgeInsets.only(bottom: 4.0), userData: _userData),
-              ),
-              const SizedBox(height: 16),
-
-              // 2. Active Quizzes Section
-              _buildSectionHeader(
-                title: 'Active Quizzes',
-                badgeCount: _activeQuizzes.length,
-                actionText: 'View All',
-                actionIcon: Icons.apps_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const QuizzesScreen(initialTabIndex: 0),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _activeQuizzes.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.assignment_rounded,
-                      title: 'No Active Quizzes Available',
-                      message: 'Check back later or pull down to refresh.',
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _activeQuizzes.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final quiz = _activeQuizzes[index];
-                        return _buildActiveQuizCard(quiz);
-                      },
-                    ),
-
-              // Native Ad below Active Quizzes
-              AdNativeWidget(
-                templateType: TemplateType.small,
-                margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                userData: _userData,
-              ),
-
-              const SizedBox(height: 20),
-
-              // 3. Campaigns & Announcements Carousel / Cards
-              _buildSectionHeader(
-                title: 'Campaigns & Announcements',
-                actionText: 'Explore',
-                actionIcon: Icons.explore_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const CampaignsScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _campaigns.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.campaign_rounded,
-                      title: 'No Active Announcements',
-                      message: 'There are currently no active promotional events or notices.',
-                    )
-                  : SizedBox(
-                      height: 140,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _campaigns.length,
-                        separatorBuilder: (context, index) => const SizedBox(width: 14),
-                        itemBuilder: (context, index) {
-                          final campaign = _campaigns[index];
-                          return _buildCampaignCard(campaign);
-                        },
-                      ),
-                    ),
-
-              // Banner Ad below Campaigns
-              Center(
-                child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 4.0), userData: _userData),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 4. Upcoming Quizzes Section
-              _buildSectionHeader(
-                title: 'Upcoming Quizzes',
-                actionText: 'Calendar',
-                actionIcon: Icons.calendar_month_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const QuizzesScreen(initialTabIndex: 1),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _upcomingQuizzes.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.event_busy_rounded,
-                      title: 'No Upcoming Quizzes',
-                      message: 'There are no upcoming scheduled tests at this moment.',
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _upcomingQuizzes.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final quiz = _upcomingQuizzes[index];
-                        return _buildUpcomingQuizTile(quiz);
-                      },
-                    ),
-
-              // Native Ad below Upcoming Quizzes
-              AdNativeWidget(
-                templateType: TemplateType.small,
-                margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                userData: _userData,
-              ),
-
-              const SizedBox(height: 20),
-
-              // 5. Recent Submissions Section
-              _buildSectionHeader(
-                title: 'Recent Submissions',
-                actionText: 'History',
-                actionIcon: Icons.history_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const QuizzesScreen(initialTabIndex: 2),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _recentSubmissions.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.history_edu_rounded,
-                      title: 'No Submissions Yet',
-                      message: 'Complete active quizzes to see your score records here.',
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _recentSubmissions.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final submission = _recentSubmissions[index];
-                        return _buildSubmissionTile(submission);
-                      },
-                    ),
-
-              // Banner Ad below Recent Submissions
-              Center(
-                child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 12.0), userData: _userData),
-              ),
-
-              const SizedBox(height: 20),
-            ],
-          ),
+          child: dashboardContent,
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   // Drawer Item Helper
   Widget _buildDrawerTile({
