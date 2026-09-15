@@ -267,7 +267,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                                   crossAxisCount: crossAxisCount,
                                   crossAxisSpacing: 20,
                                   mainAxisSpacing: 20,
-                                  mainAxisExtent: 380,
+                                  mainAxisExtent: 440,
                                 ),
                                 itemCount: _filteredCampaigns.length,
                                 itemBuilder: (context, index) {
@@ -481,111 +481,121 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             ),
 
           // Body Content
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  c['title'],
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D3436),
-                    height: 1.25,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    c['title'],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3436),
+                      height: 1.2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  c['description'],
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.45,
+                  const SizedBox(height: 6),
+                  Text(
+                    c['description'],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
+                      height: 1.35,
+                    ),
                   ),
-                ),
-                if (endsAt != null) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.schedule_rounded, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 5),
-                      Text(
-                        isExpired
-                            ? 'Ended on ${endsAt.day}/${endsAt.month}/${endsAt.year}'
-                            : 'Valid until ${endsAt.day}/${endsAt.month}/${endsAt.year} ${endsAt.hour.toString().padLeft(2, '0')}:${endsAt.minute.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isExpired ? Colors.red.shade400 : Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
+                  const Spacer(),
+                  if (endsAt != null) ...[
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_rounded, size: 13, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            isExpired
+                                ? 'Ended on ${endsAt.day}/${endsAt.month}/${endsAt.year}'
+                                : 'Valid until ${endsAt.day}/${endsAt.month}/${endsAt.year} ${endsAt.hour.toString().padLeft(2, '0')}:${endsAt.minute.toString().padLeft(2, '0')}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isExpired ? Colors.red.shade400 : Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (c['linkUrl'] != null && c['linkUrl'].toString().trim().isNotEmpty) ...[
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final String rawUrl = c['linkUrl'].toString().trim();
-                        if (rawUrl.isEmpty || rawUrl.toLowerCase() == 'null') return;
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  if (c['linkUrl'] != null && c['linkUrl'].toString().trim().isNotEmpty) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 40,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final String rawUrl = c['linkUrl'].toString().trim();
+                          if (rawUrl.isEmpty || rawUrl.toLowerCase() == 'null') return;
 
-                        var formattedUrl = rawUrl;
-                        if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-                          formattedUrl = 'https://$formattedUrl';
-                        }
+                          var formattedUrl = rawUrl;
+                          if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+                            formattedUrl = 'https://$formattedUrl';
+                          }
 
-                        final Uri? uri = Uri.tryParse(formattedUrl);
-                        if (uri != null && uri.host.isNotEmpty) {
-                          try {
-                            bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                            if (!launched) {
-                              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+                          final Uri? uri = Uri.tryParse(formattedUrl);
+                          if (uri != null && uri.host.isNotEmpty) {
+                            try {
+                              bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              if (!launched) {
+                                launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+                              }
+                              if (!launched && mounted) {
+                                CustomToast.show(
+                                  context,
+                                  title: 'Link Error',
+                                  message: 'Cannot launch URL: $formattedUrl',
+                                  type: ToastType.warning,
+                                );
+                              }
+                            } catch (_) {
+                              if (mounted) {
+                                CustomToast.show(
+                                  context,
+                                  title: 'Link Error',
+                                  message: 'Unable to open link in browser',
+                                  type: ToastType.warning,
+                                );
+                              }
                             }
-                            if (!launched && mounted) {
-                              CustomToast.show(
-                                context,
-                                title: 'Link Error',
-                                message: 'Cannot launch URL: $formattedUrl',
-                                type: ToastType.warning,
-                              );
-                            }
-                          } catch (_) {
+                          } else {
                             if (mounted) {
                               CustomToast.show(
                                 context,
                                 title: 'Link Error',
-                                message: 'Unable to open link in browser',
+                                message: 'Invalid URL format: $rawUrl',
                                 type: ToastType.warning,
-                              );
+                               );
                             }
                           }
-                        } else {
-                          if (mounted) {
-                            CustomToast.show(
-                              context,
-                              title: 'Link Error',
-                              message: 'Invalid URL format: $rawUrl',
-                              type: ToastType.warning,
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: const Text('Open External Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: gradient.first,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        },
+                        icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                        label: const Text('Open External Link', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: gradient.first,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
