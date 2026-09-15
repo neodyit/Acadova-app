@@ -15,6 +15,7 @@ import 'faculty_quizzes_screen.dart';
 import 'login_screen.dart';
 import 'manage_questions_screen.dart';
 import 'my_batches_screen.dart';
+import 'notifications_screen.dart';
 import 'profile_screen.dart';
 import 'quiz_responses_screen.dart';
 
@@ -355,6 +356,20 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                     Navigator.pop(context);
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const QuizResponsesScreen()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.notifications_none_rounded,
+                  activeIcon: Icons.notifications_rounded,
+                  title: 'Notifications',
+                  iconColor: const Color(0xFFF59E0B),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => NotificationsScreen(userData: _user),
+                      ),
                     );
                   },
                 ),
