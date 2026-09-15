@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -1391,6 +1392,12 @@ class ApiService {
   /// Initialize notification permissions & sync FCM token for current user session (Student/Faculty)
   static Future<void> initAndSyncNotificationToken() async {
     try {
+      // Trigger native notification permission prompt on Android 13+ (API 33+)
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        const MethodChannel('com.neodyit.acadova/security')
+            .invokeMethod('requestNotificationPermission');
+      }
+
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('device_fcm_token');
       

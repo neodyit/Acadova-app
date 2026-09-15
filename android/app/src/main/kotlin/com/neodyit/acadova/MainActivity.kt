@@ -20,6 +20,14 @@ class MainActivity : FlutterActivity() {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     result.success(true)
                 }
+                "requestNotificationPermission" -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+                        }
+                    }
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }
