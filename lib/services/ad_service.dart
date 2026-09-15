@@ -32,12 +32,24 @@ class AdService {
     if (!areAdsEnabled) return false;
 
     // 1. Check Master Backend Ads Enabled Switch
-    final bool isEnabledRemote = adConfig['ads_enabled'] == true || adConfig['ads_enabled'] == 'true' || adConfig['ads_enabled'] == 1;
+    final dynamic rawRemoteEnabled = adConfig['ads_enabled'];
+    if (rawRemoteEnabled == false || rawRemoteEnabled == 'false' || rawRemoteEnabled == 0 || rawRemoteEnabled == '0' || rawRemoteEnabled == null) {
+      return false;
+    }
+    final bool isEnabledRemote = rawRemoteEnabled == true || rawRemoteEnabled == 'true' || rawRemoteEnabled == 1 || rawRemoteEnabled == '1';
     if (!isEnabledRemote) return false;
 
     // 2. Check Target Audience Filter
     final String audience = adConfig['ads_target_audience']?.toString().toLowerCase() ?? 'all';
-    if (audience == 'none') return false;
+    if (audience == 'none' || audience == 'off' || audience == 'disabled') return false;
+
+    // 3. Check individual user show_ads preference if set
+    if (userData != null && userData.containsKey('show_ads')) {
+      final val = userData['show_ads'];
+      if (val == false || val == 'false' || val == 0 || val == '0') {
+        return false;
+      }
+    }
 
     if (audience == 'selected_users') {
       if (userData != null && userData.containsKey('show_ads')) {

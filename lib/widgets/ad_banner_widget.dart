@@ -74,7 +74,8 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isAdLoaded || _bannerAd == null) {
+    final adService = AdService();
+    if (!adService.isPlatformSupported || !adService.shouldShowAdsForUser(widget.userData) || !_isAdLoaded || _bannerAd == null) {
       return const SizedBox.shrink();
     }
 
