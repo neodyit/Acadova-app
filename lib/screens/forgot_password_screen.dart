@@ -276,122 +276,126 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
       body: SafeArea(
         child: isDesktop
-            ? Row(
-                children: [
-                  // Left Branding Side Banner
-                  Expanded(
-                    flex: 5,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF78350F), Color(0xFFB45309)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+            ? Center(
+                child: Container(
+                  margin: const EdgeInsets.all(24.0),
+                  constraints: const BoxConstraints(maxWidth: 960, maxHeight: 640),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
                       ),
-                      padding: const EdgeInsets.all(48),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Row(
+                      children: [
+                        // Left Branding Side Banner
+                        Expanded(
+                          flex: 5,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFB45309), Color(0xFF78350F)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(40),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.15),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    width: 56,
+                                    height: 56,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => const Icon(
+                                      Icons.school_rounded,
+                                      size: 48,
+                                      color: Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Acadova Quiz Portal',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Password Recovery Portal',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  'Securely reset your password and gain instant access back to your quiz evaluations and learning analytics workspace.',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 13.5,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+                                Text(
+                                  'POWERED BY Neody IT',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const Icon(
-                                Icons.school_rounded,
-                                size: 54,
-                                color: Color(0xFFB45309),
-                              ),
-                            ),
                           ),
-                          const SizedBox(height: 28),
-                          const Text(
-                            'Acadova',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 38,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Password Recovery Portal',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Securely reset your password and gain instant access back to your quiz evaluations and learning analytics workspace.',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 14.5,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 36),
-                          Row(
-                            children: [
-                              Text(
-                                'Powered by Neody IT',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                        ),
 
-                  // Right Form Panel
-                  Expanded(
-                    flex: 6,
-                    child: Center(
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 480),
-                        margin: const EdgeInsets.all(32),
-                        padding: const EdgeInsets.all(36),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 24,
-                              offset: const Offset(0, 10),
+                        // Right Form Panel
+                        Expanded(
+                          flex: 6,
+                          child: Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                            child: Center(
+                              child: SingleChildScrollView(
+                                child: formCard,
+                              ),
                             ),
-                          ],
-                          border: Border.all(color: const Color(0xFFE5D5C0)),
+                          ),
                         ),
-                        child: SingleChildScrollView(
-                          child: formCard,
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               )
             : Center(
                 child: SingleChildScrollView(
