@@ -14,6 +14,7 @@ import 'create_quiz_screen.dart';
 import 'faculty_quizzes_screen.dart';
 import 'login_screen.dart';
 import 'manage_questions_screen.dart';
+import 'my_batches_screen.dart';
 import 'profile_screen.dart';
 import 'quiz_responses_screen.dart';
 
@@ -325,6 +326,24 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                   onTap: () {
                     Navigator.pop(context);
                     _openFacultyQuizzes(0);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.groups_outlined,
+                  activeIcon: Icons.groups_rounded,
+                  title: 'My Batches',
+                  badgeCount: _allocations.length,
+                  iconColor: const Color(0xFF10B981),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MyBatchesScreen(
+                          initialAllocations: _allocations,
+                          userData: _user,
+                        ),
+                      ),
+                    );
                   },
                 ),
                 _buildDrawerItem(
