@@ -785,7 +785,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.calendar_view_week_rounded,
                         label: 'Semester',
                         value: _user['semester'] != null && _user['semester'].toString().isNotEmpty
-                            ? 'Semester ${_user['semester']}'
+                            ? '${_user['semester']}'
                             : 'Not Selected',
                       ),
                     ],

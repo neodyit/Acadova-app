@@ -23,6 +23,22 @@
           }
         },
         {
+          "client_id": "764324372715-e2vipumhj6cr9sfgflmj3p9c28k3n11a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neodyit.acadova",
+            "certificate_hash": "bc689dc0e79bb61355e44bd3f06c19daff9b5287"
+          }
+        },
+        {
+          "client_id": "764324372715-ukmddqs4ogv62njn4joalrqqd3ion6f6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neodyit.acadova",
+            "certificate_hash": "7cb33d24e0c44fe045329f3025477be22de4bce9"
+          }
+        },
+        {
           "client_id": "764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com",
           "client_type": 3
         }
