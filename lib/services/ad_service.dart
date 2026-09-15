@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'api_service.dart';
 
 class AdService {
   static final AdService _instance = AdService._internal();
@@ -24,6 +25,14 @@ class AdService {
     if (config != null) {
       adConfig = Map<String, dynamic>.from(config);
       debugPrint('AdService: Updated remote ad config -> $adConfig');
+
+      // Immediately dispose preloaded ads if ads are turned off remotely
+      if (!shouldShowAdsForUser(ApiService.currentUser)) {
+        _interstitialAd?.dispose();
+        _interstitialAd = null;
+        _rewardedAd?.dispose();
+        _rewardedAd = null;
+      }
     }
   }
 
@@ -32,12 +41,24 @@ class AdService {
     if (!areAdsEnabled) return false;
 
     // 1. Check Master Backend Ads Enabled Switch
-    final bool isEnabledRemote = adConfig['ads_enabled'] == true || adConfig['ads_enabled'] == 'true' || adConfig['ads_enabled'] == 1;
+    final dynamic rawRemoteEnabled = adConfig['ads_enabled'];
+    if (rawRemoteEnabled == false || rawRemoteEnabled == 'false' || rawRemoteEnabled == 0 || rawRemoteEnabled == '0' || rawRemoteEnabled == null) {
+      return false;
+    }
+    final bool isEnabledRemote = rawRemoteEnabled == true || rawRemoteEnabled == 'true' || rawRemoteEnabled == 1 || rawRemoteEnabled == '1';
     if (!isEnabledRemote) return false;
 
     // 2. Check Target Audience Filter
     final String audience = adConfig['ads_target_audience']?.toString().toLowerCase() ?? 'all';
-    if (audience == 'none') return false;
+    if (audience == 'none' || audience == 'off' || audience == 'disabled') return false;
+
+    // 3. Check individual user show_ads preference if set
+    if (userData != null && userData.containsKey('show_ads')) {
+      final val = userData['show_ads'];
+      if (val == false || val == 'false' || val == 0 || val == '0') {
+        return false;
+      }
+    }
 
     if (audience == 'selected_users') {
       if (userData != null && userData.containsKey('show_ads')) {
@@ -150,7 +171,7 @@ class AdService {
 
   /// Preload an Interstitial Ad
   void preloadInterstitialAd() {
-    if (!areAdsEnabled || !isPlatformSupported || _isInterstitialAdLoading || _interstitialAd != null) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported || _isInterstitialAdLoading || _interstitialAd != null) {
       return;
     }
 
@@ -175,7 +196,9 @@ class AdService {
 
   /// Show Interstitial Ad if available and frequency condition met
   void showInterstitialAdIfReady({VoidCallback? onDismissed, bool forceShow = false}) {
-    if (!areAdsEnabled || !isPlatformSupported) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported) {
+      _interstitialAd?.dispose();
+      _interstitialAd = null;
       onDismissed?.call();
       return;
     }
@@ -214,7 +237,7 @@ class AdService {
 
   /// Preload a Rewarded Ad
   void preloadRewardedAd() {
-    if (!areAdsEnabled || !isPlatformSupported || _isRewardedAdLoading || _rewardedAd != null) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported || _isRewardedAdLoading || _rewardedAd != null) {
       return;
     }
 
@@ -242,7 +265,9 @@ class AdService {
     required Function(RewardItem reward) onUserEarnedReward,
     VoidCallback? onDismissed,
   }) {
-    if (!areAdsEnabled || !isPlatformSupported) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported) {
+      _rewardedAd?.dispose();
+      _rewardedAd = null;
       onDismissed?.call();
       return;
     }

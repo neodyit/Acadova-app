@@ -191,6 +191,9 @@ class _QuizzesScreenState extends State<QuizzesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isDesktop = screenWidth >= 800;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
 
@@ -199,119 +202,162 @@ class _QuizzesScreenState extends State<QuizzesScreen>
         backgroundColor: AppTheme.background,
         elevation: 0,
         foregroundColor: AppTheme.mainText,
-        title: const Text(
-          'My Quizzes',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppTheme.mainText),
+        automaticallyImplyLeading: !isDesktop,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Row(
+              children: [
+                const Text(
+                  'My Quizzes',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppTheme.mainText),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: AppTheme.mainText),
+                  onPressed: _fetchQuizzesFromBackend,
+                  tooltip: 'Refresh Quizzes',
+                ),
+              ],
+            ),
+          ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(105),
-          child: Column(
-            children: [
-              // Search Input Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val.trim();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search quizzes by title or subject...',
-                    hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13.5),
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.border),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                children: [
+                  // Search Input Bar
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 24.0 : 16.0,
+                      vertical: 4.0,
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val.trim();
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search quizzes by title or subject...',
+                        hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13.5),
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    _searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppTheme.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppTheme.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-              // Tab Selector Header
-              TabBar(
-                controller: _tabController,
-                labelColor: AppTheme.primary,
-                unselectedLabelColor: AppTheme.textMuted,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                indicatorColor: AppTheme.primary,
-                indicatorWeight: 3,
-                tabs: const [
-                  Tab(text: 'Active'),
-                  Tab(text: 'Upcoming'),
-                  Tab(text: 'Completed'),
+                  // Tab Selector Header
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24.0 : 0.0),
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: AppTheme.primary,
+                      unselectedLabelColor: AppTheme.textMuted,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                      indicatorColor: AppTheme.primary,
+                      indicatorWeight: 3,
+                      tabs: const [
+                        Tab(text: 'Active'),
+                        Tab(text: 'Upcoming'),
+                        Tab(text: 'Completed'),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
 
       // Tab Views
       body: SafeArea(
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-            // 1. Active Quizzes Tab
-            _buildQuizListView(
-              quizzes: _getFilteredList('active'),
-              builder: (quiz) => _buildActiveQuizCard(quiz),
-              emptyTitle: 'No Active Quizzes',
-              emptyMessage: 'You are all caught up! No active quizzes available right now.',
-            ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // 1. Active Quizzes Tab
+                _buildQuizListView(
+                  quizzes: _getFilteredList('active'),
+                  builder: (quiz) => _buildActiveQuizCard(quiz),
+                  emptyTitle: 'No Active Quizzes',
+                  emptyMessage: 'You are all caught up! No active quizzes available right now.',
+                  isDesktop: isDesktop,
+                  screenWidth: screenWidth,
+                ),
 
-            // 2. Upcoming Quizzes Tab
-            _buildQuizListView(
-              quizzes: _getFilteredList('upcoming'),
-              builder: (quiz) => _buildUpcomingQuizCard(quiz),
-              emptyTitle: 'No Upcoming Quizzes',
-              emptyMessage: 'There are no upcoming quizzes scheduled for the near future.',
-            ),
+                // 2. Upcoming Quizzes Tab
+                _buildQuizListView(
+                  quizzes: _getFilteredList('upcoming'),
+                  builder: (quiz) => _buildUpcomingQuizCard(quiz),
+                  emptyTitle: 'No Upcoming Quizzes',
+                  emptyMessage: 'There are no upcoming quizzes scheduled for the near future.',
+                  isDesktop: isDesktop,
+                  screenWidth: screenWidth,
+                ),
 
-            // 3. Completed Quizzes Tab
-            _buildQuizListView(
-              quizzes: _getFilteredList('completed'),
-              builder: (quiz) => _buildCompletedQuizCard(quiz),
-              emptyTitle: 'No Completed Quizzes',
-              emptyMessage: 'You haven\'t completed any quizzes yet.',
+                // 3. Completed Quizzes Tab
+                _buildQuizListView(
+                  quizzes: _getFilteredList('completed'),
+                  builder: (quiz) => _buildCompletedQuizCard(quiz),
+                  emptyTitle: 'No Completed Quizzes',
+                  emptyMessage: 'You haven\'t completed any quizzes yet.',
+                  isDesktop: isDesktop,
+                  screenWidth: screenWidth,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // Generic List View Builder with Empty State
+  // Generic List / Grid View Builder with Empty State
   Widget _buildQuizListView({
     required List<Map<String, dynamic>> quizzes,
     required Widget Function(Map<String, dynamic> quiz) builder,
     required String emptyTitle,
     required String emptyMessage,
+    required bool isDesktop,
+    required double screenWidth,
   }) {
+    final int crossAxisCount = screenWidth >= 1100 ? 3 : (screenWidth >= 700 ? 2 : 1);
+
     return RefreshIndicator(
       color: AppTheme.primary,
       onRefresh: () async {
@@ -361,13 +407,26 @@ class _QuizzesScreenState extends State<QuizzesScreen>
                 ),
               ),
             )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              itemCount: quizzes.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => builder(quizzes[index]),
-            ),
+          : (crossAxisCount > 1
+              ? GridView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    mainAxisExtent: 210,
+                  ),
+                  itemCount: quizzes.length,
+                  itemBuilder: (context, index) => builder(quizzes[index]),
+                )
+              : ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  itemCount: quizzes.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) => builder(quizzes[index]),
+                )),
     );
   }
 

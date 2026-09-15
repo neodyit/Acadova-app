@@ -147,6 +147,9 @@ class _AcadovaAppState extends State<AcadovaApp> {
       title: 'Acadova',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      builder: (context, child) {
+        return child ?? const SizedBox.shrink();
+      },
       home: const SplashScreen(),
       onGenerateRoute: (settings) {
         if (settings.name != null) {

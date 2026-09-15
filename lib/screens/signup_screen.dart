@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'academic_profile_screen.dart';
+import 'google_complete_profile_screen.dart';
 import 'home_screen.dart';
 
 enum UserRole { student, faculty }
@@ -31,6 +34,150 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com',
+  );
+
+  void _handleGoogleSignup() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      GoogleSignInAccount? googleUser;
+      try {
+        googleUser = await _googleSignIn.signInSilently();
+      } catch (_) {}
+
+      googleUser ??= await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final GoogleSignInAccount userAccount = googleUser;
+      final roleStr = _selectedRole == UserRole.student ? 'student' : 'faculty';
+
+      final response = await ApiService.googleLogin(
+        email: userAccount.email,
+        name: userAccount.displayName ?? userAccount.email.split('@')[0],
+        googleId: userAccount.id,
+        avatar: userAccount.photoUrl,
+        role: roleStr,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (response['success'] == true) {
+          final userData = response['data']['user'] ?? {};
+          final isNewUser = response['data']['is_new'] == true;
+
+          if (isNewUser || (userData['roll_number'] == null && userData['faculty_id'] == null)) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => GoogleCompleteProfileScreen(googleUser: userAccount),
+              ),
+            );
+            return;
+          }
+
+          final userName = userData['name'] ?? userAccount.displayName ?? 'User';
+          CustomToast.show(
+            context,
+            title: 'Welcome to Acadova!',
+            message: 'Signed in as $userName.',
+            type: ToastType.success,
+            customIcon: Icons.check_circle_rounded,
+          );
+
+          final isProfileIncomplete = ApiService.isProfileIncomplete(userData);
+
+          if (isProfileIncomplete) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => AcademicProfileScreen(userData: userData, isInitialSetup: true),
+              ),
+              (route) => false,
+            );
+            return;
+          }
+
+          Navigator.of(context).pushAndRemoveUntil(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  HomeScreen(userData: userData),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+            (route) => false,
+          );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => GoogleCompleteProfileScreen(googleUser: userAccount),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        final errStr = e.toString().toLowerCase();
+        String userFriendlyMsg = 'Google Sign-In failed: ${e.toString()}';
+
+        if (errStr.contains('missingpluginexception') ||
+            errStr.contains('no implementation found for method')) {
+          // On Windows desktop, launch web browser OAuth flow directly
+          final webLoginUrl = Uri.parse('https://acadova.neodyit.com/login');
+          if (await canLaunchUrl(webLoginUrl)) {
+            await launchUrl(webLoginUrl, mode: LaunchMode.externalApplication);
+            CustomToast.show(
+              context,
+              title: 'Opening Web Browser',
+              message: 'Opened Acadova web sign-up portal in your browser.',
+              type: ToastType.info,
+              customIcon: Icons.open_in_browser_rounded,
+            );
+          } else {
+            userFriendlyMsg = 'Unable to launch web browser. Please visit https://acadova.neodyit.com/login';
+          }
+          return;
+        } else if (errStr.contains('network_error') ||
+            errStr.contains('socketexception') ||
+            errStr.contains('failed host lookup')) {
+          userFriendlyMsg = 'No Internet Connection. Please check your network and try again.';
+        } else if (errStr.contains('sign_in_canceled') || errStr.contains('canceled')) {
+          userFriendlyMsg = 'Sign up was cancelled.';
+        }
+
+        CustomToast.show(
+          context,
+          title: 'Google Sign In Error',
+          message: userFriendlyMsg,
+          type: ToastType.error,
+          customIcon: Icons.error_outline_rounded,
+        );
+      }
+    }
+  }
 
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
@@ -143,61 +290,288 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppTheme.mainText),
-          onPressed: () {
-            if (_currentStep > 0) {
-              setState(() {
-                _currentStep = 0;
-              });
-            } else {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipOval(
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 28,
-                width: 28,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.school, color: AppTheme.primary),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Acadova Sign Up',
-              style: TextStyle(
-                color: AppTheme.mainText,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-      ),
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          child: _currentStep == 0
-              ? _buildRoleSelectionStep()
-              : _buildFormStep(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 768;
+
+            Widget signupStepContent = AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: _currentStep == 0
+                  ? _buildRoleSelectionStep(isDesktop)
+                  : _buildFormStep(isDesktop),
+            );
+
+            if (!isDesktop) {
+              return Scaffold(
+                backgroundColor: AppTheme.background,
+                appBar: AppBar(
+                  backgroundColor: AppTheme.background,
+                  elevation: 0,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: AppTheme.mainText),
+                    onPressed: () {
+                      if (_currentStep > 0) {
+                        setState(() {
+                          _currentStep = 0;
+                        });
+                      } else {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                  title: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipOval(
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          height: 28,
+                          width: 28,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.school, color: AppTheme.primary),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Acadova Sign Up',
+                        style: TextStyle(
+                          color: AppTheme.mainText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  centerTitle: true,
+                ),
+                body: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: signupStepContent,
+                  ),
+                ),
+              );
+            }
+
+            // Desktop Layout: Split View with left branding panel and right signup flow
+            return Center(
+              child: Container(
+                margin: const EdgeInsets.all(24.0),
+                constraints: const BoxConstraints(maxWidth: 1040, maxHeight: 720),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(20),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Row(
+                    children: [
+                      // Left Branding Panel
+                      Expanded(
+                        flex: 5,
+                        child: Container(
+                          padding: const EdgeInsets.all(40.0),
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFB45309), Color(0xFF78350F)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(50),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    height: 88,
+                                    width: 88,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        Container(
+                                      width: 88,
+                                      height: 88,
+                                      color: const Color(0xFFB45309),
+                                      child: const Icon(
+                                        Icons.school,
+                                        size: 54,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+                              const Text(
+                                'Create Your Account',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: -0.6,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: () async {
+                                  final url = Uri.parse('https://neodyit.com');
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(6),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'POWERED BY ',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white.withAlpha(190),
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Neody IT',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amberAccent,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: Colors.amberAccent,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.open_in_new_rounded,
+                                        size: 13,
+                                        color: Colors.amberAccent,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Text(
+                                'Join Acadova to take interactive quizzes, evaluate performance, and access smart learning tools.',
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  color: Colors.white.withAlpha(225),
+                                  height: 1.55,
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              Row(
+                                children: [
+                                  _buildBadge(Icons.verified_user_outlined, 'Verified Role'),
+                                  const SizedBox(width: 12),
+                                  _buildBadge(Icons.security_rounded, 'Secure Portal'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Right Content Panel
+                      Expanded(
+                        flex: 6,
+                        child: Container(
+                          color: Colors.white,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 460),
+                                  child: signupStepContent,
+                                ),
+                              ),
+                              Positioned(
+                                top: 12,
+                                left: 12,
+                                child: IconButton(
+                                  icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.mainText),
+                                  onPressed: () {
+                                    if (_currentStep > 0) {
+                                      setState(() {
+                                        _currentStep = 0;
+                                      });
+                                    } else {
+                                      Navigator.of(context).pop();
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
+  Widget _buildBadge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(35),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // STEP 1: Premium Role Selection View
-  Widget _buildRoleSelectionStep() {
+  Widget _buildRoleSelectionStep([bool isDesktop = false]) {
     return SingleChildScrollView(
       key: const ValueKey(0),
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -440,7 +814,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   // STEP 2: Tailored Signup Form (Student / Faculty)
-  Widget _buildFormStep() {
+  Widget _buildFormStep([bool isDesktop = false]) {
     final isStudent = _selectedRole == UserRole.student;
 
     return SingleChildScrollView(
@@ -529,7 +903,7 @@ class _SignupScreenState extends State<SignupScreen> {
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 labelText: 'Full Name',
-                hintText: isStudent ? 'e.g. Mayank Tiwari' : 'e.g. Dr. Aman ',
+                hintText: isStudent ? 'e.g. Mayank Tiwari' : 'e.g. Saurabh Upadhyay ',
                 prefixIcon: const Icon(Icons.person_outline_rounded),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -810,6 +1184,66 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
               ),
             ),
+            const SizedBox(height: 24),
+
+            if (!isDesktop && ApiService.isGoogleAuthEnabledForCurrentPlatform()) ...[
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _handleGoogleSignup,
+                  icon: Image.asset(
+                    'assets/images/google-icon.png',
+                    width: 22,
+                    height: 22,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Image.asset(
+                      'assets/images/google_logo.png',
+                      width: 22,
+                      height: 22,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.g_mobiledata_rounded,
+                              size: 26, color: Colors.redAccent),
+                    ),
+                  ),
+                  label: const Text(
+                    'Continue with Google',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2D3436),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Already Have An Account Link

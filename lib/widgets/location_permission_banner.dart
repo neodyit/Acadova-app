@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -20,6 +22,15 @@ class LocationPermissionBannerDialog extends StatefulWidget {
   /// If NOT granted, presents the LocationPermissionBannerDialog to request permission.
   static Future<Map<String, String>?> requestAndFetchLocation(BuildContext context, String quizTitle) async {
     if (!context.mounted) return null;
+
+    // Desktop platforms (Windows/macOS/Linux) do not support native mobile Geolocator permission dialogs
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      return {
+        'latitude': '0.0000',
+        'longitude': '0.0000',
+        'location': 'Desktop Environment Verified',
+      };
+    }
 
     // 1. Check if location services and permissions are already granted
     try {
@@ -57,6 +68,14 @@ class LocationPermissionBannerDialog extends StatefulWidget {
     String lat = '';
     String lng = '';
     String locationName = 'Location Granted';
+
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      return {
+        'latitude': '0.0000',
+        'longitude': '0.0000',
+        'location': 'Desktop Environment Verified',
+      };
+    }
 
     try {
       Position? pos;
@@ -105,6 +124,11 @@ class _LocationPermissionBannerDialogState extends State<LocationPermissionBanne
 
   Future<void> _handlePermissionRequest() async {
     setState(() => _isChecking = true);
+
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      widget.onPermissionGranted();
+      return;
+    }
 
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -165,82 +189,158 @@ class _LocationPermissionBannerDialogState extends State<LocationPermissionBanne
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.my_location_rounded,
-                size: 32,
-                color: AppTheme.primary,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Location Access Required',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.mainText,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'To ensure test integrity and proctoring security for "${widget.quizTitle}", please grant location permission while using the app.',
-              style: const TextStyle(
-                fontSize: 13.5,
-                color: AppTheme.textMuted,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: _isChecking ? null : _handlePermissionRequest,
-                icon: _isChecking
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                      )
-                    : const Icon(Icons.security_rounded, size: 18),
-                label: Text(
-                  _isChecking ? 'Requesting Permission...' : 'Allow & Start Quiz',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      elevation: 12,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(28.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header with Gradient Accent Ring
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primary.withValues(alpha: 0.15),
+                      AppTheme.primaryDark.withValues(alpha: 0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.25),
+                    width: 2,
+                  ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: const Center(
+                  child: Icon(
+                    Icons.gavel_rounded,
+                    size: 34,
+                    color: AppTheme.primary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(null),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: AppTheme.textMuted, fontWeight: FontWeight.bold),
+              const SizedBox(height: 20),
+
+              // Dialog Title
+              const Text(
+                'Proctoring & Location Verification',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.mainText,
+                  letterSpacing: -0.3,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+
+              // Description Text
+              Text(
+                'To ensure academic integrity for "${widget.quizTitle}", location verification is required while completing this assessment.',
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  color: AppTheme.textMuted,
+                  height: 1.45,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+
+              // Security & Integrity Info Banner
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.shield_outlined,
+                        size: 18,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Your location is used solely to verify session authenticity during test submission.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.mainText,
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: _isChecking ? null : _handlePermissionRequest,
+                  icon: _isChecking
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        )
+                      : const Icon(Icons.verified_user_rounded, size: 18),
+                  label: Text(
+                    _isChecking ? 'Verifying Permission...' : 'Grant & Start Quiz',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(null),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    'Cancel Assessment',
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

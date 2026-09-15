@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
@@ -33,6 +36,8 @@ class QuizAttemptScreen extends StatefulWidget {
 }
 
 class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindingObserver {
+  static const MethodChannel _securityChannel = MethodChannel('com.neodyit.acadova/security');
+
   int _currentIndex = 0;
   late int _remainingSeconds;
   Timer? _timer;
@@ -44,12 +49,17 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
   // Anti-cheat tracking
   int _tabSwitchCount = 0;
   static const int _maxAllowedSwitches = 3;
+  late final DateTime _initTime;
 
   @override
   void initState() {
     super.initState();
+    _initTime = DateTime.now();
     WidgetsBinding.instance.addObserver(this);
     
+    // Enable High-Security Proctored Kiosk Environment
+    _enableProctoringSecurity();
+
     // Shuffle questions on quiz start for each attempt
     _shuffledQuestions = List<Map<String, dynamic>>.from(widget.questions)..shuffle();
     
@@ -57,8 +67,33 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     _startTimer();
   }
 
+  Future<void> _enableProctoringSecurity() async {
+    try {
+      // Hide status bar & navigation bar
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+      // Invoke native security channel for both Windows desktop and Android mobile
+      if (!kIsWeb && (Platform.isWindows || Platform.isAndroid)) {
+        await _securityChannel.invokeMethod('enableSecureScreen');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _disableProctoringSecurity() async {
+    try {
+      // Restore default system UI
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+      // Disable secure kiosk mode
+      if (!kIsWeb && (Platform.isWindows || Platform.isAndroid)) {
+        await _securityChannel.invokeMethod('disableSecureScreen');
+      }
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
+    _disableProctoringSecurity();
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
@@ -67,6 +102,11 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+
+    // Ignore lifecycle transitions during the initial 2.5s startup window (full-screen window resize / setup)
+    if (DateTime.now().difference(_initTime).inMilliseconds < 2500) {
+      return;
+    }
 
     if (!_isSubmitted && (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden)) {
       _tabSwitchCount++;
@@ -175,6 +215,7 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     if (_isSubmitted) return;
     _isSubmitted = true;
     _timer?.cancel();
+    _disableProctoringSecurity();
 
     int score = _calculateScore();
 

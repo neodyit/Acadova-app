@@ -1,15 +1,121 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_config.dart';
+import 'ad_service.dart';
 
 class ApiService {
   static String get baseUrl => AppConfig.activeApiUrl;
 
   static String? authToken;
   static Map<String, dynamic>? currentUser;
+
+  static bool _isGoogleAuthAndroidEnabled = true;
+  static bool _isGoogleAuthWindowsEnabled = true;
+
+  // App Versioning & Remote Update Management
+  static String latestAppVersion = '0.0.6';
+  static String minRequiredVersion = '0.0.6';
+  static String updateUrl = 'https://acadova.neodyit.com/download';
+  static bool isForceUpdate = false;
+  static String releaseNotes = 'Performance improvements & bug fixes.';
+
+  /// Helper to compare two semantic version strings (e.g. "1.0.0" vs "1.0.1")
+  static bool isVersionLower(String currentVer, String targetVer) {
+    List<int> parse(String v) => v.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final p1 = parse(currentVer);
+    final p2 = parse(targetVer);
+    final maxLen = p1.length > p2.length ? p1.length : p2.length;
+    for (int i = 0; i < maxLen; i++) {
+      final part1 = i < p1.length ? p1[i] : 0;
+      final part2 = i < p2.length ? p2[i] : 0;
+      if (part1 < part2) return true;
+      if (part1 > part2) return false;
+    }
+    return false;
+  }
+
+  /// Check if a newer version of the app is available on server
+  static bool isUpdateAvailable() {
+    return isVersionLower(AppConfig.appVersion, latestAppVersion);
+  }
+
+  /// Check if current version is below minimum required version or force update is active
+  static bool isForceUpdateRequired() {
+    return isForceUpdate || isVersionLower(AppConfig.appVersion, minRequiredVersion);
+  }
+
+  /// Check if Google Sign-In button is enabled for the current platform (Android vs Windows)
+  static bool isGoogleAuthEnabledForCurrentPlatform() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return _isGoogleAuthAndroidEnabled;
+    } else if (defaultTargetPlatform == TargetPlatform.windows) {
+      return _isGoogleAuthWindowsEnabled;
+    }
+    return true;
+  }
+
+  /// Update feature & version flags locally and save to SharedPreferences
+  static Future<void> updateGoogleAuthFlags(Map<String, dynamic> data) async {
+    if (data.containsKey('google_auth_android')) {
+      _isGoogleAuthAndroidEnabled = data['google_auth_android'] == true;
+    }
+    if (data.containsKey('google_auth_windows')) {
+      _isGoogleAuthWindowsEnabled = data['google_auth_windows'] == true;
+    }
+    if (data.containsKey('latest_app_version')) {
+      latestAppVersion = data['latest_app_version'].toString();
+    }
+    if (data.containsKey('min_required_version')) {
+      minRequiredVersion = data['min_required_version'].toString();
+    }
+    if (data.containsKey('update_url')) {
+      updateUrl = data['update_url'].toString();
+    }
+    if (data.containsKey('force_update')) {
+      isForceUpdate = data['force_update'] == true || data['force_update'].toString() == 'true';
+    }
+    if (data.containsKey('release_notes')) {
+      releaseNotes = data['release_notes'].toString();
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('google_auth_android', _isGoogleAuthAndroidEnabled);
+      await prefs.setBool('google_auth_windows', _isGoogleAuthWindowsEnabled);
+    } catch (_) {}
+  }
+
+  /// Helper to generate HTTP headers with optional authorization token
+  static Map<String, String> _headers({bool withAuth = true}) {
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (withAuth && authToken != null && authToken!.isNotEmpty)
+        'Authorization': 'Bearer $authToken',
+    };
+  }
+
+  /// Fetch public app settings (AdMob config, feature flags)
+  static Future<Map<String, dynamic>> fetchAppSettings() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/app-settings'),
+        headers: _headers(),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final settings = Map<String, dynamic>.from(data['data']);
+          await updateGoogleAuthFlags(settings);
+          AdService().updateAdConfig(settings);
+          return settings;
+        }
+      }
+    } catch (_) {}
+    return {};
+  }
 
   /// Callback executed when 401 Unauthorized / session invalid is returned
   static Function()? onUnauthorized;
@@ -138,6 +244,10 @@ class ApiService {
     authToken = prefs.getString(_keyToken);
     final userJson = prefs.getString(_keyUser);
 
+    _isGoogleAuthAndroidEnabled = prefs.getBool('google_auth_android') ?? true;
+    _isGoogleAuthWindowsEnabled = prefs.getBool('google_auth_windows') ?? true;
+    fetchAppSettings();
+
     if (userJson != null) {
       try {
         currentUser = jsonDecode(userJson);
@@ -149,6 +259,9 @@ class ApiService {
       final profileResp = await getProfile();
       if (profileResp['success'] == true) {
         final profileData = profileResp['data'];
+        if (profileData is Map && profileData.containsKey('ad_config')) {
+          AdService().updateAdConfig(Map<String, dynamic>.from(profileData['ad_config']));
+        }
         currentUser = (profileData is Map && profileData.containsKey('user'))
             ? profileData['user']
             : profileData;
@@ -581,14 +694,37 @@ class ApiService {
     }
   }
 
-  /// Formats media URLs to use the production media route (/api/media/file/)
+  /// Formats media URLs to ensure absolute downloadable URLs on both Windows and Mobile.
   static String? formatMediaUrl(String? rawUrl) {
     if (rawUrl == null || rawUrl.trim().isEmpty) return null;
     String clean = rawUrl.trim();
+
     if (clean.contains('/storage/')) {
       clean = clean.replaceAll('/storage/', '/api/media/file/');
     }
-    return clean;
+
+    if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      final Uri parsed = Uri.parse(clean);
+      final Uri baseUri = Uri.parse(AppConfig.activeApiUrl);
+
+      // If backend returns localhost / 127.0.0.1 but Flutter is running on a real mobile device, replace host with active API domain
+      if ((parsed.host == 'localhost' || parsed.host == '127.0.0.1') &&
+          baseUri.host != 'localhost' &&
+          baseUri.host != '127.0.0.1') {
+        clean = clean.replaceFirst(parsed.host, baseUri.host);
+      }
+      return clean;
+    }
+
+    // Prepend domain if relative path
+    final Uri baseUri = Uri.parse(AppConfig.activeApiUrl);
+    final String domain = '${baseUri.scheme}://${baseUri.host}${baseUri.hasPort ? ':${baseUri.port}' : ''}';
+
+    if (clean.startsWith('/')) {
+      return '$domain$clean';
+    } else {
+      return '$domain/$clean';
+    }
   }
 
   /// Upload media file to structured backend storage (avatars, campaigns, questions, general)

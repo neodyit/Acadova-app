@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/ad_service.dart';
@@ -8,6 +10,8 @@ import '../widgets/custom_toast.dart';
 import '../widgets/location_permission_banner.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/ad_native_widget.dart';
+import '../widgets/safe_user_avatar.dart';
+import '../widgets/app_update_dialog.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 import 'academic_profile_screen.dart';
 import 'campaigns_screen.dart';
@@ -32,6 +36,7 @@ class StudentDashboardScreen extends StatefulWidget {
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _activeNavIndex = 0;
+  Timer? _autoRefreshTimer;
 
   late Map<String, dynamic> _userData;
   List<Map<String, dynamic>> _activeQuizzes = [];
@@ -46,6 +51,19 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     super.initState();
     _userData = Map<String, dynamic>.from(widget.userData);
     _fetchBackendData();
+
+    // Auto-refresh student dashboard data every 20 seconds
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      if (mounted) {
+        _fetchBackendData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchBackendData() async {
@@ -108,7 +126,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             'title': c['title'] ?? 'Announcement',
             'description': c['description'] ?? '',
             'badge': c['badge'] ?? 'Notice',
-            'imageUrl': ApiService.formatMediaUrl(c['image_url']?.toString()),
+            'imageUrl': ApiService.formatMediaUrl(
+              (c['image_url'] ?? c['image'] ?? c['banner_url'] ?? c['image_path'])?.toString(),
+            ),
             'linkUrl': c['link_url'],
             'endsAt': endsAt,
             'gradient': gradient,
@@ -228,186 +248,541 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final String rollNumber = _userData['roll_number'] ?? _userData['faculty_id'] ?? 'N/A';
     final String? avatarUrl = ApiService.formatMediaUrl(_userData['avatar']?.toString());
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: AppTheme.background,
+    final isDesktop = MediaQuery.of(context).size.width >= 850;
 
-      // App Bar Navigation Header
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: AppTheme.mainText),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipOval(
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 28,
-                width: 28,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.school, color: AppTheme.primary),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Flexible(
-              child: Text(
-                'My Dashboard',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppTheme.mainText,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+    Widget dashboardContent = SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.all(isDesktop ? 28.0 : 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Welcome Banner
+          _buildStudentHeader(name, rollNumber),
+
+          const SizedBox(height: 14),
+          Center(
+            child: AdBannerWidget(margin: const EdgeInsets.only(bottom: 4.0), userData: _userData),
+          ),
+          const SizedBox(height: 16),
+
+          if (isDesktop) ...[
+            // Desktop Two-Column Layout
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column (Active Quizzes & Upcoming Quizzes) - Flex 7
+                Expanded(
+                  flex: 7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Active Quizzes Section
+                      _buildSectionHeader(
+                        title: 'Active Quizzes',
+                        badgeCount: _activeQuizzes.length,
+                        actionText: 'View All',
+                        actionIcon: Icons.apps_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QuizzesScreen(initialTabIndex: 0),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _activeQuizzes.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.assignment_rounded,
+                              title: 'No Active Quizzes Available',
+                              message: 'Check back later or pull down to refresh.',
+                            )
+                          : GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 14,
+                                crossAxisSpacing: 14,
+                                mainAxisExtent: 240,
+                              ),
+                              itemCount: _activeQuizzes.length,
+                              itemBuilder: (context, index) {
+                                final quiz = _activeQuizzes[index];
+                                return _buildActiveQuizCard(quiz);
+                              },
+                            ),
+
+                      const SizedBox(height: 24),
+
+                      // Upcoming Quizzes Section
+                      _buildSectionHeader(
+                        title: 'Upcoming Quizzes',
+                        actionText: 'Calendar',
+                        actionIcon: Icons.calendar_month_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _upcomingQuizzes.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.event_busy_rounded,
+                              title: 'No Upcoming Quizzes',
+                              message: 'There are no upcoming scheduled tests at this moment.',
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _upcomingQuizzes.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final quiz = _upcomingQuizzes[index];
+                                return _buildUpcomingQuizTile(quiz);
+                              },
+                            ),
+                    ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(width: 24),
+
+                // Right Sidebar Column (Campaigns & Recent Submissions) - Flex 5
+                Expanded(
+                  flex: 5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Campaigns & Announcements
+                      _buildSectionHeader(
+                        title: 'Campaigns & Announcements',
+                        actionText: 'Explore',
+                        actionIcon: Icons.explore_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const CampaignsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _campaigns.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.campaign_rounded,
+                              title: 'No Active Announcements',
+                              message: 'There are currently no active promotional events or notices.',
+                            )
+                          : SizedBox(
+                              height: 140,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _campaigns.length,
+                                separatorBuilder: (context, index) => const SizedBox(width: 14),
+                                itemBuilder: (context, index) {
+                                  final campaign = _campaigns[index];
+                                  return _buildCampaignCard(campaign);
+                                },
+                              ),
+                            ),
+
+                      const SizedBox(height: 24),
+
+                      // Recent Submissions Section
+                      _buildSectionHeader(
+                        title: 'Recent Submissions',
+                        actionText: 'History',
+                        actionIcon: Icons.history_rounded,
+                        onActionTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _recentSubmissions.isEmpty
+                          ? _buildEmptySectionCard(
+                              icon: Icons.history_edu_rounded,
+                              title: 'No Submissions Yet',
+                              message: 'Complete active quizzes to see your score records here.',
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _recentSubmissions.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final submission = _recentSubmissions[index];
+                                return _buildSubmissionTile(submission);
+                              },
+                            ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Mobile Single-Column Stack Layout
+            // 2. Active Quizzes Section
+            _buildSectionHeader(
+              title: 'Active Quizzes',
+              badgeCount: _activeQuizzes.length,
+              actionText: 'View All',
+              actionIcon: Icons.apps_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QuizzesScreen(initialTabIndex: 0),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _activeQuizzes.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.assignment_rounded,
+                    title: 'No Active Quizzes Available',
+                    message: 'Check back later or pull down to refresh.',
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _activeQuizzes.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final quiz = _activeQuizzes[index];
+                      return _buildActiveQuizCard(quiz);
+                    },
+                  ),
+
+            // Native Ad below Active Quizzes
+            AdNativeWidget(
+              templateType: TemplateType.small,
+              margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+              userData: _userData,
+            ),
+
+            const SizedBox(height: 20),
+
+            // 3. Campaigns & Announcements Carousel / Cards
+            _buildSectionHeader(
+              title: 'Campaigns & Announcements',
+              actionText: 'Explore',
+              actionIcon: Icons.explore_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const CampaignsScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _campaigns.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.campaign_rounded,
+                    title: 'No Active Announcements',
+                    message: 'There are currently no active promotional events or notices.',
+                  )
+                : SizedBox(
+                    height: 140,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _campaigns.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: 14),
+                      itemBuilder: (context, index) {
+                        final campaign = _campaigns[index];
+                        return _buildCampaignCard(campaign);
+                      },
+                    ),
+                  ),
+
+            // Banner Ad below Campaigns
+            Center(
+              child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 4.0), userData: _userData),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 4. Upcoming Quizzes Section
+            _buildSectionHeader(
+              title: 'Upcoming Quizzes',
+              actionText: 'Calendar',
+              actionIcon: Icons.calendar_month_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _upcomingQuizzes.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.event_busy_rounded,
+                    title: 'No Upcoming Quizzes',
+                    message: 'There are no upcoming scheduled tests at this moment.',
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _upcomingQuizzes.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final quiz = _upcomingQuizzes[index];
+                      return _buildUpcomingQuizTile(quiz);
+                    },
+                  ),
+
+            // Native Ad below Upcoming Quizzes
+            AdNativeWidget(
+              templateType: TemplateType.small,
+              margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+              userData: _userData,
+            ),
+
+            const SizedBox(height: 20),
+
+            // 5. Recent Submissions Section
+            _buildSectionHeader(
+              title: 'Recent Submissions',
+              actionText: 'History',
+              actionIcon: Icons.history_rounded,
+              onActionTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _recentSubmissions.isEmpty
+                ? _buildEmptySectionCard(
+                    icon: Icons.history_edu_rounded,
+                    title: 'No Submissions Yet',
+                    message: 'Complete active quizzes to see your score records here.',
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _recentSubmissions.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final submission = _recentSubmissions[index];
+                      return _buildSubmissionTile(submission);
+                    },
+                  ),
+
+            // Banner Ad below Recent Submissions
+            Center(
+              child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 12.0), userData: _userData),
             ),
           ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined,
-                color: AppTheme.mainText),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: GestureDetector(
-              onTap: () async {
-                final updated = await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userData: _userData),
-                  ),
-                );
-                if (updated != null && updated is Map<String, dynamic>) {
-                  setState(() => _userData = Map<String, dynamic>.from(updated));
-                }
-              },
-              child: CircleAvatar(
-                radius: 17,
-                backgroundColor: const Color(0xFF6C5CE7).withValues(alpha: 0.15),
-                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                child: avatarUrl == null
-                    ? Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'S',
-                        style: const TextStyle(
-                          color: Color(0xFF6C5CE7),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-          ),
+
+          const SizedBox(height: 20),
         ],
       ),
+    );
 
-      // Side Navigation Drawer
-      drawer: Drawer(
-        backgroundColor: AppTheme.background,
-        child: Column(
-          children: [
-            // Drawer Header
-            GestureDetector(
-              onTap: () async {
-                Navigator.pop(context);
-                final updated = await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userData: _userData),
-                  ),
-                );
-                if (updated != null && updated is Map<String, dynamic>) {
-                  setState(() => _userData = Map<String, dynamic>.from(updated));
-                }
-              },
-              child: UserAccountsDrawerHeader(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primary, AppTheme.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+    Widget sidebarWidget = Container(
+      width: 270,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          right: BorderSide(color: AppTheme.border.withValues(alpha: 0.8), width: 1),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Sidebar Header Branding
+          GestureDetector(
+            onTap: () async {
+              if (!isDesktop) Navigator.pop(context);
+              final updated = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(userData: _userData),
                 ),
-                currentAccountPicture: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                  child: avatarUrl == null
-                      ? Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : 'S',
-                          style: const TextStyle(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                          ),
-                        )
-                      : null,
-                ),
-                accountName: Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
-                ),
-                accountEmail: Text(
-                  '$email  •  Roll: $rollNumber',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+              );
+              if (updated != null && updated is Map<String, dynamic>) {
+                setState(() => _userData = Map<String, dynamic>.from(updated));
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.primary, AppTheme.primaryDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
+              child: Row(
+                children: [
+                  SafeUserAvatar(
+                    avatarUrl: avatarUrl,
+                    fallbackInitial: name,
+                    radius: 24,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ),
 
-            // Navigation Items
-            _buildDrawerTile(
-              index: 0,
-              icon: Icons.dashboard_rounded,
-              title: 'Dashboard',
-            ),
-            _buildDrawerTile(
-              index: 1,
-              icon: Icons.quiz_rounded,
-              title: 'Active Quizzes',
-              badgeText: '${_activeQuizzes.length}',
-            ),
-            _buildDrawerTile(
-              index: 2,
-              icon: Icons.event_note_rounded,
-              title: 'Upcoming Quizzes',
-            ),
-            _buildDrawerTile(
-              index: 3,
-              icon: Icons.assignment_turned_in_rounded,
-              title: 'Recent Submissions',
-            ),
-            _buildDrawerTile(
-              index: 4,
-              icon: Icons.campaign_rounded,
-              title: 'Campaigns & Events',
-            ),
+          const SizedBox(height: 12),
 
-            const Divider(color: AppTheme.border, height: 24, indent: 16, endIndent: 16),
+          // Navigation Items
+          _buildDrawerTile(
+            index: 0,
+            icon: Icons.dashboard_rounded,
+            title: 'Dashboard',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 1,
+            icon: Icons.quiz_rounded,
+            title: 'Active Quizzes',
+            badgeText: '${_activeQuizzes.length}',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 2,
+            icon: Icons.event_note_rounded,
+            title: 'Upcoming Quizzes',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 3,
+            icon: Icons.assignment_turned_in_rounded,
+            title: 'Recent Submissions',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 4,
+            icon: Icons.campaign_rounded,
+            title: 'Campaigns & Events',
+            isDesktop: isDesktop,
+          ),
 
-            _buildDrawerTile(
-              index: 5,
-              icon: Icons.person_outline_rounded,
-              title: 'Profile Settings',
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Divider(color: AppTheme.border, height: 1),
+          ),
+
+          _buildDrawerTile(
+            index: 5,
+            icon: Icons.person_outline_rounded,
+            title: 'Profile Settings',
+            isDesktop: isDesktop,
+          ),
+
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
+              dense: true,
+              leading: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF25D366), size: 22),
+              title: const Text(
+                'WhatsApp Support',
+                style: TextStyle(
+                  color: Color(0xFF25D366),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              onTap: () async {
+                if (!isDesktop) Navigator.pop(context);
+                const url = 'https://wa.me/916205045881?text=Hello%20Acadova%20Support';
+                final uri = Uri.parse(url);
+                try {
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    return;
+                  }
+                } catch (_) {}
+                if (context.mounted) {
+                  CustomToast.show(
+                    context,
+                    message: 'WhatsApp Support: +916205045881',
+                    type: ToastType.info,
+                  );
+                }
+              },
             ),
+          ),
 
-            const Spacer(),
+          const Spacer(),
 
-            // Logout Option
-            ListTile(
+          // Version badge & Logout Option
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Acadova v${AppConfig.appVersion}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                if (ApiService.isUpdateAvailable())
+                  GestureDetector(
+                    onTap: () => AppUpdateDialog.show(context, force: ApiService.isForceUpdateRequired()),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD63031).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Update Available',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD63031)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.border),
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
               leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
               title: const Text(
                 'Logout',
@@ -417,7 +792,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 ),
               ),
               onTap: () async {
-                Navigator.pop(context);
+                if (!isDesktop) Navigator.pop(context);
                 await ApiService.logout();
                 if (context.mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
@@ -427,198 +802,224 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 }
               },
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
+    );
 
-      // Main Dashboard Body
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: const Color(0xFF6C5CE7),
-          onRefresh: () async {
-            await _fetchBackendData();
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Welcome Banner
-              _buildStudentHeader(name, rollNumber),
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: AppTheme.background,
 
-              const SizedBox(height: 14),
-              Center(
-                child: AdBannerWidget(margin: const EdgeInsets.only(bottom: 4.0), userData: _userData),
-              ),
-              const SizedBox(height: 16),
-
-              // 2. Active Quizzes Section
-              _buildSectionHeader(
-                title: 'Active Quizzes',
-                badgeCount: _activeQuizzes.length,
-                actionText: 'View All',
-                actionIcon: Icons.apps_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const QuizzesScreen(initialTabIndex: 0),
-                    ),
-                  );
+      // App Bar Navigation Header (Only on mobile or when drawer is used)
+      appBar: isDesktop
+          ? null
+          : AppBar(
+              backgroundColor: AppTheme.background,
+              elevation: 0,
+              centerTitle: false,
+              titleSpacing: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.menu_rounded, color: AppTheme.mainText),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
                 },
               ),
-              const SizedBox(height: 12),
-              _activeQuizzes.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.assignment_rounded,
-                      title: 'No Active Quizzes Available',
-                      message: 'Check back later or pull down to refresh.',
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _activeQuizzes.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final quiz = _activeQuizzes[index];
-                        return _buildActiveQuizCard(quiz);
-                      },
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      height: 28,
+                      width: 28,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.school, color: AppTheme.primary),
                     ),
-
-              // Native Ad below Active Quizzes
-              AdNativeWidget(
-                templateType: TemplateType.small,
-                margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                userData: _userData,
-              ),
-
-              const SizedBox(height: 20),
-
-              // 3. Campaigns & Announcements Carousel / Cards
-              _buildSectionHeader(
-                title: 'Campaigns & Announcements',
-                actionText: 'Explore',
-                actionIcon: Icons.explore_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const CampaignsScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _campaigns.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.campaign_rounded,
-                      title: 'No Active Announcements',
-                      message: 'There are currently no active promotional events or notices.',
-                    )
-                  : SizedBox(
-                      height: 140,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _campaigns.length,
-                        separatorBuilder: (context, index) => const SizedBox(width: 14),
-                        itemBuilder: (context, index) {
-                          final campaign = _campaigns[index];
-                          return _buildCampaignCard(campaign);
-                        },
+                  ),
+                  const SizedBox(width: 8),
+                  const Flexible(
+                    child: Text(
+                      'My Dashboard',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppTheme.mainText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
-              // Banner Ad below Campaigns
-              Center(
-                child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 4.0), userData: _userData),
+                  ),
+                ],
               ),
-
-              const SizedBox(height: 20),
-
-              // 4. Upcoming Quizzes Section
-              _buildSectionHeader(
-                title: 'Upcoming Quizzes',
-                actionText: 'Calendar',
-                actionIcon: Icons.calendar_month_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined,
+                      color: AppTheme.mainText),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 4),
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: GestureDetector(
+                    onTap: () async {
+                      final updated = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ProfileScreen(userData: _userData),
+                        ),
+                      );
+                      if (updated != null && updated is Map<String, dynamic>) {
+                        setState(() => _userData = Map<String, dynamic>.from(updated));
+                      }
+                    },
+                    child: SafeUserAvatar(
+                      avatarUrl: avatarUrl,
+                      fallbackInitial: name,
+                      radius: 17,
                     ),
-                  );
+                  ),
+                ),
+              ],
+            ),
+
+      // Side Navigation Drawer (Only for Mobile views)
+      drawer: isDesktop ? null : Drawer(child: sidebarWidget),
+
+      // Main Body
+      body: SafeArea(
+        child: isDesktop
+            ? Row(
+                children: [
+                  sidebarWidget,
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // Desktop Top Header Bar
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border(
+                              bottom: BorderSide(color: AppTheme.border.withValues(alpha: 0.8)),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipOval(
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  height: 32,
+                                  width: 32,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.school, color: AppTheme.primary, size: 28),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'Acadova Student Workspace',
+                                style: TextStyle(
+                                  color: AppTheme.mainText,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(Icons.notifications_outlined, color: AppTheme.mainText),
+                                tooltip: 'Notifications',
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => const NotificationsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final updated = await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => ProfileScreen(userData: _userData),
+                                    ),
+                                  );
+                                  if (updated != null && updated is Map<String, dynamic>) {
+                                    setState(() => _userData = Map<String, dynamic>.from(updated));
+                                  }
+                                },
+                                child: Row(
+                                  children: [
+                                    SafeUserAvatar(
+                                      avatarUrl: avatarUrl,
+                                      fallbackInitial: name,
+                                      radius: 18,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: AppTheme.mainText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Dashboard Main View / Selected Screen View
+                        Expanded(
+                          child: IndexedStack(
+                            index: _activeNavIndex,
+                            children: [
+                              // 0: Dashboard
+                              RefreshIndicator(
+                                color: const Color(0xFF6C5CE7),
+                                onRefresh: () async {
+                                  await _fetchBackendData();
+                                },
+                                child: dashboardContent,
+                              ),
+                              // 1: Active Quizzes
+                              const QuizzesScreen(initialTabIndex: 0),
+                              // 2: Upcoming Quizzes
+                              const QuizzesScreen(initialTabIndex: 1),
+                              // 3: Recent Submissions / Completed Quizzes
+                              const QuizzesScreen(initialTabIndex: 2),
+                              // 4: Campaigns
+                              const CampaignsScreen(),
+                              // 5: Profile Settings
+                              ProfileScreen(userData: _userData),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : RefreshIndicator(
+                color: const Color(0xFF6C5CE7),
+                onRefresh: () async {
+                  await _fetchBackendData();
                 },
+                child: dashboardContent,
               ),
-              const SizedBox(height: 12),
-              _upcomingQuizzes.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.event_busy_rounded,
-                      title: 'No Upcoming Quizzes',
-                      message: 'There are no upcoming scheduled tests at this moment.',
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _upcomingQuizzes.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final quiz = _upcomingQuizzes[index];
-                        return _buildUpcomingQuizTile(quiz);
-                      },
-                    ),
-
-              // Native Ad below Upcoming Quizzes
-              AdNativeWidget(
-                templateType: TemplateType.small,
-                margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                userData: _userData,
-              ),
-
-              const SizedBox(height: 20),
-
-              // 5. Recent Submissions Section
-              _buildSectionHeader(
-                title: 'Recent Submissions',
-                actionText: 'History',
-                actionIcon: Icons.history_rounded,
-                onActionTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const QuizzesScreen(initialTabIndex: 2),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _recentSubmissions.isEmpty
-                  ? _buildEmptySectionCard(
-                      icon: Icons.history_edu_rounded,
-                      title: 'No Submissions Yet',
-                      message: 'Complete active quizzes to see your score records here.',
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _recentSubmissions.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final submission = _recentSubmissions[index];
-                        return _buildSubmissionTile(submission);
-                      },
-                    ),
-
-              // Banner Ad below Recent Submissions
-              Center(
-                child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 12.0), userData: _userData),
-              ),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   // Drawer Item Helper
   Widget _buildDrawerTile({
@@ -626,22 +1027,25 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     required IconData icon,
     required String title,
     String? badgeText,
+    bool isDesktop = false,
   }) {
     final isSelected = _activeNavIndex == index;
-    return ListTile(
-      selected: isSelected,
-      selectedTileColor: AppTheme.primary.withValues(alpha: 0.1),
-      leading: Icon(
-        icon,
-        color: isSelected ? AppTheme.primary : AppTheme.textMuted,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? AppTheme.primary : AppTheme.mainText,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        selected: isSelected,
+        selectedTileColor: AppTheme.primary.withValues(alpha: 0.1),
+        leading: Icon(
+          icon,
+          color: isSelected ? AppTheme.primary : AppTheme.textMuted,
         ),
-      ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? AppTheme.primary : AppTheme.mainText,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       trailing: (badgeText != null && badgeText.isNotEmpty && badgeText != '0')
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -663,43 +1067,52 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         setState(() {
           _activeNavIndex = index;
         });
-        Navigator.pop(context);
-
         if (index == 1) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const QuizzesScreen(initialTabIndex: 0),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const QuizzesScreen(initialTabIndex: 0),
+              ),
+            );
+          }
         } else if (index == 2) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const QuizzesScreen(initialTabIndex: 1),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const QuizzesScreen(initialTabIndex: 1),
+              ),
+            );
+          }
         } else if (index == 3) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const QuizzesScreen(initialTabIndex: 2),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const QuizzesScreen(initialTabIndex: 2),
+              ),
+            );
+          }
         } else if (index == 4) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const CampaignsScreen(),
-            ),
-          );
+          if (!isDesktop) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const CampaignsScreen(),
+              ),
+            );
+          }
         } else if (index == 5) {
-          final updated = await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => ProfileScreen(userData: _userData),
-            ),
-          );
-          if (updated != null && updated is Map<String, dynamic>) {
-            setState(() => _userData = Map<String, dynamic>.from(updated));
+          if (!isDesktop) {
+            final updated = await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(userData: _userData),
+              ),
+            );
+            if (updated != null && updated is Map<String, dynamic>) {
+              setState(() => _userData = Map<String, dynamic>.from(updated));
+            }
           }
         }
       },
+    ),
     );
   }
 
@@ -836,35 +1249,41 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _activeQuizzes.isNotEmpty ? Icons.play_arrow_rounded : Icons.check_rounded,
-                          color: const Color(0xFF6C5CE7),
-                          size: 16,
-                        ),
+                  child: Builder(
+                        builder: (context) {
+                          final unattemptedCount = _activeQuizzes.where((q) => q['isAttempted'] != true).length;
+                          final hasUnattempted = unattemptedCount > 0;
+                          return Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  hasUnattempted ? Icons.play_arrow_rounded : Icons.check_rounded,
+                                  color: const Color(0xFF6C5CE7),
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  hasUnattempted
+                                      ? '$unattemptedCount Active quiz${unattemptedCount > 1 ? 'zes' : ''} available to attempt'
+                                      : 'All assigned quizzes are up to date!',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _activeQuizzes.isNotEmpty
-                              ? '${_activeQuizzes.length} Active quiz available to attempt'
-                              : 'All assigned quizzes are up to date!',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -1558,33 +1977,37 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             const SizedBox(height: 18),
 
             // Bottom Info Bar & Attempt Button
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.quiz_outlined, size: 15, color: Color(0xFF2D3436)),
+                      const Icon(Icons.quiz_outlined, size: 14, color: Color(0xFF2D3436)),
                       const SizedBox(width: 4),
                       Text(
                         '${quiz['questions']} Qs',
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
                       ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.timer_outlined, size: 15, color: Color(0xFF2D3436)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.timer_outlined, size: 14, color: Color(0xFF2D3436)),
                       const SizedBox(width: 4),
                       Text(
                         quiz['duration'],
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
                       ),
                     ],
                   ),
                 ),
-                const Spacer(),
                 ElevatedButton.icon(
                   onPressed: () => _showQuizDetailsModal(quiz),
                   icon: Icon(
@@ -1593,7 +2016,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         : (quiz['isAfterEnd'] == true
                             ? Icons.cancel_rounded
                             : (quiz['isBeforeStart'] == true ? Icons.schedule_rounded : Icons.play_arrow_rounded)),
-                    size: 16,
+                    size: 15,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isAttempted
@@ -1602,7 +2025,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             ? AppTheme.error
                             : (quiz['isBeforeStart'] == true ? AppTheme.info : AppTheme.primary)),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1619,8 +2042,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ? 'Done'
                         : (quiz['isAfterEnd'] == true
                             ? 'Missed'
-                            : (quiz['isBeforeStart'] == true ? 'Scheduled' : 'Attempt')),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                            : (quiz['isBeforeStart'] == true ? 'Upcoming' : 'Attempt')),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],

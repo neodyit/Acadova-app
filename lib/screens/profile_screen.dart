@@ -388,10 +388,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.mainText, size: 20),
-          onPressed: () => Navigator.pop(context, _user),
-        ),
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.mainText, size: 20),
+                onPressed: () => Navigator.pop(context, _user),
+              )
+            : null,
+        automaticallyImplyLeading: false,
         title: const Text(
           'My Profile',
           style: TextStyle(
@@ -441,13 +444,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: CircularProgressIndicator(color: AppTheme.primary),
             )
           : RefreshIndicator(
-        color: AppTheme.primary,
-        onRefresh: _fetchProfileData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
+              color: AppTheme.primary,
+              onRefresh: _fetchProfileData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20.0),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1000),
+                    child: Column(
+                      children: [
               // Profile Header Card
               Container(
                 width: double.infinity,
@@ -482,7 +488,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 return CircleAvatar(
                                   radius: 41,
                                   backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                                  backgroundImage: avatarUrl != null
+                                      ? NetworkImage(
+                                          avatarUrl,
+                                          headers: ApiService.authToken != null
+                                              ? {'Authorization': 'Bearer ${ApiService.authToken}'}
+                                              : null,
+                                        )
+                                      : null,
                                   child: avatarUrl == null
                                       ? Text(
                                           name.isNotEmpty ? name[0].toUpperCase() : 'U',
@@ -854,8 +867,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
-  }
+      ),
+    ),
+  );
+}
 
   Widget _buildStatItem({
     required IconData icon,

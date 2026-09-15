@@ -1,6 +1,6 @@
 class AppConfig {
   static const String appName = 'Acadova';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '0.0.6';
 
   // Local development backend URL options
   static const String localhostUrl = 'http://127.0.0.1:8000/api';

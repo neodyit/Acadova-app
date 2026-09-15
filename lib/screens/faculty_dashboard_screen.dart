@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../config/app_theme.dart';
+import '../services/ad_service.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/ad_banner_widget.dart';
+import '../widgets/app_update_dialog.dart';
 import 'academic_profile_screen.dart';
 import 'create_quiz_screen.dart';
 import 'faculty_quizzes_screen.dart';
@@ -27,8 +32,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
   late Map<String, dynamic> _user;
   bool _isLoading = true;
   int _selectedTab = 0; // 0: Active Quizzes, 1: Scheduled, 2: Campaign, 3: Submissions
-
-
+  Timer? _autoRefreshTimer;
 
   List<Map<String, dynamic>> _quizzes = [];
   List<Map<String, dynamic>> _submissions = [];
@@ -39,17 +43,35 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     super.initState();
     _user = Map<String, dynamic>.from(widget.userData);
     _fetchFacultyData();
+
+    // Auto-refresh faculty dashboard data every 20 seconds
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      if (mounted) {
+        _fetchFacultyData(isBackground: true);
+      }
+    });
   }
 
-  Future<void> _fetchFacultyData() async {
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchFacultyData({bool isBackground = false}) async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    if (!isBackground) {
+      setState(() => _isLoading = true);
+    }
 
     try {
       // 1. Fetch fresh user profile
       final profileResp = await ApiService.getProfile();
       if (profileResp['success'] == true && profileResp['data'] != null) {
         final freshData = profileResp['data'];
+        if (freshData is Map && freshData.containsKey('ad_config')) {
+          AdService().updateAdConfig(Map<String, dynamic>.from(freshData['ad_config']));
+        }
         final freshUser = (freshData is Map && freshData.containsKey('user'))
             ? freshData['user']
             : freshData;
@@ -385,11 +407,66 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                     }
                   },
                 ),
+                _buildDrawerItem(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  activeIcon: Icons.chat_bubble_rounded,
+                  title: 'WhatsApp Support',
+                  iconColor: const Color(0xFF25D366),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    const url = 'https://wa.me/916205045881?text=Hello%20Acadova%20Support';
+                    final uri = Uri.parse(url);
+                    try {
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        return;
+                      }
+                    } catch (_) {}
+                    if (context.mounted) {
+                      CustomToast.show(
+                        context,
+                        message: 'WhatsApp Support: +916205045881',
+                        type: ToastType.info,
+                      );
+                    }
+                  },
+                ),
               ],
             ),
           ),
 
-          // Drawer Footer Logout Button
+          // Drawer Footer App Version & Logout Button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Acadova v${AppConfig.appVersion}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                if (ApiService.isUpdateAvailable())
+                  GestureDetector(
+                    onTap: () => AppUpdateDialog.show(context, force: ApiService.isForceUpdateRequired()),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD63031).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Update Available',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD63031)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
           const Divider(height: 1, color: AppTheme.border),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
