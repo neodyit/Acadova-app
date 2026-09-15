@@ -286,6 +286,7 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyToken, token);
     await prefs.setString(_keyUser, jsonEncode(user));
+    initAndSyncNotificationToken();
   }
 
   /// Clear persistent session
@@ -1394,8 +1395,10 @@ class ApiService {
     try {
       // Trigger native notification permission prompt on Android 13+ (API 33+)
       if (defaultTargetPlatform == TargetPlatform.android) {
-        const MethodChannel('com.neodyit.acadova/security')
-            .invokeMethod('requestNotificationPermission');
+        try {
+          await const MethodChannel('com.neodyit.acadova/security')
+              .invokeMethod('requestNotificationPermission');
+        } catch (_) {}
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -1408,7 +1411,10 @@ class ApiService {
       }
 
       // Sync token with backend
-      await saveFcmToken(token);
+      final success = await saveFcmToken(token);
+      if (kDebugMode) {
+        print('ApiService: FCM Token Synced ($token) -> Success: $success');
+      }
     } catch (_) {}
   }
 
@@ -1421,12 +1427,18 @@ class ApiService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          if (authToken != null) 'Authorization': 'Bearer $authToken',
+          if (authToken != null && authToken!.isNotEmpty) 'Authorization': 'Bearer $authToken',
         },
         body: jsonEncode({'fcm_token': token}),
       );
+      if (kDebugMode) {
+        print('ApiService: saveFcmToken HTTP ${response.statusCode} -> ${response.body}');
+      }
       return response.statusCode == 200;
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) {
+        print('ApiService: saveFcmToken Error -> $e');
+      }
       return false;
     }
   }
