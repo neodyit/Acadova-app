@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'academic_profile_screen.dart';
+import 'google_complete_profile_screen.dart';
 import 'home_screen.dart';
 
 enum UserRole { student, faculty }
@@ -32,6 +34,133 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '764324372715-jidimhue9cakjogqgohbf4u28llck4n3.apps.googleusercontent.com',
+  );
+
+  void _handleGoogleSignup() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      GoogleSignInAccount? googleUser;
+      try {
+        googleUser = await _googleSignIn.signInSilently();
+      } catch (_) {}
+
+      googleUser ??= await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final GoogleSignInAccount userAccount = googleUser;
+      final roleStr = _selectedRole == UserRole.student ? 'student' : 'faculty';
+
+      final response = await ApiService.googleLogin(
+        email: userAccount.email,
+        name: userAccount.displayName ?? userAccount.email.split('@')[0],
+        googleId: userAccount.id,
+        avatar: userAccount.photoUrl,
+        role: roleStr,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (response['success'] == true) {
+          final userData = response['data']['user'] ?? {};
+          final isNewUser = response['data']['is_new'] == true;
+
+          if (isNewUser || (userData['roll_number'] == null && userData['faculty_id'] == null)) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => GoogleCompleteProfileScreen(googleUser: userAccount),
+              ),
+            );
+            return;
+          }
+
+          final userName = userData['name'] ?? userAccount.displayName ?? 'User';
+          CustomToast.show(
+            context,
+            title: 'Welcome to Acadova!',
+            message: 'Signed in as $userName.',
+            type: ToastType.success,
+            customIcon: Icons.check_circle_rounded,
+          );
+
+          final isProfileIncomplete = ApiService.isProfileIncomplete(userData);
+
+          if (isProfileIncomplete) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => AcademicProfileScreen(userData: userData, isInitialSetup: true),
+              ),
+              (route) => false,
+            );
+            return;
+          }
+
+          Navigator.of(context).pushAndRemoveUntil(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  HomeScreen(userData: userData),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+            (route) => false,
+          );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => GoogleCompleteProfileScreen(googleUser: userAccount),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        final errStr = e.toString().toLowerCase();
+        String userFriendlyMsg = 'Google Sign-In failed: ${e.toString()}';
+
+        if (errStr.contains('network_error') ||
+            errStr.contains('socketexception') ||
+            errStr.contains('failed host lookup')) {
+          userFriendlyMsg = 'No Internet Connection. Please check your network and try again.';
+        } else if (errStr.contains('sign_in_canceled') || errStr.contains('canceled')) {
+          userFriendlyMsg = 'Sign up was cancelled.';
+        }
+
+        CustomToast.show(
+          context,
+          title: 'Google Sign In Error',
+          message: userFriendlyMsg,
+          type: ToastType.error,
+          customIcon: Icons.error_outline_rounded,
+        );
+      }
+    }
+  }
 
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
@@ -1036,6 +1165,64 @@ class _SignupScreenState extends State<SignupScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _handleGoogleSignup,
+                icon: Image.asset(
+                  'assets/images/google-icon.png',
+                  width: 22,
+                  height: 22,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Image.asset(
+                    'assets/images/google_logo.png',
+                    width: 22,
+                    height: 22,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.g_mobiledata_rounded,
+                            size: 26, color: Colors.redAccent),
+                  ),
+                ),
+                label: const Text(
+                  'Continue with Google',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2D3436),
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
