@@ -285,7 +285,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                 crossAxisCount: 2,
                                 mainAxisSpacing: 14,
                                 crossAxisSpacing: 14,
-                                mainAxisExtent: 220,
+                                mainAxisExtent: 240,
                               ),
                               itemCount: _activeQuizzes.length,
                               itemBuilder: (context, index) {
@@ -1858,33 +1858,37 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             const SizedBox(height: 18),
 
             // Bottom Info Bar & Attempt Button
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.quiz_outlined, size: 15, color: Color(0xFF2D3436)),
+                      const Icon(Icons.quiz_outlined, size: 14, color: Color(0xFF2D3436)),
                       const SizedBox(width: 4),
                       Text(
                         '${quiz['questions']} Qs',
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
                       ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.timer_outlined, size: 15, color: Color(0xFF2D3436)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.timer_outlined, size: 14, color: Color(0xFF2D3436)),
                       const SizedBox(width: 4),
                       Text(
                         quiz['duration'],
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2D3436)),
                       ),
                     ],
                   ),
                 ),
-                const Spacer(),
                 ElevatedButton.icon(
                   onPressed: () => _showQuizDetailsModal(quiz),
                   icon: Icon(
@@ -1893,7 +1897,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         : (quiz['isAfterEnd'] == true
                             ? Icons.cancel_rounded
                             : (quiz['isBeforeStart'] == true ? Icons.schedule_rounded : Icons.play_arrow_rounded)),
-                    size: 16,
+                    size: 15,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isAttempted
@@ -1902,7 +1906,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             ? AppTheme.error
                             : (quiz['isBeforeStart'] == true ? AppTheme.info : AppTheme.primary)),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1919,8 +1923,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ? 'Done'
                         : (quiz['isAfterEnd'] == true
                             ? 'Missed'
-                            : (quiz['isBeforeStart'] == true ? 'Scheduled' : 'Attempt')),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                            : (quiz['isBeforeStart'] == true ? 'Upcoming' : 'Attempt')),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
