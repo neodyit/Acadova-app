@@ -223,10 +223,12 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     final description = _descriptionController.text.trim();
     final duration = int.tryParse(_durationController.text.trim()) ?? 15;
 
-    if (widget.allocations.isNotEmpty && _selectedBatches.isEmpty) {
+    if (_selectedBatches.isEmpty) {
       CustomToast.show(
         context,
-        message: 'Please select at least one Target Batch for the quiz',
+        message: widget.allocations.isEmpty
+            ? 'You do not have any allocated batches assigned. Please contact your administrator to assign batches before creating a quiz.'
+            : 'Please select at least one Target Batch for the quiz',
         type: ToastType.warning,
       );
       return;
@@ -264,11 +266,11 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
     setState(() => _isSubmitting = true);
 
-    List<dynamic> targetSectionIds = ['all'];
-    List<dynamic> targetDeptIds = ['all'];
-    List<dynamic> targetCourseIds = ['all'];
-    List<dynamic> targetBranchIds = ['all'];
-    List<dynamic> targetSubjectIds = ['all'];
+    List<dynamic> targetSectionIds = [];
+    List<dynamic> targetDeptIds = [];
+    List<dynamic> targetCourseIds = [];
+    List<dynamic> targetBranchIds = [];
+    List<dynamic> targetSubjectIds = [];
     List<Map<String, dynamic>> targetGroups = [];
     String selectedSubject = widget.userData['department'] ?? 'Computer Science';
 
