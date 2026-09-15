@@ -6,6 +6,8 @@ import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/location_permission_banner.dart';
 import '../widgets/ad_banner_widget.dart';
+import '../widgets/ad_native_widget.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 import 'academic_profile_screen.dart';
 import 'campaigns_screen.dart';
 import 'login_screen.dart';
@@ -225,9 +227,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppTheme.background,
-      bottomNavigationBar: const SafeArea(
-        child: AdBannerWidget(),
-      ),
 
       // App Bar Navigation Header
       appBar: AppBar(
@@ -445,15 +444,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               // 1. Welcome Banner
               _buildStudentHeader(name, rollNumber),
 
-              const SizedBox(height: 16),
-
-              // Inline Ad Banner below Welcome Card
+              const SizedBox(height: 14),
               const Center(
-                child: AdBannerWidget(
-                  margin: EdgeInsets.only(bottom: 4.0),
-                ),
+                child: AdBannerWidget(margin: EdgeInsets.only(bottom: 4.0)),
               ),
-
               const SizedBox(height: 16),
 
               // 2. Active Quizzes Section
@@ -488,7 +482,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       },
                     ),
 
-              const SizedBox(height: 28),
+              // Native Ad below Active Quizzes
+              const AdNativeWidget(
+                templateType: TemplateType.small,
+                margin: EdgeInsets.only(top: 16.0, bottom: 8.0),
+              ),
+
+              const SizedBox(height: 20),
 
               // 3. Campaigns & Announcements Carousel / Cards
               _buildSectionHeader(
@@ -523,7 +523,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       ),
                     ),
 
-              const SizedBox(height: 28),
+              // Banner Ad below Campaigns
+              const Center(
+                child: AdBannerWidget(margin: EdgeInsets.only(top: 16.0, bottom: 4.0)),
+              ),
+
+              const SizedBox(height: 20),
 
               // 4. Upcoming Quizzes Section
               _buildSectionHeader(
@@ -556,7 +561,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       },
                     ),
 
-              const SizedBox(height: 28),
+              // Native Ad below Upcoming Quizzes
+              const AdNativeWidget(
+                templateType: TemplateType.small,
+                margin: EdgeInsets.only(top: 16.0, bottom: 8.0),
+              ),
+
+              const SizedBox(height: 20),
 
               // 5. Recent Submissions Section
               _buildSectionHeader(
@@ -588,6 +599,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         return _buildSubmissionTile(submission);
                       },
                     ),
+
+              // Banner Ad below Recent Submissions
+              const Center(
+                child: AdBannerWidget(margin: EdgeInsets.only(top: 16.0, bottom: 12.0)),
+              ),
 
               const SizedBox(height: 20),
             ],

@@ -6,10 +6,10 @@
         android:label="Acadova"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <!-- Google Mobile Ads App ID (Sample Test ID: ca-app-pub-3940256099942544~3347511713) -->
+        <!-- Google Mobile Ads App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2117456188378823~9732697932"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
