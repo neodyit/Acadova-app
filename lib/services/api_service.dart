@@ -16,8 +16,8 @@ class ApiService {
   static bool _isGoogleAuthWindowsEnabled = true;
 
   // App Versioning & Remote Update Management
-  static String latestAppVersion = '1.0.0';
-  static String minRequiredVersion = '1.0.0';
+  static String latestAppVersion = '0.0.6';
+  static String minRequiredVersion = '0.0.6';
   static String updateUrl = 'https://acadova.neodyit.com/download';
   static bool isForceUpdate = false;
   static String releaseNotes = 'Performance improvements & bug fixes.';
