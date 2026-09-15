@@ -102,150 +102,192 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isDesktop = screenWidth >= 800;
+    final int crossAxisCount = screenWidth >= 1200 ? 3 : (screenWidth >= 750 ? 2 : 1);
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: AppTheme.background,
         elevation: 0,
         foregroundColor: AppTheme.mainText,
-        title: const Text(
-          'Campaigns & Events',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppTheme.mainText),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppTheme.mainText),
-            onPressed: _fetchCampaigns,
-            tooltip: 'Refresh',
+        automaticallyImplyLeading: !isDesktop,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Row(
+              children: [
+                const Text(
+                  'Campaigns & Events',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppTheme.mainText),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: AppTheme.mainText),
+                  onPressed: _fetchCampaigns,
+                  tooltip: 'Refresh',
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: 8),
-        ],
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(105),
-          child: Column(
-            children: [
-              // Search Input Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val.trim();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search announcements & events...',
-                    hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13.5),
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.border),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                children: [
+                  // Search Input Bar
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 24.0 : 16.0,
+                      vertical: 4.0,
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val.trim();
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search announcements & events...',
+                        hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13.5),
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    _searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppTheme.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppTheme.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-              // Filter Selector Row
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    _buildCategoryChip('All Announcements', 'all'),
-                    const SizedBox(width: 8),
-                    _buildCategoryChip('Notices', 'notice'),
-                    const SizedBox(width: 8),
-                    _buildCategoryChip('Events', 'event'),
-                  ],
-                ),
+                  // Filter Selector Row
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24.0 : 16.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        _buildCategoryChip('All Announcements', 'all'),
+                        const SizedBox(width: 8),
+                        _buildCategoryChip('Notices', 'notice'),
+                        const SizedBox(width: 8),
+                        _buildCategoryChip('Events', 'event'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
       body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-            : RefreshIndicator(
-                color: AppTheme.primary,
-                onRefresh: _fetchCampaigns,
-                child: _filteredCampaigns.isEmpty
-                    ? SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.6,
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primary.withValues(alpha: 0.08),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.campaign_outlined,
-                                      size: 48,
-                                      color: AppTheme.primary,
-                                    ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                : RefreshIndicator(
+                    color: AppTheme.primary,
+                    onRefresh: _fetchCampaigns,
+                    child: _filteredCampaigns.isEmpty
+                        ? SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.6,
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primary.withValues(alpha: 0.08),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.campaign_outlined,
+                                          size: 48,
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'No Announcements Available',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF2D3436),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Check back later for news, upcoming events, and official campus notices.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(fontSize: 13.5, color: Colors.grey.shade600),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'No Announcements Available',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2D3436),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Check back later for news, upcoming events, and official campus notices.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 13.5, color: Colors.grey.shade600),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      )
-                    : ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredCampaigns.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 14),
-                        itemBuilder: (context, index) {
-                          final campaign = _filteredCampaigns[index];
-                          return _buildCampaignCard(campaign);
-                        },
-                      ),
-              ),
+                          )
+                        : (crossAxisCount > 1
+                            ? GridView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(24),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  crossAxisSpacing: 20,
+                                  mainAxisSpacing: 20,
+                                  mainAxisExtent: 380,
+                                ),
+                                itemCount: _filteredCampaigns.length,
+                                itemBuilder: (context, index) {
+                                  final campaign = _filteredCampaigns[index];
+                                  return _buildCampaignCard(campaign);
+                                },
+                              )
+                            : ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(16),
+                                itemCount: _filteredCampaigns.length,
+                                separatorBuilder: (context, index) => const SizedBox(height: 14),
+                                itemBuilder: (context, index) {
+                                  final campaign = _filteredCampaigns[index];
+                                  return _buildCampaignCard(campaign);
+                                },
+                              )),
+                  ),
+          ),
+        ),
       ),
     );
   }
