@@ -133,7 +133,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
           ),
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(105),
+          preferredSize: const Size.fromHeight(110),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1200),
@@ -186,17 +186,20 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     ),
                   ),
 
-                  // Filter Selector Row
+                  // Filter Selector Row (Horizontally Scrollable)
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24.0 : 16.0, vertical: 8.0),
-                    child: Row(
-                      children: [
-                        _buildCategoryChip('All Announcements', 'all'),
-                        const SizedBox(width: 8),
-                        _buildCategoryChip('Notices', 'notice'),
-                        const SizedBox(width: 8),
-                        _buildCategoryChip('Events', 'event'),
-                      ],
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildCategoryChip('All Announcements', 'all'),
+                          const SizedBox(width: 8),
+                          _buildCategoryChip('Notices', 'notice'),
+                          const SizedBox(width: 8),
+                          _buildCategoryChip('Events', 'event'),
+                        ],
+                      ),
                     ),
                   ),
                 ],
