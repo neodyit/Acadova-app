@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/app_update_dialog.dart';
+import '../widgets/safe_user_avatar.dart';
 import 'academic_profile_screen.dart';
 import 'create_quiz_screen.dart';
 import 'faculty_quizzes_screen.dart';
@@ -256,22 +257,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
+                SafeUserAvatar(
+                  avatarUrl: _user['avatar']?.toString(),
+                  fallbackInitial: facultyName,
                   radius: 30,
                   backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  backgroundImage: (_user['avatar'] != null && _user['avatar'].toString().isNotEmpty)
-                      ? NetworkImage(_user['avatar'])
-                      : null,
-                  child: (_user['avatar'] == null || _user['avatar'].toString().isEmpty)
-                      ? Text(
-                          facultyName.isNotEmpty ? facultyName[0].toUpperCase() : 'F',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        )
-                      : null,
+                  textColor: Colors.white,
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -598,18 +589,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
             },
             child: Padding(
               padding: const EdgeInsets.only(right: 16.0, left: 4.0),
-              child: CircleAvatar(
+              child: SafeUserAvatar(
+                avatarUrl: _user['avatar']?.toString(),
+                fallbackInitial: facultyName,
                 radius: 17,
                 backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                backgroundImage: (_user['avatar'] != null && _user['avatar'].toString().isNotEmpty)
-                    ? NetworkImage(_user['avatar'])
-                    : null,
-                child: (_user['avatar'] == null || _user['avatar'].toString().isEmpty)
-                    ? Text(
-                        facultyName.isNotEmpty ? facultyName[0].toUpperCase() : 'F',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
-                      )
-                    : null,
+                textColor: AppTheme.primary,
               ),
             ),
           ),
