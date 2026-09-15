@@ -109,6 +109,7 @@ class ApiService {
         if (data['success'] == true && data['data'] != null) {
           final settings = Map<String, dynamic>.from(data['data']);
           await updateGoogleAuthFlags(settings);
+          AdService().updateAdConfig(settings);
           return settings;
         }
       }

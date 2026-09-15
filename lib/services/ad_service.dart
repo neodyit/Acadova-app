@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'api_service.dart';
 
 class AdService {
   static final AdService _instance = AdService._internal();
@@ -24,6 +25,14 @@ class AdService {
     if (config != null) {
       adConfig = Map<String, dynamic>.from(config);
       debugPrint('AdService: Updated remote ad config -> $adConfig');
+
+      // Immediately dispose preloaded ads if ads are turned off remotely
+      if (!shouldShowAdsForUser(ApiService.currentUser)) {
+        _interstitialAd?.dispose();
+        _interstitialAd = null;
+        _rewardedAd?.dispose();
+        _rewardedAd = null;
+      }
     }
   }
 
@@ -162,7 +171,7 @@ class AdService {
 
   /// Preload an Interstitial Ad
   void preloadInterstitialAd() {
-    if (!areAdsEnabled || !isPlatformSupported || _isInterstitialAdLoading || _interstitialAd != null) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported || _isInterstitialAdLoading || _interstitialAd != null) {
       return;
     }
 
@@ -187,7 +196,9 @@ class AdService {
 
   /// Show Interstitial Ad if available and frequency condition met
   void showInterstitialAdIfReady({VoidCallback? onDismissed, bool forceShow = false}) {
-    if (!areAdsEnabled || !isPlatformSupported) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported) {
+      _interstitialAd?.dispose();
+      _interstitialAd = null;
       onDismissed?.call();
       return;
     }
@@ -226,7 +237,7 @@ class AdService {
 
   /// Preload a Rewarded Ad
   void preloadRewardedAd() {
-    if (!areAdsEnabled || !isPlatformSupported || _isRewardedAdLoading || _rewardedAd != null) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported || _isRewardedAdLoading || _rewardedAd != null) {
       return;
     }
 
@@ -254,7 +265,9 @@ class AdService {
     required Function(RewardItem reward) onUserEarnedReward,
     VoidCallback? onDismissed,
   }) {
-    if (!areAdsEnabled || !isPlatformSupported) {
+    if (!shouldShowAdsForUser(ApiService.currentUser) || !isPlatformSupported) {
+      _rewardedAd?.dispose();
+      _rewardedAd = null;
       onDismissed?.call();
       return;
     }
