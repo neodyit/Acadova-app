@@ -267,6 +267,7 @@ class ApiService {
             ? profileData['user']
             : profileData;
         await prefs.setString(_keyUser, jsonEncode(currentUser));
+        initAndSyncNotificationToken();
         return true;
       } else {
         await clearSession();
