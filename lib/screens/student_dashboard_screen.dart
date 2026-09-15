@@ -573,200 +573,346 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       ),
     );
 
+    Widget sidebarWidget = Container(
+      width: 270,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          right: BorderSide(color: AppTheme.border.withValues(alpha: 0.8), width: 1),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Sidebar Header Branding
+          GestureDetector(
+            onTap: () async {
+              if (!isDesktop) Navigator.pop(context);
+              final updated = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(userData: _userData),
+                ),
+              );
+              if (updated != null && updated is Map<String, dynamic>) {
+                setState(() => _userData = Map<String, dynamic>.from(updated));
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.primary, AppTheme.primaryDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  SafeUserAvatar(
+                    avatarUrl: avatarUrl,
+                    fallbackInitial: name,
+                    radius: 24,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Navigation Items
+          _buildDrawerTile(
+            index: 0,
+            icon: Icons.dashboard_rounded,
+            title: 'Dashboard',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 1,
+            icon: Icons.quiz_rounded,
+            title: 'Active Quizzes',
+            badgeText: '${_activeQuizzes.length}',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 2,
+            icon: Icons.event_note_rounded,
+            title: 'Upcoming Quizzes',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 3,
+            icon: Icons.assignment_turned_in_rounded,
+            title: 'Recent Submissions',
+            isDesktop: isDesktop,
+          ),
+          _buildDrawerTile(
+            index: 4,
+            icon: Icons.campaign_rounded,
+            title: 'Campaigns & Events',
+            isDesktop: isDesktop,
+          ),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Divider(color: AppTheme.border, height: 1),
+          ),
+
+          _buildDrawerTile(
+            index: 5,
+            icon: Icons.person_outline_rounded,
+            title: 'Profile Settings',
+            isDesktop: isDesktop,
+          ),
+
+          const Spacer(),
+
+          // Logout Option
+          ListTile(
+            leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
+            title: const Text(
+              'Logout',
+              style: TextStyle(
+                color: AppTheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onTap: () async {
+              if (!isDesktop) Navigator.pop(context);
+              await ApiService.logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppTheme.background,
 
-      // App Bar Navigation Header
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: AppTheme.mainText),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipOval(
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 28,
-                width: 28,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.school, color: AppTheme.primary),
+      // App Bar Navigation Header (Only on mobile or when drawer is used)
+      appBar: isDesktop
+          ? null
+          : AppBar(
+              backgroundColor: AppTheme.background,
+              elevation: 0,
+              centerTitle: false,
+              titleSpacing: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.menu_rounded, color: AppTheme.mainText),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
               ),
-            ),
-            const SizedBox(width: 8),
-            const Flexible(
-              child: Text(
-                'My Dashboard',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppTheme.mainText,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined,
-                color: AppTheme.mainText),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: GestureDetector(
-              onTap: () async {
-                final updated = await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userData: _userData),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      height: 28,
+                      width: 28,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.school, color: AppTheme.primary),
+                    ),
                   ),
-                );
-                if (updated != null && updated is Map<String, dynamic>) {
-                  setState(() => _userData = Map<String, dynamic>.from(updated));
-                }
-              },
-              child: SafeUserAvatar(
-                avatarUrl: avatarUrl,
-                fallbackInitial: name,
-                radius: 17,
-              ),
-            ),
-          ),
-        ],
-      ),
-
-      // Side Navigation Drawer
-      drawer: Drawer(
-        backgroundColor: AppTheme.background,
-        child: Column(
-          children: [
-            // Drawer Header
-            GestureDetector(
-              onTap: () async {
-                Navigator.pop(context);
-                final updated = await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userData: _userData),
+                  const SizedBox(width: 8),
+                  const Flexible(
+                    child: Text(
+                      'My Dashboard',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppTheme.mainText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                );
-                if (updated != null && updated is Map<String, dynamic>) {
-                  setState(() => _userData = Map<String, dynamic>.from(updated));
-                }
-              },
-              child: UserAccountsDrawerHeader(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primary, AppTheme.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined,
+                      color: AppTheme.mainText),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 4),
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: GestureDetector(
+                    onTap: () async {
+                      final updated = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ProfileScreen(userData: _userData),
+                        ),
+                      );
+                      if (updated != null && updated is Map<String, dynamic>) {
+                        setState(() => _userData = Map<String, dynamic>.from(updated));
+                      }
+                    },
+                    child: SafeUserAvatar(
+                      avatarUrl: avatarUrl,
+                      fallbackInitial: name,
+                      radius: 17,
+                    ),
                   ),
                 ),
-                currentAccountPicture: SafeUserAvatar(
-                  avatarUrl: avatarUrl,
-                  fallbackInitial: name,
-                  radius: 36,
-                ),
-                accountName: Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                accountEmail: Text(
-                  email,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12.5),
-                ),
-              ),
+              ],
             ),
 
-            // Navigation Items
-            _buildDrawerTile(
-              index: 0,
-              icon: Icons.dashboard_rounded,
-              title: 'Dashboard',
-            ),
-            _buildDrawerTile(
-              index: 1,
-              icon: Icons.quiz_rounded,
-              title: 'Active Quizzes',
-              badgeText: '${_activeQuizzes.length}',
-            ),
-            _buildDrawerTile(
-              index: 2,
-              icon: Icons.event_note_rounded,
-              title: 'Upcoming Quizzes',
-            ),
-            _buildDrawerTile(
-              index: 3,
-              icon: Icons.assignment_turned_in_rounded,
-              title: 'Recent Submissions',
-            ),
-            _buildDrawerTile(
-              index: 4,
-              icon: Icons.campaign_rounded,
-              title: 'Campaigns & Events',
-            ),
+      // Side Navigation Drawer (Only for Mobile views)
+      drawer: isDesktop ? null : Drawer(child: sidebarWidget),
 
-            const Divider(color: AppTheme.border, height: 24, indent: 16, endIndent: 16),
-
-            _buildDrawerTile(
-              index: 5,
-              icon: Icons.person_outline_rounded,
-              title: 'Profile Settings',
-            ),
-
-            const Spacer(),
-
-            // Logout Option
-            ListTile(
-              leading: const Icon(Icons.logout_rounded, color: AppTheme.error),
-              title: const Text(
-                'Logout',
-                style: TextStyle(
-                  color: AppTheme.error,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () async {
-                Navigator.pop(context);
-                await ApiService.logout();
-                if (context.mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (route) => false,
-                  );
-                }
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-
-      // Main Dashboard Body
+      // Main Body
       body: SafeArea(
-        child: RefreshIndicator(
-          color: const Color(0xFF6C5CE7),
-          onRefresh: () async {
-            await _fetchBackendData();
-          },
-          child: dashboardContent,
-        ),
+        child: isDesktop
+            ? Row(
+                children: [
+                  sidebarWidget,
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // Desktop Top Header Bar
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border(
+                              bottom: BorderSide(color: AppTheme.border.withValues(alpha: 0.8)),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipOval(
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  height: 32,
+                                  width: 32,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.school, color: AppTheme.primary, size: 28),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'Acadova Student Workspace',
+                                style: TextStyle(
+                                  color: AppTheme.mainText,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(Icons.notifications_outlined, color: AppTheme.mainText),
+                                tooltip: 'Notifications',
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => const NotificationsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final updated = await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => ProfileScreen(userData: _userData),
+                                    ),
+                                  );
+                                  if (updated != null && updated is Map<String, dynamic>) {
+                                    setState(() => _userData = Map<String, dynamic>.from(updated));
+                                  }
+                                },
+                                child: Row(
+                                  children: [
+                                    SafeUserAvatar(
+                                      avatarUrl: avatarUrl,
+                                      fallbackInitial: name,
+                                      radius: 18,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: AppTheme.mainText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Dashboard Main View
+                        Expanded(
+                          child: RefreshIndicator(
+                            color: const Color(0xFF6C5CE7),
+                            onRefresh: () async {
+                              await _fetchBackendData();
+                            },
+                            child: dashboardContent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : RefreshIndicator(
+                color: const Color(0xFF6C5CE7),
+                onRefresh: () async {
+                  await _fetchBackendData();
+                },
+                child: dashboardContent,
+              ),
       ),
     );
   }
@@ -777,6 +923,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     required IconData icon,
     required String title,
     String? badgeText,
+    bool isDesktop = false,
   }) {
     final isSelected = _activeNavIndex == index;
     return ListTile(
@@ -814,7 +961,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         setState(() {
           _activeNavIndex = index;
         });
-        Navigator.pop(context);
+        if (!isDesktop) {
+          Navigator.pop(context);
+        }
 
         if (index == 1) {
           Navigator.of(context).push(
