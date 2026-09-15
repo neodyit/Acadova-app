@@ -13,6 +13,48 @@ class AdService {
   /// Global toggle for enabling/disabling ads in the app
   bool areAdsEnabled = true;
 
+  /// Backend Feature Flag Ad Config
+  Map<String, dynamic> adConfig = {
+    'ads_enabled': true,
+    'ads_target_audience': 'all', // 'all', 'selected_users', 'none'
+  };
+
+  /// Update backend ad configuration
+  void updateAdConfig(Map<String, dynamic>? config) {
+    if (config != null) {
+      adConfig = Map<String, dynamic>.from(config);
+      debugPrint('AdService: Updated remote ad config -> $adConfig');
+    }
+  }
+
+  /// Evaluate whether ads should be displayed for the target user based on admin panel feature flags
+  bool shouldShowAdsForUser(Map<String, dynamic>? userData) {
+    if (!areAdsEnabled) return false;
+
+    // 1. Check Master Backend Ads Enabled Switch
+    final bool isEnabledRemote = adConfig['ads_enabled'] == true || adConfig['ads_enabled'] == 'true' || adConfig['ads_enabled'] == 1;
+    if (!isEnabledRemote) return false;
+
+    // 2. Check Target Audience Filter
+    final String audience = adConfig['ads_target_audience']?.toString().toLowerCase() ?? 'all';
+    if (audience == 'none') return false;
+
+    if (audience == 'selected_users') {
+      if (userData != null && userData.containsKey('show_ads')) {
+        final val = userData['show_ads'];
+        return val == true || val == 'true' || val == 1 || val == '1';
+      }
+      if (adConfig.containsKey('user_show_ads')) {
+        final val = adConfig['user_show_ads'];
+        return val == true || val == 'true' || val == 1 || val == '1';
+      }
+      return false; // Default off for selected_users mode if unspecified
+    }
+
+    // Default: 'all'
+    return true;
+  }
+
   /// Counter to throttle full-screen interstitial ads (e.g. show every N attempts)
   int _quizCompletedCount = 0;
   final int interstitialFrequency = 2; // Show interstitial every 2 quiz completions

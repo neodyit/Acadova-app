@@ -6,11 +6,13 @@ import '../services/ad_service.dart';
 class AdBannerWidget extends StatefulWidget {
   final AdSize adSize;
   final EdgeInsetsGeometry margin;
+  final Map<String, dynamic>? userData;
 
   const AdBannerWidget({
     super.key,
     this.adSize = AdSize.banner,
     this.margin = const EdgeInsets.symmetric(vertical: 8.0),
+    this.userData,
   });
 
   @override
@@ -29,7 +31,7 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
 
   void _loadBannerAd() {
     final adService = AdService();
-    if (!adService.areAdsEnabled || !adService.isPlatformSupported) {
+    if (!adService.isPlatformSupported || !adService.shouldShowAdsForUser(widget.userData)) {
       return;
     }
 

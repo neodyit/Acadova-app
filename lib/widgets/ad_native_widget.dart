@@ -6,11 +6,13 @@ import '../services/ad_service.dart';
 class AdNativeWidget extends StatefulWidget {
   final TemplateType templateType;
   final EdgeInsetsGeometry margin;
+  final Map<String, dynamic>? userData;
 
   const AdNativeWidget({
     super.key,
     this.templateType = TemplateType.small,
     this.margin = const EdgeInsets.symmetric(vertical: 12.0),
+    this.userData,
   });
 
   @override
@@ -29,7 +31,7 @@ class _AdNativeWidgetState extends State<AdNativeWidget> {
 
   void _loadNativeAd() {
     final adService = AdService();
-    if (!adService.areAdsEnabled || !adService.isPlatformSupported) {
+    if (!adService.isPlatformSupported || !adService.shouldShowAdsForUser(widget.userData)) {
       return;
     }
 

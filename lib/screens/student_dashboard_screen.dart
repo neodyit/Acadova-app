@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
+import '../services/ad_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/location_permission_banner.dart';
 import '../widgets/ad_banner_widget.dart';
@@ -57,6 +58,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     if (mounted) {
       if (profileResp['success'] == true && profileResp['data'] != null) {
         final freshData = profileResp['data'];
+        if (freshData is Map && freshData.containsKey('ad_config')) {
+          AdService().updateAdConfig(Map<String, dynamic>.from(freshData['ad_config']));
+        }
         final freshUser = (freshData is Map && freshData.containsKey('user'))
             ? freshData['user']
             : freshData;
@@ -445,8 +449,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               _buildStudentHeader(name, rollNumber),
 
               const SizedBox(height: 14),
-              const Center(
-                child: AdBannerWidget(margin: EdgeInsets.only(bottom: 4.0)),
+              Center(
+                child: AdBannerWidget(margin: const EdgeInsets.only(bottom: 4.0), userData: _userData),
               ),
               const SizedBox(height: 16),
 
@@ -483,9 +487,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
 
               // Native Ad below Active Quizzes
-              const AdNativeWidget(
+              AdNativeWidget(
                 templateType: TemplateType.small,
-                margin: EdgeInsets.only(top: 16.0, bottom: 8.0),
+                margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                userData: _userData,
               ),
 
               const SizedBox(height: 20),
@@ -524,8 +529,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
 
               // Banner Ad below Campaigns
-              const Center(
-                child: AdBannerWidget(margin: EdgeInsets.only(top: 16.0, bottom: 4.0)),
+              Center(
+                child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 4.0), userData: _userData),
               ),
 
               const SizedBox(height: 20),
@@ -562,9 +567,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
 
               // Native Ad below Upcoming Quizzes
-              const AdNativeWidget(
+              AdNativeWidget(
                 templateType: TemplateType.small,
-                margin: EdgeInsets.only(top: 16.0, bottom: 8.0),
+                margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                userData: _userData,
               ),
 
               const SizedBox(height: 20),
@@ -601,8 +607,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
 
               // Banner Ad below Recent Submissions
-              const Center(
-                child: AdBannerWidget(margin: EdgeInsets.only(top: 16.0, bottom: 12.0)),
+              Center(
+                child: AdBannerWidget(margin: const EdgeInsets.only(top: 16.0, bottom: 12.0), userData: _userData),
               ),
 
               const SizedBox(height: 20),
