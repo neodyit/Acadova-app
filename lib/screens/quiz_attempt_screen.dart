@@ -49,10 +49,12 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
   // Anti-cheat tracking
   int _tabSwitchCount = 0;
   static const int _maxAllowedSwitches = 3;
+  late final DateTime _initTime;
 
   @override
   void initState() {
     super.initState();
+    _initTime = DateTime.now();
     WidgetsBinding.instance.addObserver(this);
     
     // Enable High-Security Proctored Kiosk Environment
@@ -100,6 +102,11 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+
+    // Ignore lifecycle transitions during the initial 2.5s startup window (full-screen window resize / setup)
+    if (DateTime.now().difference(_initTime).inMilliseconds < 2500) {
+      return;
+    }
 
     if (!_isSubmitted && (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden)) {
       _tabSwitchCount++;
@@ -208,6 +215,7 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     if (_isSubmitted) return;
     _isSubmitted = true;
     _timer?.cancel();
+    _disableProctoringSecurity();
 
     int score = _calculateScore();
 

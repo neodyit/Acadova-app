@@ -169,7 +169,18 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
         break;
       }
 
-      // 3. Prevent minimizing, switching, task switching, or system commands
+      // 3. Block shortcut keys like Ctrl+Tab, Alt+Tab, Win keys, Ctrl+Esc
+      case WM_KEYDOWN:
+      case WM_SYSKEYDOWN: {
+        bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+        bool isAltDown = (lparam & (1 << 29)) != 0;
+        if (wparam == VK_TAB || wparam == VK_ESCAPE || (isCtrlDown && wparam == VK_TAB) || (isAltDown && wparam == VK_TAB) || wparam == VK_LWIN || wparam == VK_RWIN) {
+          return 0; // Block key press completely
+        }
+        break;
+      }
+
+      // 4. Prevent minimizing, switching, task switching, or system commands
       case WM_SYSCOMMAND: {
         UINT cmd = wparam & 0xFFF0;
         if (cmd == SC_MINIMIZE || cmd == SC_CLOSE || cmd == SC_SCREENSAVE ||
