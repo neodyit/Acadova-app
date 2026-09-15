@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../services/ad_service.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/ad_banner_widget.dart';
@@ -50,6 +51,9 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
       final profileResp = await ApiService.getProfile();
       if (profileResp['success'] == true && profileResp['data'] != null) {
         final freshData = profileResp['data'];
+        if (freshData is Map && freshData.containsKey('ad_config')) {
+          AdService().updateAdConfig(Map<String, dynamic>.from(freshData['ad_config']));
+        }
         final freshUser = (freshData is Map && freshData.containsKey('user'))
             ? freshData['user']
             : freshData;

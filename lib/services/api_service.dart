@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_config.dart';
+import 'ad_service.dart';
 
 class ApiService {
   static String get baseUrl => AppConfig.activeApiUrl;
@@ -149,6 +150,9 @@ class ApiService {
       final profileResp = await getProfile();
       if (profileResp['success'] == true) {
         final profileData = profileResp['data'];
+        if (profileData is Map && profileData.containsKey('ad_config')) {
+          AdService().updateAdConfig(Map<String, dynamic>.from(profileData['ad_config']));
+        }
         currentUser = (profileData is Map && profileData.containsKey('user'))
             ? profileData['user']
             : profileData;
