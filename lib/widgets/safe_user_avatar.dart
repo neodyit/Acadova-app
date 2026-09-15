@@ -21,8 +21,9 @@ class SafeUserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initialStr = fallbackInitial.isNotEmpty ? fallbackInitial[0].toUpperCase() : 'U';
+    final String? formattedUrl = ApiService.formatMediaUrl(avatarUrl);
 
-    if (avatarUrl == null || avatarUrl!.isEmpty) {
+    if (formattedUrl == null || formattedUrl.isEmpty) {
       return CircleAvatar(
         radius: radius,
         backgroundColor: backgroundColor,
@@ -42,13 +43,10 @@ class SafeUserAvatar extends StatelessWidget {
       backgroundColor: backgroundColor,
       child: ClipOval(
         child: Image.network(
-          avatarUrl!,
+          formattedUrl,
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
-          headers: ApiService.authToken != null
-              ? {'Authorization': 'Bearer ${ApiService.authToken}'}
-              : null,
           errorBuilder: (context, error, stackTrace) {
             return Container(
               color: backgroundColor,
