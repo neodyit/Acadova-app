@@ -101,8 +101,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // Try silent sign-in first (instant if user previously signed in)
-      GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+      // Try silent sign-in first, but catch silently if user needs to interactively sign in
+      GoogleSignInAccount? googleUser;
+      try {
+        googleUser = await _googleSignIn.signInSilently();
+      } catch (silentError) {
+        print('Silent sign in unavailable, falling back to interactive sign-in: $silentError');
+      }
+
       googleUser ??= await _googleSignIn.signIn();
 
       if (googleUser == null) {
