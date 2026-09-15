@@ -39,6 +39,7 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> security_channel_;
 
   bool is_proctored_mode_ = false;
+  HHOOK h_keyboard_hook_ = nullptr;
   WINDOWPLACEMENT saved_window_placement_ = { sizeof(WINDOWPLACEMENT) };
   DWORD saved_style_ = 0;
   DWORD saved_ex_style_ = 0;

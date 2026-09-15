@@ -82,11 +82,47 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+namespace {
+HHOOK g_kiosk_keyboard_hook = nullptr;
+
+LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
+  if (nCode == HC_ACTION) {
+    KBDLLHOOKSTRUCT* pKbd = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+    if (pKbd != nullptr) {
+      bool isAltDown = (pKbd->flags & LLKHF_ALTDOWN) != 0;
+      bool isWinDown = (GetKeyState(VK_LWIN) & 0x8000) != 0 || (GetKeyState(VK_RWIN) & 0x8000) != 0;
+      bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+
+      // 1. Block Win key press, Win+Tab (Task View), Win+D, Win+R, Win+E, Win+X, etc.
+      if (pKbd->vkCode == VK_LWIN || pKbd->vkCode == VK_RWIN || isWinDown) {
+        return 1; // Block key completely
+      }
+
+      // 2. Block Alt+Tab, Alt+Esc
+      if (isAltDown && (pKbd->vkCode == VK_TAB || pKbd->vkCode == VK_ESCAPE)) {
+        return 1;
+      }
+
+      // 3. Block Ctrl+Tab, Ctrl+Esc, Ctrl+Shift+Esc
+      if (isCtrlDown && (pKbd->vkCode == VK_TAB || pKbd->vkCode == VK_ESCAPE)) {
+        return 1;
+      }
+    }
+  }
+  return CallNextHookEx(g_kiosk_keyboard_hook, nCode, wParam, lParam);
+}
+}  // namespace
+
 void FlutterWindow::EnableProctoringSecurity() {
   HWND hwnd = GetHandle();
   if (hwnd == nullptr || is_proctored_mode_) return;
 
   is_proctored_mode_ = true;
+
+  // Install Low Level Keyboard Hook to block Windows system shortcuts (Win+Tab, Alt+Tab, Win Keys)
+  if (g_kiosk_keyboard_hook == nullptr) {
+    g_kiosk_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(nullptr), 0);
+  }
 
   // 1. Save current window styles & placement
   GetWindowPlacement(hwnd, &saved_window_placement_);
@@ -124,6 +160,12 @@ void FlutterWindow::DisableProctoringSecurity() {
   if (hwnd == nullptr || !is_proctored_mode_) return;
 
   is_proctored_mode_ = false;
+
+  // Unhook Low Level Keyboard Hook
+  if (g_kiosk_keyboard_hook != nullptr) {
+    UnhookWindowsHookEx(g_kiosk_keyboard_hook);
+    g_kiosk_keyboard_hook = nullptr;
+  }
 
   // Restore display capture affinity
   SetWindowDisplayAffinity(hwnd, WDA_NONE);
