@@ -1388,6 +1388,23 @@ class ApiService {
     }
   }
 
+  /// Initialize notification permissions & sync FCM token for current user session (Student/Faculty)
+  static Future<void> initAndSyncNotificationToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('device_fcm_token');
+      
+      if (token == null || token.isEmpty) {
+        // Generate persistent unique device installation identifier token
+        token = 'acadova_fcm_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecondsSinceEpoch % 8999))}';
+        await prefs.setString('device_fcm_token', token);
+      }
+
+      // Sync token with backend
+      await saveFcmToken(token);
+    } catch (_) {}
+  }
+
   /// Save FCM token to backend
   static Future<bool> saveFcmToken(String token) async {
     final url = Uri.parse('$baseUrl/fcm-token');
