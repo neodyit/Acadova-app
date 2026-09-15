@@ -93,14 +93,14 @@ void FlutterWindow::EnableProctoringSecurity() {
   saved_style_ = GetWindowLong(hwnd, GWL_STYLE);
   saved_ex_style_ = GetWindowLong(hwnd, GWL_EXSTYLE);
 
-  // 2. Set Kiosk borderless style
+  // 2. Strip window decorations and system controls
   DWORD new_style = saved_style_ & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
   SetWindowLong(hwnd, GWL_STYLE, new_style);
 
-  // 3. Make window TOPMOST and prevent display capture / screen recording if supported by DWM
-  SetWindowLong(hwnd, GWL_EXSTYLE, saved_ex_style_ | WS_EX_TOPMOST);
+  // 3. Set HWND_TOPMOST flag and prevent display capture / screen recording
+  SetWindowLong(hwnd, GWL_EXSTYLE, (saved_ex_style_ | WS_EX_TOPMOST) & ~WS_EX_APPWINDOW);
 
-  // Prevent display capture (Windows 10 2004+ / Windows 11)
+  // Prevent display capture / recording (Windows 10 2004+ / Windows 11)
   SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
 
   // 4. Expand window to cover entire primary monitor (Fullscreen Kiosk Mode)
@@ -114,6 +114,7 @@ void FlutterWindow::EnableProctoringSecurity() {
                  SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
   }
 
+  ::BringWindowToTop(hwnd);
   ::SetForegroundWindow(hwnd);
   ::SetFocus(hwnd);
 }
@@ -153,21 +154,42 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               LPARAM const lparam) noexcept {
   if (is_proctored_mode_) {
     switch (message) {
-      // Prevent minimizing or closing via Windows system commands / shortcut keys (Alt+F4, Win+Down)
+      // 1. Prevent close request (Alt+F4 or Taskbar close)
+      case WM_CLOSE:
+        return 0; // Completely ignore close attempt
+
+      // 2. Prevent minimizing or hiding via WM_WINDOWPOSCHANGING
+      case WM_WINDOWPOSCHANGING: {
+        WINDOWPOS* pos = reinterpret_cast<WINDOWPOS*>(lparam);
+        if (pos) {
+          // Force TOPMOST and remove HIDE / MINIMIZE flags
+          pos->hwndInsertAfter = HWND_TOPMOST;
+          pos->flags &= ~SWP_HIDEWINDOW;
+        }
+        break;
+      }
+
+      // 3. Prevent minimizing, switching, task switching, or system commands
       case WM_SYSCOMMAND: {
         UINT cmd = wparam & 0xFFF0;
-        if (cmd == SC_MINIMIZE || cmd == SC_CLOSE || cmd == SC_SCREENSAVE || cmd == SC_MONITORPOWER) {
+        if (cmd == SC_MINIMIZE || cmd == SC_CLOSE || cmd == SC_SCREENSAVE ||
+            cmd == SC_MONITORPOWER || cmd == SC_RESTORE || cmd == SC_TASKLIST ||
+            cmd == SC_NEXTWINDOW || cmd == SC_PREVWINDOW) {
           return 0; // Block action
         }
         break;
       }
 
-      // Re-claim top focus immediately if another window attempts to show over it
+      // 4. Force focus back immediately if focus is lost (Alt+Tab, Win+Tab, Start key, floating overlay)
       case WM_KILLFOCUS:
+      case WM_ACTIVATE:
       case WM_ACTIVATEAPP: {
-        if (wparam == FALSE) { // Application losing focus
-          ::SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        if (LOWORD(wparam) == WA_INACTIVE || wparam == FALSE) {
+          ::SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+          ::BringWindowToTop(hwnd);
           ::SetForegroundWindow(hwnd);
+          ::SetFocus(hwnd);
         }
         break;
       }
