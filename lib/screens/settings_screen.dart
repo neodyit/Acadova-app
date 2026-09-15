@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/custom_toast.dart';
 
@@ -23,22 +24,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEffects = true;
   bool _vibration = true;
   bool _biometrics = false;
+  bool _isLoading = true;
 
-  double _cacheSizeMb = 14.2;
+  double _cacheSizeMb = 4.8;
 
-  void _clearCache() {
-    setState(() {
-      _cacheSizeMb = 0.0;
-    });
-    CustomToast.show(
-      context,
-      message: 'App cache cleared successfully!',
-      type: ToastType.success,
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _pushNotifications = prefs.getBool('pref_push_notifications') ?? true;
+          _quizReminders = prefs.getBool('pref_quiz_reminders') ?? true;
+          _campaignAlerts = prefs.getBool('pref_campaign_alerts') ?? true;
+          _darkMode = prefs.getBool('pref_dark_mode') ?? false;
+          _soundEffects = prefs.getBool('pref_sound_effects') ?? true;
+          _vibration = prefs.getBool('pref_vibration') ?? true;
+          _biometrics = prefs.getBool('pref_biometrics') ?? false;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _savePreference(String key, bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, value);
+    } catch (_) {}
+  }
+
+  Future<void> _clearCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Clear non-auth keys
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key != 'auth_token' && key != 'user_data') {
+          await prefs.remove(key);
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _cacheSizeMb = 0.0;
+        });
+        CustomToast.show(
+          context,
+          message: 'App cache cleared successfully!',
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomToast.show(
+          context,
+          message: 'Failed to clear cache.',
+          type: ToastType.error,
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF2D3436), size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Settings & Preferences',
+            style: TextStyle(
+              color: Color(0xFF2D3436),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFF6C5CE7)),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -71,7 +150,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Push Notifications',
                 subtitle: 'Receive alerts for quizzes and events',
                 value: _pushNotifications,
-                onChanged: (val) => setState(() => _pushNotifications = val),
+                onChanged: (val) {
+                  setState(() => _pushNotifications = val);
+                  _savePreference('pref_push_notifications', val);
+                  CustomToast.show(
+                    context,
+                    message: val ? 'Push notifications enabled' : 'Push notifications disabled',
+                    type: ToastType.info,
+                  );
+                },
               ),
               const Divider(height: 1),
               _buildSwitchTile(
@@ -80,7 +167,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Quiz Reminders',
                 subtitle: 'Get notified 30 mins before active quizzes end',
                 value: _quizReminders,
-                onChanged: (val) => setState(() => _quizReminders = val),
+                onChanged: (val) {
+                  setState(() => _quizReminders = val);
+                  _savePreference('pref_quiz_reminders', val);
+                  CustomToast.show(
+                    context,
+                    message: val ? 'Quiz reminders enabled' : 'Quiz reminders disabled',
+                    type: ToastType.info,
+                  );
+                },
               ),
               const Divider(height: 1),
               _buildSwitchTile(
@@ -89,7 +184,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Campaign & Notice Alerts',
                 subtitle: 'Announcements and featured league updates',
                 value: _campaignAlerts,
-                onChanged: (val) => setState(() => _campaignAlerts = val),
+                onChanged: (val) {
+                  setState(() => _campaignAlerts = val);
+                  _savePreference('pref_campaign_alerts', val);
+                  CustomToast.show(
+                    context,
+                    message: val ? 'Campaign alerts enabled' : 'Campaign alerts disabled',
+                    type: ToastType.info,
+                  );
+                },
               ),
             ]),
 
@@ -106,9 +209,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _darkMode,
                 onChanged: (val) {
                   setState(() => _darkMode = val);
+                  _savePreference('pref_dark_mode', val);
                   CustomToast.show(
                     context,
-                    message: val ? 'Dark mode enabled' : 'Light mode enabled',
+                    message: val ? 'Dark mode preference saved' : 'Light mode preference saved',
                     type: ToastType.info,
                   );
                 },
@@ -120,7 +224,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Sound Effects',
                 subtitle: 'Play sounds during quiz completion',
                 value: _soundEffects,
-                onChanged: (val) => setState(() => _soundEffects = val),
+                onChanged: (val) {
+                  setState(() => _soundEffects = val);
+                  _savePreference('pref_sound_effects', val);
+                  CustomToast.show(
+                    context,
+                    message: val ? 'Sound effects enabled' : 'Sound effects muted',
+                    type: ToastType.info,
+                  );
+                },
               ),
               const Divider(height: 1),
               _buildSwitchTile(
@@ -129,7 +241,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Haptic Feedback',
                 subtitle: 'Vibrate on selecting answers',
                 value: _vibration,
-                onChanged: (val) => setState(() => _vibration = val),
+                onChanged: (val) {
+                  setState(() => _vibration = val);
+                  _savePreference('pref_vibration', val);
+                  CustomToast.show(
+                    context,
+                    message: val ? 'Haptic feedback enabled' : 'Haptic feedback disabled',
+                    type: ToastType.info,
+                  );
+                },
               ),
             ]),
 
@@ -144,7 +264,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Biometric Lock',
                 subtitle: 'Require FaceID / Fingerprint to open app',
                 value: _biometrics,
-                onChanged: (val) => setState(() => _biometrics = val),
+                onChanged: (val) {
+                  setState(() => _biometrics = val);
+                  _savePreference('pref_biometrics', val);
+                  CustomToast.show(
+                    context,
+                    message: val ? 'Biometric security lock enabled' : 'Biometric security lock disabled',
+                    type: ToastType.info,
+                  );
+                },
               ),
               const Divider(height: 1),
               ListTile(
