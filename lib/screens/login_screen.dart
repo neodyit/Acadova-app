@@ -207,7 +207,10 @@ class _LoginScreenState extends State<LoginScreen> {
         final errStr = e.toString().toLowerCase();
         String userFriendlyMsg = 'Google Sign-In failed: ${e.toString()}';
 
-        if (errStr.contains('network_error') ||
+        if (errStr.contains('missingpluginexception') ||
+            errStr.contains('no implementation found for method')) {
+          userFriendlyMsg = 'Google Sign-In is supported on Android & Web. Please sign in with your email or use Android/Web version.';
+        } else if (errStr.contains('network_error') ||
             errStr.contains('socketexception') ||
             errStr.contains('failed host lookup') ||
             errStr.contains('no address associated with hostname')) {
