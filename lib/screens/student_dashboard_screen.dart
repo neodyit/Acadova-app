@@ -1181,7 +1181,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
-                      Builder(
+                  child: Builder(
                         builder: (context) {
                           final unattemptedCount = _activeQuizzes.where((q) => q['isAttempted'] != true).length;
                           final hasUnattempted = unattemptedCount > 0;

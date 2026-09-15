@@ -202,20 +202,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionTitle('Appearance & Audio'),
             _buildCardContainer([
               _buildSwitchTile(
+                icon: Icons.style_outlined,
+                iconColor: const Color(0xFFE84393),
+                title: 'Card Mode',
+                subtitle: 'Interactive flashcard layout for studying',
+                value: false,
+                isComingSoon: true,
+                onChanged: (val) {},
+              ),
+              const Divider(height: 1),
+              _buildSwitchTile(
                 icon: Icons.dark_mode_outlined,
                 iconColor: const Color(0xFF0984E3),
                 title: 'Dark Mode',
                 subtitle: 'Sleek dark theme for night studying',
-                value: _darkMode,
-                onChanged: (val) {
-                  setState(() => _darkMode = val);
-                  _savePreference('pref_dark_mode', val);
-                  CustomToast.show(
-                    context,
-                    message: val ? 'Dark mode preference saved' : 'Light mode preference saved',
-                    type: ToastType.info,
-                  );
-                },
+                value: false,
+                isComingSoon: true,
+                onChanged: (val) {},
               ),
               const Divider(height: 1),
               _buildSwitchTile(
@@ -264,15 +267,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Biometric Lock',
                 subtitle: 'Require FaceID / Fingerprint to open app',
                 value: _biometrics,
-                onChanged: (val) {
-                  setState(() => _biometrics = val);
-                  _savePreference('pref_biometrics', val);
-                  CustomToast.show(
-                    context,
-                    message: val ? 'Biometric security lock enabled' : 'Biometric security lock disabled',
-                    type: ToastType.info,
-                  );
-                },
+                isComingSoon: true,
+                onChanged: (val) {},
               ),
               const Divider(height: 1),
               ListTile(
@@ -425,10 +421,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    bool isComingSoon = false,
   }) {
     return SwitchListTile(
-      value: value,
-      onChanged: onChanged,
+      value: isComingSoon ? false : value,
+      onChanged: isComingSoon
+          ? (val) {
+              CustomToast.show(
+                context,
+                message: '$title feature is coming soon in an upcoming update!',
+                type: ToastType.info,
+              );
+            }
+          : onChanged,
       activeThumbColor: const Color(0xFF6C5CE7),
       secondary: Container(
         padding: const EdgeInsets.all(8),
@@ -438,9 +443,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Icon(icon, color: iconColor, size: 20),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (isComingSoon) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6C5CE7).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                'SOON',
+                style: TextStyle(
+                  color: Color(0xFF6C5CE7),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
       subtitle: Text(
         subtitle,
