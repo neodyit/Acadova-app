@@ -591,6 +591,15 @@ class ApiService {
     }
 
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      final Uri parsed = Uri.parse(clean);
+      final Uri baseUri = Uri.parse(AppConfig.activeApiUrl);
+
+      // If backend returns localhost / 127.0.0.1 but Flutter is running on a real mobile device, replace host with active API domain
+      if ((parsed.host == 'localhost' || parsed.host == '127.0.0.1') &&
+          baseUri.host != 'localhost' &&
+          baseUri.host != '127.0.0.1') {
+        clean = clean.replaceFirst(parsed.host, baseUri.host);
+      }
       return clean;
     }
 

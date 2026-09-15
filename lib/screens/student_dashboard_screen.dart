@@ -109,7 +109,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             'title': c['title'] ?? 'Announcement',
             'description': c['description'] ?? '',
             'badge': c['badge'] ?? 'Notice',
-            'imageUrl': ApiService.formatMediaUrl(c['image_url']?.toString()),
+            'imageUrl': ApiService.formatMediaUrl(
+              (c['image_url'] ?? c['image'] ?? c['banner_url'] ?? c['image_path'])?.toString(),
+            ),
             'linkUrl': c['link_url'],
             'endsAt': endsAt,
             'gradient': gradient,

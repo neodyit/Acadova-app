@@ -61,7 +61,9 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
           'title': c['title'] ?? 'Announcement',
           'description': c['description'] ?? 'No description provided.',
           'badge': c['badge'] ?? 'Notice',
-          'imageUrl': ApiService.formatMediaUrl(c['image_url']?.toString()),
+          'imageUrl': ApiService.formatMediaUrl(
+            (c['image_url'] ?? c['image'] ?? c['banner_url'] ?? c['image_path'])?.toString(),
+          ),
           'linkUrl': c['link_url'],
           'endsAt': endsAt,
           'isExpired': isExpired,
