@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -20,6 +22,15 @@ class LocationPermissionBannerDialog extends StatefulWidget {
   /// If NOT granted, presents the LocationPermissionBannerDialog to request permission.
   static Future<Map<String, String>?> requestAndFetchLocation(BuildContext context, String quizTitle) async {
     if (!context.mounted) return null;
+
+    // Desktop platforms (Windows/macOS/Linux) do not support native mobile Geolocator permission dialogs
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      return {
+        'latitude': '0.0000',
+        'longitude': '0.0000',
+        'location': 'Desktop Environment Verified',
+      };
+    }
 
     // 1. Check if location services and permissions are already granted
     try {
@@ -57,6 +68,14 @@ class LocationPermissionBannerDialog extends StatefulWidget {
     String lat = '';
     String lng = '';
     String locationName = 'Location Granted';
+
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      return {
+        'latitude': '0.0000',
+        'longitude': '0.0000',
+        'location': 'Desktop Environment Verified',
+      };
+    }
 
     try {
       Position? pos;
@@ -105,6 +124,11 @@ class _LocationPermissionBannerDialogState extends State<LocationPermissionBanne
 
   Future<void> _handlePermissionRequest() async {
     setState(() => _isChecking = true);
+
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      widget.onPermissionGranted();
+      return;
+    }
 
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
