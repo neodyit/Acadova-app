@@ -328,7 +328,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                 _buildDrawerItem(
                   icon: Icons.quiz_outlined,
                   activeIcon: Icons.quiz_rounded,
-                  title: 'All Quizzes (Active, Scheduled, Completed)',
+                  title: 'All Quizzes',
                   badgeCount: _quizzes.length,
                   iconColor: AppTheme.primary,
                   onTap: () {
@@ -339,7 +339,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                 _buildDrawerItem(
                   icon: Icons.assignment_outlined,
                   activeIcon: Icons.assignment_rounded,
-                  title: 'Student Responses / Submissions',
+                  title: 'Quiz Responses',
                   badgeCount: _submissions.length,
                   onTap: () {
                     Navigator.pop(context);
