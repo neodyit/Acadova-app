@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
@@ -143,61 +144,288 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppTheme.mainText),
-          onPressed: () {
-            if (_currentStep > 0) {
-              setState(() {
-                _currentStep = 0;
-              });
-            } else {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipOval(
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 28,
-                width: 28,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.school, color: AppTheme.primary),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Acadova Sign Up',
-              style: TextStyle(
-                color: AppTheme.mainText,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-      ),
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          child: _currentStep == 0
-              ? _buildRoleSelectionStep()
-              : _buildFormStep(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 768;
+
+            Widget signupStepContent = AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: _currentStep == 0
+                  ? _buildRoleSelectionStep(isDesktop)
+                  : _buildFormStep(isDesktop),
+            );
+
+            if (!isDesktop) {
+              return Scaffold(
+                backgroundColor: AppTheme.background,
+                appBar: AppBar(
+                  backgroundColor: AppTheme.background,
+                  elevation: 0,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: AppTheme.mainText),
+                    onPressed: () {
+                      if (_currentStep > 0) {
+                        setState(() {
+                          _currentStep = 0;
+                        });
+                      } else {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                  title: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipOval(
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          height: 28,
+                          width: 28,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.school, color: AppTheme.primary),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Acadova Sign Up',
+                        style: TextStyle(
+                          color: AppTheme.mainText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  centerTitle: true,
+                ),
+                body: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: signupStepContent,
+                  ),
+                ),
+              );
+            }
+
+            // Desktop Layout: Split View with left branding panel and right signup flow
+            return Center(
+              child: Container(
+                margin: const EdgeInsets.all(24.0),
+                constraints: const BoxConstraints(maxWidth: 1040, maxHeight: 720),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(20),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Row(
+                    children: [
+                      // Left Branding Panel
+                      Expanded(
+                        flex: 5,
+                        child: Container(
+                          padding: const EdgeInsets.all(40.0),
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFB45309), Color(0xFF78350F)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(50),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    height: 88,
+                                    width: 88,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        Container(
+                                      width: 88,
+                                      height: 88,
+                                      color: const Color(0xFFB45309),
+                                      child: const Icon(
+                                        Icons.school,
+                                        size: 54,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+                              const Text(
+                                'Create Your Account',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: -0.6,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: () async {
+                                  final url = Uri.parse('https://neodyit.com');
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(6),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'POWERED BY ',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white.withAlpha(190),
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Neody IT',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amberAccent,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: Colors.amberAccent,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.open_in_new_rounded,
+                                        size: 13,
+                                        color: Colors.amberAccent,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Text(
+                                'Join Acadova to take interactive quizzes, evaluate performance, and access smart learning tools.',
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  color: Colors.white.withAlpha(225),
+                                  height: 1.55,
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              Row(
+                                children: [
+                                  _buildBadge(Icons.verified_user_outlined, 'Verified Role'),
+                                  const SizedBox(width: 12),
+                                  _buildBadge(Icons.security_rounded, 'Secure Portal'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Right Content Panel
+                      Expanded(
+                        flex: 6,
+                        child: Container(
+                          color: Colors.white,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 460),
+                                  child: signupStepContent,
+                                ),
+                              ),
+                              Positioned(
+                                top: 12,
+                                left: 12,
+                                child: IconButton(
+                                  icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.mainText),
+                                  onPressed: () {
+                                    if (_currentStep > 0) {
+                                      setState(() {
+                                        _currentStep = 0;
+                                      });
+                                    } else {
+                                      Navigator.of(context).pop();
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
+  Widget _buildBadge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(35),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // STEP 1: Premium Role Selection View
-  Widget _buildRoleSelectionStep() {
+  Widget _buildRoleSelectionStep([bool isDesktop = false]) {
     return SingleChildScrollView(
       key: const ValueKey(0),
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -440,7 +668,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   // STEP 2: Tailored Signup Form (Student / Faculty)
-  Widget _buildFormStep() {
+  Widget _buildFormStep([bool isDesktop = false]) {
     final isStudent = _selectedRole == UserRole.student;
 
     return SingleChildScrollView(
