@@ -359,20 +359,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                     );
                   },
                 ),
-                _buildDrawerItem(
-                  icon: Icons.notifications_none_rounded,
-                  activeIcon: Icons.notifications_rounded,
-                  title: 'Notifications',
-                  iconColor: const Color(0xFFF59E0B),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => NotificationsScreen(userData: _user),
-                      ),
-                    );
-                  },
-                ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12),
                   child: Divider(color: AppTheme.border),
@@ -592,7 +578,11 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
               IconButton(
                 icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.mainText, size: 24),
                 onPressed: () {
-                  CustomToast.show(context, message: 'No new notifications', type: ToastType.info);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => NotificationsScreen(userData: _user),
+                    ),
+                  );
                 },
                 tooltip: 'Notifications',
               ),
