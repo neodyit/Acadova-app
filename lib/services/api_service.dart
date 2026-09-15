@@ -553,6 +553,7 @@ class ApiService {
     if (authToken != null) {
       final url = Uri.parse('$baseUrl/logout');
       try {
+        await removeFcmToken();
         await http.post(
           url,
           headers: {
@@ -1308,9 +1309,9 @@ class ApiService {
     return false;
   }
 
-  /// Get subject & section allocations assigned to current faculty member
-  static Future<List<Map<String, dynamic>>> getMyFacultyAllocations() async {
-    final url = Uri.parse('$baseUrl/faculty/my-allocations');
+  /// Fetch listed notifications for current user with unread count
+  static Future<Map<String, dynamic>> getNotifications() async {
+    final url = Uri.parse('$baseUrl/notifications');
     try {
       final response = await http.get(
         url,
@@ -1322,12 +1323,105 @@ class ApiService {
       _checkUnauthorized(response.statusCode);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          return List<Map<String, dynamic>>.from(data['data']);
+        if (data['success'] == true) {
+          return {
+            'notifications': List<Map<String, dynamic>>.from(data['data'] ?? []),
+            'unread_count': data['unread_count'] ?? 0,
+          };
         }
       }
     } catch (_) {}
-    return [];
+    return {'notifications': <Map<String, dynamic>>[], 'unread_count': 0};
+  }
+
+  /// Mark single notification as read
+  static Future<bool> markNotificationRead(dynamic id) async {
+    final url = Uri.parse('$baseUrl/notifications/$id/read');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Mark all notifications as read for current user
+  static Future<bool> markAllNotificationsRead() async {
+    final url = Uri.parse('$baseUrl/notifications/read-all');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Delete a single notification
+  static Future<bool> deleteNotification(dynamic id) async {
+    final url = Uri.parse('$baseUrl/notifications/$id');
+    try {
+      final response = await http.delete(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Save FCM token to backend
+  static Future<bool> saveFcmToken(String token) async {
+    final url = Uri.parse('$baseUrl/fcm-token');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({'fcm_token': token}),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Remove FCM token from backend on logout
+  static Future<bool> removeFcmToken() async {
+    final url = Uri.parse('$baseUrl/fcm-token/remove');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Add a Question to Quiz (Faculty)
