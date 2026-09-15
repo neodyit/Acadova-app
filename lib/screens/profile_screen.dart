@@ -768,31 +768,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       label: 'Department',
                       value: _user['department_model']?['name'] ?? _user['department'] ?? 'Not Selected',
                     ),
-                    const SizedBox(height: 12),
-                    _buildAcademicDisplayRow(
-                      icon: Icons.school_rounded,
-                      label: 'Course / Degree',
-                      value: _user['course']?['name'] ?? 'Not Selected',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAcademicDisplayRow(
-                      icon: Icons.alt_route_rounded,
-                      label: 'Branch / Specialization',
-                      value: _user['branch']?['name'] ?? 'Not Selected',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAcademicDisplayRow(
-                      icon: Icons.class_rounded,
-                      label: 'Section',
-                      value: _user['section']?['name'] ?? 'Not Selected',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAcademicDisplayRow(
-                      icon: Icons.groups_rounded,
-                      label: 'Subsection / Batch',
-                      value: _user['subsection']?['name'] ?? 'Not Selected',
-                    ),
                     if ((_user['role'] ?? 'student').toString().toLowerCase() != 'faculty') ...[
+                      const SizedBox(height: 12),
+                      _buildAcademicDisplayRow(
+                        icon: Icons.school_rounded,
+                        label: 'Course / Degree',
+                        value: _user['course']?['name'] ?? 'Not Selected',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildAcademicDisplayRow(
+                        icon: Icons.alt_route_rounded,
+                        label: 'Branch / Specialization',
+                        value: _user['branch']?['name'] ?? 'Not Selected',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildAcademicDisplayRow(
+                        icon: Icons.class_rounded,
+                        label: 'Section',
+                        value: _user['section']?['name'] ?? 'Not Selected',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildAcademicDisplayRow(
+                        icon: Icons.groups_rounded,
+                        label: 'Subsection / Batch',
+                        value: _user['subsection']?['name'] ?? 'Not Selected',
+                      ),
                       const SizedBox(height: 12),
                       _buildAcademicDisplayRow(
                         icon: Icons.calendar_view_week_rounded,
