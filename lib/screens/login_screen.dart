@@ -584,7 +584,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
                         TextButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://acadova.neodyit.com/privacy-policy');
+                            final Uri url = Uri.parse('https://acadova.neodyit.com/terms-of-service');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             }
@@ -598,20 +598,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
                         TextButton(
-                          onPressed: () {
-                            CustomToast.show(
-                              context,
-                              title: 'Help & Support',
-                              message: 'Opening Help & Support center...',
-                              type: ToastType.info,
-                            );
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://acadova.neodyit.com/help-center');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
                           },
                           style: TextButton.styleFrom(
                             minimumSize: Size.zero,
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: Text('Help', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          child: Text('Help Center', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                         ),
                       ],
                     ),

@@ -163,7 +163,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 leading: const Icon(Icons.gavel_outlined, color: Color(0xFFE17055)),
                 title: const Text('Terms of Service', style: TextStyle(fontWeight: FontWeight.w600)),
                 trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey),
-                onTap: () => _showDialog('Terms of Service', 'By using Acadova, students agree to adhere to academic integrity and anti-cheating guidelines.'),
+                onTap: () async {
+                  final Uri url = Uri.parse('https://acadova.neodyit.com/terms-of-service');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.help_outline_rounded, color: Color(0xFF6C5CE7)),
+                title: const Text('Help Center', style: TextStyle(fontWeight: FontWeight.w600)),
+                trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey),
+                onTap: () async {
+                  final Uri url = Uri.parse('https://acadova.neodyit.com/help-center');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
               ),
             ]),
 
