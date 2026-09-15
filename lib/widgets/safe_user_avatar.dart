@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 /// Custom safe avatar widget that catches 401, network, and missing image errors gracefully
 class SafeUserAvatar extends StatelessWidget {
@@ -45,6 +46,9 @@ class SafeUserAvatar extends StatelessWidget {
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
+          headers: ApiService.authToken != null
+              ? {'Authorization': 'Bearer ${ApiService.authToken}'}
+              : null,
           errorBuilder: (context, error, stackTrace) {
             return Container(
               color: backgroundColor,

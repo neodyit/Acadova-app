@@ -488,7 +488,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 return CircleAvatar(
                                   radius: 41,
                                   backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
-                                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                                  backgroundImage: avatarUrl != null
+                                      ? NetworkImage(
+                                          avatarUrl,
+                                          headers: ApiService.authToken != null
+                                              ? {'Authorization': 'Bearer ${ApiService.authToken}'}
+                                              : null,
+                                        )
+                                      : null,
                                   child: avatarUrl == null
                                       ? Text(
                                           name.isNotEmpty ? name[0].toUpperCase() : 'U',

@@ -310,6 +310,9 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     imageUrl,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    headers: ApiService.authToken != null
+                        ? {'Authorization': 'Bearer ${ApiService.authToken}'}
+                        : null,
                     errorBuilder: (context, error, stackTrace) => Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
