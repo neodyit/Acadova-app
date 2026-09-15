@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/ad_service.dart';
@@ -28,8 +29,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
   late Map<String, dynamic> _user;
   bool _isLoading = true;
   int _selectedTab = 0; // 0: Active Quizzes, 1: Scheduled, 2: Campaign, 3: Submissions
-
-
+  Timer? _autoRefreshTimer;
 
   List<Map<String, dynamic>> _quizzes = [];
   List<Map<String, dynamic>> _submissions = [];
@@ -40,11 +40,26 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
     super.initState();
     _user = Map<String, dynamic>.from(widget.userData);
     _fetchFacultyData();
+
+    // Auto-refresh faculty dashboard data every 20 seconds
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      if (mounted) {
+        _fetchFacultyData(isBackground: true);
+      }
+    });
   }
 
-  Future<void> _fetchFacultyData() async {
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchFacultyData({bool isBackground = false}) async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    if (!isBackground) {
+      setState(() => _isLoading = true);
+    }
 
     try {
       // 1. Fetch fresh user profile

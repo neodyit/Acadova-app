@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -33,6 +34,7 @@ class StudentDashboardScreen extends StatefulWidget {
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _activeNavIndex = 0;
+  Timer? _autoRefreshTimer;
 
   late Map<String, dynamic> _userData;
   List<Map<String, dynamic>> _activeQuizzes = [];
@@ -47,6 +49,19 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     super.initState();
     _userData = Map<String, dynamic>.from(widget.userData);
     _fetchBackendData();
+
+    // Auto-refresh student dashboard data every 20 seconds
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      if (mounted) {
+        _fetchBackendData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchBackendData() async {
