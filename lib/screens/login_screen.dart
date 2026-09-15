@@ -471,7 +471,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                       ),
                     ),
-                    if (!isDesktop) ...[
+                    if (!isDesktop && ApiService.isGoogleAuthEnabledForCurrentPlatform()) ...[
                       const SizedBox(height: 20),
                       // Divider "OR"
                       Row(

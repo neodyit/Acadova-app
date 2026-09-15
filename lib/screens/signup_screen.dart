@@ -903,7 +903,7 @@ class _SignupScreenState extends State<SignupScreen> {
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 labelText: 'Full Name',
-                hintText: isStudent ? 'e.g. Mayank Tiwari' : 'e.g. Dr. Aman ',
+                hintText: isStudent ? 'e.g. Mayank Tiwari' : 'e.g. Saurabh Upadhyay ',
                 prefixIcon: const Icon(Icons.person_outline_rounded),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -1186,7 +1186,7 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             const SizedBox(height: 24),
 
-            if (!isDesktop) ...[
+            if (!isDesktop && ApiService.isGoogleAuthEnabledForCurrentPlatform()) ...[
               const SizedBox(height: 18),
               Row(
                 children: [

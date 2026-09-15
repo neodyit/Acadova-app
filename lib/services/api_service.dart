@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,6 +11,53 @@ class ApiService {
 
   static String? authToken;
   static Map<String, dynamic>? currentUser;
+
+  static bool _isGoogleAuthAndroidEnabled = true;
+  static bool _isGoogleAuthWindowsEnabled = true;
+
+  /// Check if Google Sign-In button is enabled for the current platform (Android vs Windows)
+  static bool isGoogleAuthEnabledForCurrentPlatform() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return _isGoogleAuthAndroidEnabled;
+    } else if (defaultTargetPlatform == TargetPlatform.windows) {
+      return _isGoogleAuthWindowsEnabled;
+    }
+    return true;
+  }
+
+  /// Update feature flags locally and save to SharedPreferences
+  static Future<void> updateGoogleAuthFlags(Map<String, dynamic> data) async {
+    if (data.containsKey('google_auth_android')) {
+      _isGoogleAuthAndroidEnabled = data['google_auth_android'] == true;
+    }
+    if (data.containsKey('google_auth_windows')) {
+      _isGoogleAuthWindowsEnabled = data['google_auth_windows'] == true;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('google_auth_android', _isGoogleAuthAndroidEnabled);
+      await prefs.setBool('google_auth_windows', _isGoogleAuthWindowsEnabled);
+    } catch (_) {}
+  }
+
+  /// Fetch public app settings (AdMob config, feature flags)
+  static Future<Map<String, dynamic>> fetchAppSettings() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/app-settings'),
+        headers: _headers(),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final settings = Map<String, dynamic>.from(data['data']);
+          await updateGoogleAuthFlags(settings);
+          return settings;
+        }
+      }
+    } catch (_) {}
+    return {};
+  }
 
   /// Callback executed when 401 Unauthorized / session invalid is returned
   static Function()? onUnauthorized;
@@ -138,6 +185,10 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     authToken = prefs.getString(_keyToken);
     final userJson = prefs.getString(_keyUser);
+
+    _isGoogleAuthAndroidEnabled = prefs.getBool('google_auth_android') ?? true;
+    _isGoogleAuthWindowsEnabled = prefs.getBool('google_auth_windows') ?? true;
+    fetchAppSettings();
 
     if (userJson != null) {
       try {
