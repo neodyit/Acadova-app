@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/ad_service.dart';
@@ -10,6 +11,7 @@ import '../widgets/location_permission_banner.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/ad_native_widget.dart';
 import '../widgets/safe_user_avatar.dart';
+import '../widgets/app_update_dialog.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 import 'academic_profile_screen.dart';
 import 'campaigns_screen.dart';
@@ -709,9 +711,75 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             isDesktop: isDesktop,
           ),
 
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
+              dense: true,
+              leading: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF25D366), size: 22),
+              title: const Text(
+                'WhatsApp Support',
+                style: TextStyle(
+                  color: Color(0xFF25D366),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              onTap: () async {
+                if (!isDesktop) Navigator.pop(context);
+                const url = 'https://wa.me/916205045881?text=Hello%20Acadova%20Support';
+                final uri = Uri.parse(url);
+                try {
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    return;
+                  }
+                } catch (_) {}
+                if (context.mounted) {
+                  CustomToast.show(
+                    context,
+                    message: 'WhatsApp Support: +916205045881',
+                    type: ToastType.info,
+                  );
+                }
+              },
+            ),
+          ),
+
           const Spacer(),
 
-          // Logout Option
+          // Version badge & Logout Option
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Acadova v${AppConfig.appVersion}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                if (ApiService.isUpdateAvailable())
+                  GestureDetector(
+                    onTap: () => AppUpdateDialog.show(context, force: ApiService.isForceUpdateRequired()),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD63031).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Update Available',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD63031)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.border),
           Material(
             color: Colors.transparent,
             child: ListTile(

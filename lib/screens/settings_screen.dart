@@ -378,6 +378,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const Divider(height: 1),
               ListTile(
+                leading: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF25D366)),
+                title: const Text('WhatsApp Support', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('+91 6205045881'),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF25D366).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Chat',
+                    style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                onTap: () async {
+                  const url = 'https://wa.me/916205045881?text=Hello%20Acadova%20Support';
+                  final uri = Uri.parse(url);
+                  try {
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      return;
+                    }
+                  } catch (_) {}
+                  if (context.mounted) {
+                    CustomToast.show(
+                      context,
+                      message: 'WhatsApp Support: +916205045881',
+                      type: ToastType.info,
+                    );
+                  }
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const Icon(Icons.help_outline_rounded, color: Color(0xFF0984E3)),
                 title: const Text('Help Desk & Support', style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text('support@neodyit.in'),

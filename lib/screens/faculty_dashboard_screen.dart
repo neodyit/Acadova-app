@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../config/app_theme.dart';
 import '../services/ad_service.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/ad_banner_widget.dart';
+import '../widgets/app_update_dialog.dart';
 import 'academic_profile_screen.dart';
 import 'create_quiz_screen.dart';
 import 'faculty_quizzes_screen.dart';
@@ -404,11 +407,66 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
                     }
                   },
                 ),
+                _buildDrawerItem(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  activeIcon: Icons.chat_bubble_rounded,
+                  title: 'WhatsApp Support',
+                  iconColor: const Color(0xFF25D366),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    const url = 'https://wa.me/916205045881?text=Hello%20Acadova%20Support';
+                    final uri = Uri.parse(url);
+                    try {
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        return;
+                      }
+                    } catch (_) {}
+                    if (context.mounted) {
+                      CustomToast.show(
+                        context,
+                        message: 'WhatsApp Support: +916205045881',
+                        type: ToastType.info,
+                      );
+                    }
+                  },
+                ),
               ],
             ),
           ),
 
-          // Drawer Footer Logout Button
+          // Drawer Footer App Version & Logout Button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Acadova v${AppConfig.appVersion}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                if (ApiService.isUpdateAvailable())
+                  GestureDetector(
+                    onTap: () => AppUpdateDialog.show(context, force: ApiService.isForceUpdateRequired()),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD63031).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Update Available',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD63031)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
           const Divider(height: 1, color: AppTheme.border),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
