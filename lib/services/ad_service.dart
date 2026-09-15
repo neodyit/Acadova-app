@@ -44,6 +44,10 @@ class AdService {
     }
   }
 
+  /// Global toggle for using Test Ads during development or while AdMob app is "Requires Review".
+  /// Set to false when ready to serve live production ads after AdMob approval.
+  bool useTestAds = kDebugMode;
+
   /// Whether current platform supports Mobile Ads
   bool get isPlatformSupported {
     if (kIsWeb) return false;
@@ -53,6 +57,11 @@ class AdService {
   /// Banner Ad Unit ID
   String get bannerAdUnitId {
     if (kIsWeb) return '';
+    if (useTestAds) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/6300978111' // Google Test Banner (Android)
+          : 'ca-app-pub-3940256099942544/2934735716'; // Google Test Banner (iOS)
+    }
     if (Platform.isAndroid || Platform.isIOS) {
       return 'ca-app-pub-2117456188378823/5763506647';
     }
@@ -62,30 +71,35 @@ class AdService {
   /// Native Ad Unit ID
   String get nativeAdUnitId {
     if (kIsWeb) return '';
+    if (useTestAds) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/2247696110' // Google Test Native (Android)
+          : 'ca-app-pub-3940256099942544/3986624511'; // Google Test Native (iOS)
+    }
     if (Platform.isAndroid || Platform.isIOS) {
       return 'ca-app-pub-2117456188378823/3845499329';
     }
     return '';
   }
 
-  /// Interstitial Ad Unit ID (Sample Test IDs)
+  /// Interstitial Ad Unit ID
   String get interstitialAdUnitId {
     if (kIsWeb) return '';
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/1033173712'; // Android Test Interstitial ID
+      return 'ca-app-pub-3940256099942544/1033173712';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/4411468910'; // iOS Test Interstitial ID
+      return 'ca-app-pub-3940256099942544/4411468910';
     }
     return '';
   }
 
-  /// Rewarded Ad Unit ID (Sample Test IDs)
+  /// Rewarded Ad Unit ID
   String get rewardedAdUnitId {
     if (kIsWeb) return '';
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/5224354917'; // Android Test Rewarded ID
+      return 'ca-app-pub-3940256099942544/5224354917';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/1712484513'; // iOS Test Rewarded ID
+      return 'ca-app-pub-3940256099942544/1712484513';
     }
     return '';
   }
