@@ -1653,4 +1653,52 @@ class ApiService {
     } catch (_) {}
     return [];
   }
+
+  /// Send lightweight presence heartbeat & app telemetry to backend
+  static Future<bool> sendHeartbeat({
+    required String appVersion,
+    required String platform,
+    String? deviceModel,
+    String? osVersion,
+  }) async {
+    if (authToken == null || authToken!.isEmpty) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/user/presence/heartbeat'),
+        headers: _headers(),
+        body: jsonEncode({
+          'app_version': appVersion,
+          'device_platform': platform,
+          'device_model': deviceModel,
+          'os_version': osVersion,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Send batched user engagement logs & screen view events to backend
+  static Future<bool> sendEngagementEvents({
+    String? sessionId,
+    required List<Map<String, dynamic>> events,
+  }) async {
+    if (authToken == null || authToken!.isEmpty || events.isEmpty) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/user/presence/engagement'),
+        headers: _headers(),
+        body: jsonEncode({
+          'session_id': sessionId,
+          'events': events,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 }

@@ -8,6 +8,7 @@ import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/ad_service.dart';
 import 'services/offline_quiz_sync_service.dart';
+import 'services/presence_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -15,6 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConfig.initVersion();
   await AdService().init();
+  await PresenceService().init();
 
   // Custom Error Boundary to prevent silent white screen crashes on device unlock/resume
   ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -150,6 +152,7 @@ class _AcadovaAppState extends State<AcadovaApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
+      navigatorObservers: [PresenceNavigatorObserver()],
       title: 'Acadova',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
