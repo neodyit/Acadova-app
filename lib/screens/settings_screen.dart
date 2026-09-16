@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
 import '../config/app_config.dart';
 import '../services/api_service.dart';
 import '../widgets/app_update_dialog.dart';
@@ -35,12 +36,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometrics = false;
   bool _isLoading = true;
 
-  double _cacheSizeMb = 4.8;
+  double _cacheSizeMb = 0.0;
+  bool _isClearingCache = false;
 
   @override
   void initState() {
     super.initState();
     _loadPreferences();
+    _calculateRealCacheSize();
   }
 
   Future<void> _loadPreferences() async {
@@ -80,23 +83,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (_) {}
   }
 
-  Future<void> _clearCache() async {
+  Future<void> _calculateRealCacheSize() async {
+    if (kIsWeb) {
+      if (mounted) setState(() => _cacheSizeMb = 0.0);
+      return;
+    }
     try {
+      int totalBytes = 0;
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        totalBytes += await _getDirectorySize(tempDir);
+      }
+      final appSupportDir = await getApplicationSupportDirectory();
+      if (await appSupportDir.exists()) {
+        totalBytes += await _getDirectorySize(appSupportDir);
+      }
+
+      if (mounted) {
+        setState(() {
+          _cacheSizeMb = totalBytes / (1024 * 1024);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<int> _getDirectorySize(Directory dir) async {
+    int size = 0;
+    try {
+      if (await dir.exists()) {
+        await for (final entity in dir.list(recursive: true, followLinks: false)) {
+          if (entity is File) {
+            size += await entity.length();
+          }
+        }
+      }
+    } catch (_) {}
+    return size;
+  }
+
+  Future<void> _clearDirectoryContent(Directory dir) async {
+    try {
+      if (await dir.exists()) {
+        await for (final entity in dir.list(recursive: false, followLinks: false)) {
+          try {
+            await entity.delete(recursive: true);
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _clearCache() async {
+    if (_isClearingCache) return;
+    setState(() => _isClearingCache = true);
+
+    try {
+      // 1. Clear SharedPreferences non-auth cache keys
       final prefs = await SharedPreferences.getInstance();
-      // Clear non-auth keys
       final keys = prefs.getKeys();
       for (final key in keys) {
-        if (key != 'auth_token' && key != 'user_data') {
+        if (key != 'auth_token' && key != 'user_data' && !key.startsWith('pref_')) {
           await prefs.remove(key);
         }
       }
+
+      // 2. Delete temporary and cache files on disk
+      if (!kIsWeb) {
+        final tempDir = await getTemporaryDirectory();
+        await _clearDirectoryContent(tempDir);
+
+        final cacheDir = await getApplicationCacheDirectory();
+        await _clearDirectoryContent(cacheDir);
+      }
+
+      await _calculateRealCacheSize();
+
       if (mounted) {
-        setState(() {
-          _cacheSizeMb = 0.0;
-        });
         CustomToast.show(
           context,
-          message: 'App cache cleared successfully!',
+          title: 'Cache Cleared',
+          message: 'Temporary app cache and stored media cleared successfully!',
           type: ToastType.success,
         );
       }
@@ -104,10 +170,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         CustomToast.show(
           context,
-          message: 'Failed to clear cache.',
+          title: 'Error',
+          message: 'Failed to clear temporary cache.',
           type: ToastType.error,
         );
       }
+    } finally {
+      if (mounted) setState(() => _isClearingCache = false);
     }
   }
 
@@ -382,15 +451,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.cleaning_services_outlined, color: Color(0xFFE17055)),
                 title: const Text('Clear App Cache', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('Temporary data: ${_cacheSizeMb.toStringAsFixed(1)} MB'),
+                subtitle: Text(_isClearingCache ? 'Clearing cache...' : 'Temporary data: ${_cacheSizeMb.toStringAsFixed(2)} MB'),
                 trailing: ElevatedButton(
-                  onPressed: _cacheSizeMb > 0 ? _clearCache : null,
+                  onPressed: _isClearingCache ? null : _clearCache,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE17055),
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('Clear', style: TextStyle(color: Colors.white, fontSize: 12)),
+                  child: _isClearingCache
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Clear', style: TextStyle(color: Colors.white, fontSize: 12)),
                 ),
               ),
             ]),
