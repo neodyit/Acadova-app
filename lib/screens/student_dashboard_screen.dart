@@ -19,6 +19,7 @@ import 'login_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
 import 'quiz_attempt_screen.dart';
+import 'quiz_instructions_screen.dart';
 import 'quizzes_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
@@ -1752,28 +1753,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
                           if (!mounted) return;
 
-                          final locationData = await LocationPermissionBannerDialog.requestAndFetchLocation(
-                            context,
-                            quiz['title'] ?? 'Quiz',
-                          );
-
-                          if (locationData == null) {
-                            return; // User cancelled or denied location permission
-                          }
-
-                          if (!mounted) return;
-
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => QuizAttemptScreen(
-                                quizId: quiz['id'],
-                                quizTitle: quiz['title'],
-                                subject: quiz['subject'],
-                                durationMinutes: quiz['durationMinutes'] ?? 15,
+                              builder: (_) => QuizPreInstructionsScreen(
+                                quiz: quiz,
                                 questions: questions,
-                                location: locationData['location'],
-                                latitude: locationData['latitude'],
-                                longitude: locationData['longitude'],
                               ),
                             ),
                           ).then((_) {

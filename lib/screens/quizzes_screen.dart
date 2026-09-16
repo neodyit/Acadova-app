@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import '../widgets/location_permission_banner.dart';
 import 'quiz_attempt_screen.dart';
+import 'quiz_instructions_screen.dart';
 
 enum QuizTabFilter { active, upcoming, completed }
 
@@ -591,28 +592,11 @@ class _QuizzesScreenState extends State<QuizzesScreen>
 
                   if (!mounted) return;
 
-                  final locationData = await LocationPermissionBannerDialog.requestAndFetchLocation(
-                    context,
-                    quiz['title'] ?? 'Quiz',
-                  );
-
-                  if (locationData == null) {
-                    return; // User cancelled or permission refused
-                  }
-
-                  if (!mounted) return;
-
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => QuizAttemptScreen(
-                        quizId: quiz['id'],
-                        quizTitle: quiz['title'],
-                        subject: quiz['subject'],
-                        durationMinutes: quiz['durationMinutes'] ?? 15,
+                      builder: (context) => QuizPreInstructionsScreen(
+                        quiz: quiz,
                         questions: questions,
-                        location: locationData['location'],
-                        latitude: locationData['latitude'],
-                        longitude: locationData['longitude'],
                       ),
                     ),
                   ).then((_) {

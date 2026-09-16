@@ -66,6 +66,13 @@ class MainActivity : FlutterActivity() {
                     } catch (e: Exception) {}
                     result.success(true)
                 }
+                "isDndPermissionGranted" -> {
+                    var isGranted = true
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && notificationManager != null) {
+                        isGranted = notificationManager.isNotificationPolicyAccessGranted
+                    }
+                    result.success(isGranted)
+                }
                 "requestDndPermission" -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && notificationManager != null) {
                         if (!notificationManager.isNotificationPolicyAccessGranted) {
