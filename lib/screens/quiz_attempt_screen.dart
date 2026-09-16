@@ -82,13 +82,16 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
 
   Future<void> _disableProctoringSecurity() async {
     try {
-      // Restore default system UI
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
-      // Disable secure kiosk mode
+      // Disable secure kiosk mode & DND first
       if (!kIsWeb && (Platform.isWindows || Platform.isAndroid)) {
         await _securityChannel.invokeMethod('disableSecureScreen');
       }
+
+      // Small delay to allow Android OS lock task transition before updating UI mode
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      // Restore default system UI edge-to-edge
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     } catch (_) {}
   }
 
