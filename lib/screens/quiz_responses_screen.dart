@@ -19,12 +19,18 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  List<Map<String, dynamic>> _facultyQuizzes = [];
+  Map<String, dynamic>? _selectedQuiz;
+  String _selectedBatchFilter = 'ALL'; // 'ALL' or specific batch name
+
   List<Map<String, dynamic>> _allSubmissions = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchResponses();
+    _selectedQuiz = widget.quiz;
+    _loadInitialData();
   }
 
   @override
@@ -33,27 +39,30 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchResponses() async {
+  Future<void> _loadInitialData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      final rawSubmissions = await ApiService.getFacultySubmissions();
+      final results = await Future.wait([
+        ApiService.getQuizzes(status: 'all'),
+        ApiService.getFacultySubmissions(),
+      ]);
+
       if (!mounted) return;
 
-      final targetQuizId = widget.quiz?['id']?.toString();
-
-      final filtered = rawSubmissions.where((sub) {
-        if (targetQuizId == null) return true;
-
-        final subQuizId = sub['quiz_id']?.toString() ??
-            (sub['quiz'] is Map ? sub['quiz']['id']?.toString() : null);
-
-        return subQuizId == targetQuizId;
-      }).toList();
+      final quizzes = List<Map<String, dynamic>>.from(results[0]);
+      final submissions = List<Map<String, dynamic>>.from(results[1]);
 
       setState(() {
-        _allSubmissions = filtered;
+        _facultyQuizzes = quizzes;
+        _allSubmissions = submissions;
+
+        // If no quiz was passed in constructor, select the first available quiz by default
+        if (_selectedQuiz == null && _facultyQuizzes.isNotEmpty) {
+          _selectedQuiz = _facultyQuizzes.first;
+        }
+
         _isLoading = false;
       });
     } catch (e) {
@@ -64,36 +73,109 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     }
   }
 
-  List<Map<String, dynamic>> get _displaySubmissions {
-    if (_searchQuery.isEmpty) return _allSubmissions;
+  /// Helper to extract standardized Batch label from student profile in submission
+  String _getBatchLabelForSubmission(Map<String, dynamic> sub) {
+    final user = sub['user'] is Map ? sub['user'] : {};
+    
+    final branchObj = user['branch'];
+    String branch = '';
+    if (branchObj is Map) {
+      branch = (branchObj['code'] ?? branchObj['name'] ?? '').toString();
+    } else if (branchObj != null) {
+      branch = branchObj.toString();
+    }
+
+    final secObj = user['section'];
+    String section = '';
+    if (secObj is Map) {
+      section = (secObj['name'] ?? '').toString();
+    } else if (secObj != null) {
+      section = secObj.toString();
+    }
+
+    final String semester = (user['semester'] ?? '').toString().trim();
+
+    List<String> parts = [];
+    if (branch.isNotEmpty) parts.add(branch);
+    if (section.isNotEmpty) parts.add('Sec $section');
+    if (semester.isNotEmpty) parts.add(semester.startsWith('Sem') ? semester : 'Sem $semester');
+
+    if (parts.isNotEmpty) return parts.join(' - ');
+
+    final dept = user['department'] ?? sub['department'];
+    if (dept != null && dept.toString().trim().isNotEmpty) {
+      return dept.toString().trim();
+    }
+
+    return 'General Batch';
+  }
+
+  /// Get submissions filtered by currently selected quiz and search query
+  List<Map<String, dynamic>> get _currentQuizSubmissions {
+    if (_selectedQuiz == null) return [];
+
+    final targetQuizId = _selectedQuiz!['id']?.toString();
+
+    final quizSubmissions = _allSubmissions.where((sub) {
+      final subQuizId = sub['quiz_id']?.toString() ??
+          (sub['quiz'] is Map ? sub['quiz']['id']?.toString() : null);
+      return subQuizId == targetQuizId;
+    }).toList();
+
+    if (_searchQuery.isEmpty) return quizSubmissions;
 
     final q = _searchQuery.toLowerCase();
-    return _allSubmissions.where((sub) {
+    return quizSubmissions.where((sub) {
       final user = sub['user'] is Map ? sub['user'] : {};
       final name = (user['name'] ?? sub['student_name'] ?? '').toString().toLowerCase();
       final roll = (user['roll_number'] ?? sub['roll_number'] ?? '').toString().toLowerCase();
       final email = (user['email'] ?? sub['student_email'] ?? '').toString().toLowerCase();
-      final quizTitle = (sub['quiz'] is Map ? sub['quiz']['title'] : sub['quiz_title'] ?? '').toString().toLowerCase();
 
-      return name.contains(q) || roll.contains(q) || email.contains(q) || quizTitle.contains(q);
+      return name.contains(q) || roll.contains(q) || email.contains(q);
     }).toList();
   }
 
-  double get _averagePercentage {
-    if (_allSubmissions.isEmpty) return 0.0;
+  /// Extract list of unique batches present in current quiz submissions
+  List<String> get _availableBatches {
+    final Set<String> batches = {'ALL'};
+    for (var sub in _currentQuizSubmissions) {
+      batches.add(_getBatchLabelForSubmission(sub));
+    }
+    return batches.toList();
+  }
+
+  /// Get final submissions list based on batch filter ('ALL' or specific batch)
+  List<Map<String, dynamic>> get _filteredSubmissions {
+    final subs = _currentQuizSubmissions;
+    if (_selectedBatchFilter == 'ALL') return subs;
+    return subs.where((sub) => _getBatchLabelForSubmission(sub) == _selectedBatchFilter).toList();
+  }
+
+  /// Group submissions by batch for the "ALL" view
+  Map<String, List<Map<String, dynamic>>> get _groupedSubmissionsByBatch {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (var sub in _currentQuizSubmissions) {
+      final batchLabel = _getBatchLabelForSubmission(sub);
+      grouped.putIfAbsent(batchLabel, () => []).add(sub);
+    }
+    return grouped;
+  }
+
+  double _calculateAvgScore(List<Map<String, dynamic>> subs) {
+    if (subs.isEmpty) return 0.0;
     double totalPct = 0;
-    for (var sub in _allSubmissions) {
+    for (var sub in subs) {
       final score = (sub['score'] ?? 0).toDouble();
       final totalQ = (sub['total_questions'] ?? 1).toDouble();
       final pct = totalQ > 0 ? (score / totalQ) * 100 : 0.0;
       totalPct += pct;
     }
-    return totalPct / _allSubmissions.length;
+    return totalPct / subs.length;
   }
 
-  int get _passedCount {
+  int _calculatePassedCount(List<Map<String, dynamic>> subs) {
     int count = 0;
-    for (var sub in _allSubmissions) {
+    for (var sub in subs) {
       final score = (sub['score'] ?? 0).toDouble();
       final totalQ = (sub['total_questions'] ?? 1).toDouble();
       final pct = totalQ > 0 ? (score / totalQ) * 100 : 0.0;
@@ -104,8 +186,10 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final quizTitle = widget.quiz?['title'] ?? 'Student Quiz Responses';
-    final quizSubject = widget.quiz?['subject'] ?? 'All Quizzes Overview';
+    final currentSubmissions = _currentQuizSubmissions;
+    final avgScore = _calculateAvgScore(currentSubmissions);
+    final passedCount = _calculatePassedCount(currentSubmissions);
+    final batchesList = _availableBatches;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FC),
@@ -117,42 +201,27 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B), size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              quizTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-              ),
-            ),
-            Text(
-              quizSubject,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        title: const Text(
+          'Quiz Analytics & Responses',
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
-            onPressed: _fetchResponses,
-            tooltip: 'Refresh Responses',
+            onPressed: _loadInitialData,
+            tooltip: 'Refresh Data',
           ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : RefreshIndicator(
-              onRefresh: _fetchResponses,
+              onRefresh: _loadInitialData,
               color: AppTheme.primary,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -160,106 +229,359 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Metrics Overview Cards
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMetricCard(
-                            title: 'Total Responses',
-                            value: '${_allSubmissions.length}',
-                            icon: Icons.people_alt_rounded,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildMetricCard(
-                            title: 'Avg Accuracy',
-                            value: '${_averagePercentage.toStringAsFixed(1)}%',
-                            icon: Icons.analytics_rounded,
-                            color: Colors.amber.shade800,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildMetricCard(
-                            title: 'Passed (≥50%)',
-                            value: '$_passedCount/${_allSubmissions.length}',
-                            icon: Icons.check_circle_rounded,
-                            color: AppTheme.success,
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Step 1: Select Quiz Card Header
+                    _buildQuizSelectorCard(),
 
                     const SizedBox(height: 16),
 
-                    // Search Bar Input
-                    Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                    if (_selectedQuiz == null)
+                      _buildNoQuizSelectedView()
+                    else ...[
+                      // Metrics Overview Cards
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildMetricCard(
+                              title: 'Total Responses',
+                              value: '${currentSubmissions.length}',
+                              icon: Icons.people_alt_rounded,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildMetricCard(
+                              title: 'Avg Accuracy',
+                              value: '${avgScore.toStringAsFixed(1)}%',
+                              icon: Icons.analytics_rounded,
+                              color: Colors.amber.shade800,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildMetricCard(
+                              title: 'Passed (≥50%)',
+                              value: '$passedCount/${currentSubmissions.length}',
+                              icon: Icons.check_circle_rounded,
+                              color: AppTheme.success,
+                            ),
+                          ),
+                        ],
                       ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                        decoration: InputDecoration(
-                          hintText: 'Search by student name, roll no, email...',
-                          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
-                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, color: Color(0xFF64748B), size: 18),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  },
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 11),
+
+                      const SizedBox(height: 16),
+
+                      // Step 2: Batch Filter Selector & Scope Bar
+                      _buildBatchFilterSelector(batchesList),
+
+                      const SizedBox(height: 16),
+
+                      // Search Input
+                      Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Submissions Section Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Student Submissions (${_displaySubmissions.length})',
-                          style: const TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                          decoration: InputDecoration(
+                            hintText: 'Search student name or roll number...',
+                            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
+                            prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, color: Color(0xFF64748B), size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 11),
                           ),
                         ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Responses List
-                    if (_displaySubmissions.isEmpty)
-                      _buildEmptyView()
-                    else
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _displaySubmissions.length,
-                        itemBuilder: (context, index) {
-                          final sub = _displaySubmissions[index];
-                          return _buildResponseCard(sub);
-                        },
                       ),
+
+                      const SizedBox(height: 16),
+
+                      // Step 3: Responses List (Grouped by batch if ALL is selected, or filtered list)
+                      if (_selectedBatchFilter == 'ALL')
+                        _buildGroupedResponsesView()
+                      else
+                        _buildSingleBatchResponsesView(_filteredSubmissions),
+                    ],
                   ],
                 ),
               ),
             ),
+    );
+  }
+
+  /// Step 1 UI: Select Quiz Card
+  Widget _buildQuizSelectorCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.quiz_rounded, color: AppTheme.primary, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Select Quiz to View Responses',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<Map<String, dynamic>>(
+                isExpanded: true,
+                value: _selectedQuiz,
+                hint: const Text('Choose a quiz from your list...', style: TextStyle(fontSize: 14)),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF475569)),
+                items: _facultyQuizzes.map((quiz) {
+                  return DropdownMenuItem<Map<String, dynamic>>(
+                    value: quiz,
+                    child: Text(
+                      quiz['title'] ?? 'Untitled Quiz',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (quiz) {
+                  setState(() {
+                    _selectedQuiz = quiz;
+                    _selectedBatchFilter = 'ALL';
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Step 2 UI: Batch Scope Filter Selector
+  Widget _buildBatchFilterSelector(List<String> batchesList) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Filter by Target Batch:',
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: batchesList.length,
+            separatorBuilder: (_, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final batch = batchesList[index];
+              final isSelected = _selectedBatchFilter == batch;
+              final label = batch == 'ALL' ? 'All Batches (Grouped)' : batch;
+
+              return ChoiceChip(
+                label: Text(label),
+                selected: isSelected,
+                selectedColor: AppTheme.primary,
+                backgroundColor: Colors.white,
+                side: BorderSide(
+                  color: isSelected ? AppTheme.primary : const Color(0xFFCBD5E1),
+                ),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF475569),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 12.5,
+                ),
+                onSelected: (val) {
+                  if (val) {
+                    setState(() => _selectedBatchFilter = batch);
+                  }
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// View when ALL batches is selected: Groups responses section by section per Batch
+  Widget _buildGroupedResponsesView() {
+    final grouped = _groupedSubmissionsByBatch;
+
+    if (grouped.isEmpty) {
+      return _buildEmptyView('No student responses submitted for this quiz yet.');
+    }
+
+    return Column(
+      children: grouped.entries.map((entry) {
+        final batchName = entry.key;
+        final subs = entry.value;
+        final avgBatchScore = _calculateAvgScore(subs);
+        final passedBatchCount = _calculatePassedCount(subs);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              initiallyExpanded: true,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.groups_rounded, color: AppTheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          batchName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${subs.length} Submissions • Avg: ${avgBatchScore.toStringAsFixed(1)}% • Passed: $passedBatchCount/${subs.length}',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              children: [
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: subs.length,
+                    itemBuilder: (context, index) {
+                      return _buildResponseCard(subs[index]);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// View when a specific batch is selected
+  Widget _buildSingleBatchResponsesView(List<Map<String, dynamic>> subs) {
+    if (subs.isEmpty) {
+      return _buildEmptyView('No responses found for batch "$_selectedBatchFilter".');
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: subs.length,
+      itemBuilder: (context, index) {
+        return _buildResponseCard(subs[index]);
+      },
+    );
+  }
+
+  Widget _buildNoQuizSelectedView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        child: Column(
+          children: const [
+            Icon(Icons.touch_app_rounded, size: 54, color: Color(0xFF94A3B8)),
+            SizedBox(height: 14),
+            Text(
+              'No Quiz Selected',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Please select a quiz from the dropdown above to view student responses and batch analytics.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -314,16 +636,16 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     );
   }
 
-  Widget _buildEmptyView() {
+  Widget _buildEmptyView(String message) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.assignment_late_outlined, size: 52, color: Color(0xFF94A3B8)),
-            SizedBox(height: 14),
-            Text(
+          children: [
+            const Icon(Icons.assignment_late_outlined, size: 52, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 14),
+            const Text(
               'No Responses Found',
               style: TextStyle(
                 fontSize: 17,
@@ -331,11 +653,11 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 color: Color(0xFF1E293B),
               ),
             ),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             Text(
-              'Student submissions for this quiz will appear here once attempts are completed.',
+              message,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 color: Color(0xFF64748B),
                 height: 1.4,
@@ -353,9 +675,9 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     final String email = user['email'] ?? sub['student_email'] ?? 'N/A';
     final String roll = user['roll_number'] ?? sub['roll_number'] ?? 'N/A';
     final String avatar = (user['avatar'] ?? '').toString();
+    final String batchLabel = _getBatchLabelForSubmission(sub);
 
     final quizObj = sub['quiz'] is Map ? sub['quiz'] : {};
-    final String quizTitle = quizObj['title'] ?? sub['quiz_title'] ?? 'Quiz';
 
     final int score = sub['score'] ?? 0;
     final int totalQ = sub['total_questions'] ?? (quizObj['total_questions'] ?? 0);
@@ -424,12 +746,13 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Roll: $roll • $email',
+                        'Roll: $roll • $batchLabel',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -468,18 +791,6 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 ),
               ],
             ),
-
-            if (widget.quiz == null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Quiz: $quizTitle',
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
-                ),
-              ),
-            ],
 
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
