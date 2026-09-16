@@ -1,6 +1,20 @@
+import 'package:package_info_plus/package_info_plus.dart';
+
 class AppConfig {
   static const String appName = 'Acadova';
-  static const String appVersion = '0.0.6';
+  static String appVersion = '0.0.8';
+  static String buildNumber = '8';
+
+  /// Dynamically load app version from pubspec.yaml native build info
+  static Future<void> initVersion() async {
+    try {
+      final PackageInfo info = await PackageInfo.fromPlatform();
+      if (info.version.isNotEmpty) {
+        appVersion = info.version;
+        buildNumber = info.buildNumber;
+      }
+    } catch (_) {}
+  }
 
   // Local development backend URL options
   static const String localhostUrl = 'http://127.0.0.1:8000/api';

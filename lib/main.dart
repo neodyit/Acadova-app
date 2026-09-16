@@ -1,5 +1,6 @@
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'config/app_config.dart';
 import 'config/app_theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/reset_password_screen.dart';
@@ -12,6 +13,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.initVersion();
   await AdService().init();
 
   // Custom Error Boundary to prevent silent white screen crashes on device unlock/resume

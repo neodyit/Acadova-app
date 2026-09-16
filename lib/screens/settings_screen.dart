@@ -403,7 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded, color: Color(0xFF6C5CE7)),
                 title: const Text('App Version', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('v${AppConfig.appVersion} (Build 2026.1)'),
+                subtitle: Text('v${AppConfig.appVersion}+${AppConfig.buildNumber}'),
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
