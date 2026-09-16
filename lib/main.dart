@@ -6,6 +6,7 @@ import 'screens/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/ad_service.dart';
+import 'services/offline_quiz_sync_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -84,6 +85,9 @@ void main() async {
       );
     }
   };
+
+  // Trigger background sync of any pending offline quiz submissions
+  OfflineQuizSyncService.syncPendingSubmissions();
 
   runApp(const AcadovaApp());
 }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
+import '../services/offline_quiz_sync_service.dart';
 import '../widgets/custom_toast.dart';
 import 'quiz_result_screen.dart';
 
@@ -108,13 +109,21 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
       return;
     }
 
-    if (!_isSubmitted && (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden)) {
-      _tabSwitchCount++;
+    if (!_isSubmitted) {
+      // If user turns screen off or display sleeps (inactive/hidden), don't treat it as cheating switch
+      if (state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
+        return;
+      }
 
-      if (_tabSwitchCount >= _maxAllowedSwitches) {
-        _autoSubmitDueToViolation();
-      } else {
-        _showWarningDialog();
+      // Only count actual app switching (paused)
+      if (state == AppLifecycleState.paused) {
+        _tabSwitchCount++;
+
+        if (_tabSwitchCount >= _maxAllowedSwitches) {
+          _autoSubmitDueToViolation();
+        } else {
+          _showWarningDialog();
+        }
       }
     }
   }
@@ -239,7 +248,36 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
         longitude: widget.longitude,
         submissionType: submissionType,
         autoSubmitReason: autoSubmitReason,
-      );
+      ).then((res) {
+        if (res['success'] != true && res['statusCode'] != 200 && res['statusCode'] != 201) {
+          // Save locally if server/network fails
+          OfflineQuizSyncService.savePendingSubmission(
+            quizId: widget.quizId!,
+            userAnswers: questionIdAnswers,
+            violationsCount: _tabSwitchCount,
+            location: widget.location,
+            latitude: widget.latitude,
+            longitude: widget.longitude,
+            submissionType: 'offline_saved',
+            autoSubmitReason: autoSubmitReason,
+          );
+        } else {
+          // Trigger background sync for any past pending submissions
+          OfflineQuizSyncService.syncPendingSubmissions();
+        }
+      }).catchError((_) {
+        // Save locally if exception occurs during submission
+        OfflineQuizSyncService.savePendingSubmission(
+          quizId: widget.quizId!,
+          userAnswers: questionIdAnswers,
+          violationsCount: _tabSwitchCount,
+          location: widget.location,
+          latitude: widget.latitude,
+          longitude: widget.longitude,
+          submissionType: 'offline_saved',
+          autoSubmitReason: autoSubmitReason,
+        );
+      });
     }
 
     if (isTimeUp) {
