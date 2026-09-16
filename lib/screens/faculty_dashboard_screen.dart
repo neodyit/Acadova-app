@@ -205,6 +205,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
         builder: (_) => FacultyQuizzesScreen(
           initialTabIndex: initialTab,
           userData: _user,
+          allocations: _allocations,
         ),
       ),
     ).then((_) {

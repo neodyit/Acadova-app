@@ -32,12 +32,14 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   DateTime? _endDate;
   TimeOfDay? _endTime;
 
+  List<Map<String, dynamic>> _allocations = [];
   Set<String> _selectedBatches = {};
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
+    _allocations = List<Map<String, dynamic>>.from(widget.allocations);
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
     _durationController = TextEditingController(text: '15');
@@ -70,7 +72,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
       final targetGroups = quiz['target_groups'] is List ? List<Map<String, dynamic>>.from(quiz['target_groups']) : [];
       if (targetGroups.isNotEmpty) {
         final selected = <String>{};
-        for (var alloc in widget.allocations) {
+        for (var alloc in _allocations) {
           final label = _formatBatchLabel(alloc);
           final allocSec = (alloc['section_name'] ?? alloc['section_id'] ?? '').toString();
           final allocBranch = (alloc['branch_code'] ?? alloc['branch_id'] ?? alloc['branch_name'] ?? '').toString();
@@ -86,14 +88,32 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         if (selected.isNotEmpty) {
           _selectedBatches = selected;
         } else {
-          _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+          _selectedBatches = _allocations.map((a) => _formatBatchLabel(a)).toSet();
         }
       } else {
-        _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+        _selectedBatches = _allocations.map((a) => _formatBatchLabel(a)).toSet();
       }
     } else {
-      _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+      _selectedBatches = _allocations.map((a) => _formatBatchLabel(a)).toSet();
     }
+
+    if (_allocations.isEmpty) {
+      _loadAllocations();
+    }
+  }
+
+  Future<void> _loadAllocations() async {
+    try {
+      final allocs = await ApiService.getMyFacultyAllocations();
+      if (mounted && allocs.isNotEmpty) {
+        setState(() {
+          _allocations = allocs;
+          if (widget.quizToEdit == null) {
+            _selectedBatches = _allocations.map((a) => _formatBatchLabel(a)).toSet();
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -275,7 +295,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     String selectedSubject = widget.userData['department'] ?? 'Computer Science';
 
     if (_selectedBatches.isNotEmpty) {
-      final matchingAllocs = widget.allocations.where((a) {
+      final matchingAllocs = _allocations.where((a) {
         return _selectedBatches.contains(_formatBatchLabel(a));
       }).toList();
 
@@ -405,8 +425,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isAllBatchesSelected = widget.allocations.isNotEmpty &&
-        _selectedBatches.length == widget.allocations.length;
+    final bool isAllBatchesSelected = _allocations.isNotEmpty &&
+        _selectedBatches.length == _allocations.length;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -463,7 +483,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
               const SizedBox(height: 20),
 
               // 3. Target Batches (Allocated Batches Checkboxes)
-              if (widget.allocations.isNotEmpty) ...[
+              if (_allocations.isNotEmpty) ...[
                 const Text(
                   'Target Batches *',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.mainText),
@@ -492,7 +512,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                           onChanged: (val) {
                             setState(() {
                               if (val == true) {
-                                _selectedBatches = widget.allocations.map((a) => _formatBatchLabel(a)).toSet();
+                                _selectedBatches = _allocations.map((a) => _formatBatchLabel(a)).toSet();
                               } else {
                                 _selectedBatches.clear();
                               }
@@ -500,7 +520,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                           },
                         ),
                         const Divider(height: 1),
-                        ...widget.allocations.map((alloc) {
+                        ..._allocations.map((alloc) {
                           final batchLabel = _formatBatchLabel(alloc);
                           final isSelected = _selectedBatches.contains(batchLabel);
 

@@ -30,16 +30,32 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
   bool _isLoading = true;
   String _searchQuery = '';
   List<Map<String, dynamic>> _allQuizzes = [];
+  List<Map<String, dynamic>> _allocations = [];
 
   @override
   void initState() {
     super.initState();
+    _allocations = List<Map<String, dynamic>>.from(widget.allocations ?? []);
     _tabController = TabController(
       length: 3,
       vsync: this,
       initialIndex: widget.initialTabIndex.clamp(0, 2),
     );
     _fetchQuizzes();
+    if (_allocations.isEmpty) {
+      _fetchAllocations();
+    }
+  }
+
+  Future<void> _fetchAllocations() async {
+    try {
+      final allocs = await ApiService.getMyFacultyAllocations();
+      if (mounted && allocs.isNotEmpty) {
+        setState(() {
+          _allocations = allocs;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -144,7 +160,7 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
       MaterialPageRoute(
         builder: (_) => CreateQuizScreen(
           userData: widget.userData ?? {},
-          allocations: widget.allocations ?? [],
+          allocations: _allocations,
           quizToEdit: quizToEdit,
         ),
       ),
