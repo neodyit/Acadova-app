@@ -989,62 +989,142 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: const [
-              Icon(Icons.restart_alt_rounded, color: AppTheme.primary, size: 24),
-              SizedBox(width: 8),
-              Text('Allow Quiz Reattempt', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Grant 1-time reattempt to $studentName?',
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF0F172A)),
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          backgroundColor: Colors.white,
+          clipBehavior: Clip.antiAlias,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(22.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Dialog Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.restart_alt_rounded, color: AppTheme.primary, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Text(
+                          'Allow Quiz Reattempt',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Student & Warning Info Box
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            style: const TextStyle(fontSize: 13.5, color: Color(0xFF1E293B)),
+                            children: [
+                              const TextSpan(text: 'Grant 1-time reattempt to '),
+                              TextSpan(
+                                text: studentName,
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
+                              ),
+                              const TextSpan(text: '?'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'This will reset the student\'s previous submission so they can retake this quiz.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Reason Input Label & TextField
+                  const Text(
+                    'Reason for Reattempt *',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: reasonController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Technical failure during submission...',
+                      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                      contentPadding: const EdgeInsets.all(12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.primary, width: 1.8),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // Action Buttons Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (reasonController.text.trim().length < 5) {
+                            CustomToast.show(ctx, message: 'Please enter a valid reason (min 5 characters)', type: ToastType.warning);
+                            return;
+                          }
+                          Navigator.pop(ctx, true);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Confirm & Grant', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'This will reset the student\'s previous score and allow them to take the quiz again.',
-                style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: reasonController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Reason for Reattempt *',
-                  hintText: 'e.g. Technical glitch during submission, network failure...',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (reasonController.text.trim().length < 5) {
-                  CustomToast.show(ctx, message: 'Please enter a valid reason (min 5 characters)', type: ToastType.warning);
-                  return;
-                }
-                Navigator.pop(ctx, true);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Confirm & Grant', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
+          ),
         );
       },
     );
