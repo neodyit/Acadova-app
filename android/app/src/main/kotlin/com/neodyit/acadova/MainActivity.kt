@@ -84,6 +84,43 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(true)
                 }
+                "enableDndMode" -> {
+                    var success = false
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && notificationManager != null) {
+                        try {
+                            if (notificationManager.isNotificationPolicyAccessGranted) {
+                                previousFilter = notificationManager.currentInterruptionFilter
+                                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+                                success = true
+                            }
+                        } catch (e: Exception) {}
+                    }
+                    result.success(success)
+                }
+                "disableDndMode" -> {
+                    var success = false
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && notificationManager != null) {
+                        try {
+                            if (notificationManager.isNotificationPolicyAccessGranted) {
+                                val filterToRestore = previousFilter ?: NotificationManager.INTERRUPTION_FILTER_ALL
+                                notificationManager.setInterruptionFilter(filterToRestore)
+                                success = true
+                            }
+                        } catch (e: Exception) {}
+                    }
+                    result.success(success)
+                }
+                "isDndActive" -> {
+                    var isActive = false
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && notificationManager != null) {
+                        try {
+                            isActive = notificationManager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_NONE ||
+                                       notificationManager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_PRIORITY ||
+                                       notificationManager.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALARMS
+                        } catch (e: Exception) {}
+                    }
+                    result.success(isActive)
+                }
                 "requestNotificationPermission" -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {

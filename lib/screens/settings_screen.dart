@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
@@ -19,10 +22,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const MethodChannel _securityChannel = MethodChannel('com.neodyit.acadova/security');
+
   // Preference states
   bool _pushNotifications = true;
   bool _quizReminders = true;
   bool _campaignAlerts = true;
+  bool _dndMode = false;
   bool _darkMode = false;
   bool _soundEffects = true;
   bool _vibration = true;
@@ -40,11 +46,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      bool dndActive = false;
+
+      if (!kIsWeb && Platform.isAndroid) {
+        try {
+          final bool active = await _securityChannel.invokeMethod('isDndActive');
+          dndActive = active;
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() {
           _pushNotifications = prefs.getBool('pref_push_notifications') ?? true;
           _quizReminders = prefs.getBool('pref_quiz_reminders') ?? true;
           _campaignAlerts = prefs.getBool('pref_campaign_alerts') ?? true;
+          _dndMode = dndActive;
           _darkMode = prefs.getBool('pref_dark_mode') ?? false;
           _soundEffects = prefs.getBool('pref_sound_effects') ?? true;
           _vibration = prefs.getBool('pref_vibration') ?? true;
@@ -195,6 +211,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     message: val ? 'Campaign alerts enabled' : 'Campaign alerts disabled',
                     type: ToastType.info,
                   );
+                },
+              ),
+              const Divider(height: 1),
+              _buildSwitchTile(
+                icon: Icons.do_not_disturb_on_outlined,
+                iconColor: const Color(0xFFD63031),
+                title: 'Do Not Disturb (DND) Mode',
+                subtitle: 'Silence incoming calls & alerts on device',
+                value: _dndMode,
+                onChanged: (val) async {
+                  if (!kIsWeb && Platform.isAndroid) {
+                    final bool isGranted = await _securityChannel.invokeMethod('isDndPermissionGranted');
+                    if (!isGranted) {
+                      await _securityChannel.invokeMethod('requestDndPermission');
+                      if (mounted) {
+                        CustomToast.show(
+                          context,
+                          title: 'Permission Required',
+                          message: 'Please grant Do Not Disturb policy access in Android Settings.',
+                          type: ToastType.warning,
+                        );
+                      }
+                      return;
+                    }
+
+                    final bool success = await _securityChannel.invokeMethod(val ? 'enableDndMode' : 'disableDndMode');
+                    if (success) {
+                      setState(() => _dndMode = val);
+                      if (mounted) {
+                        CustomToast.show(
+                          context,
+                          message: val ? 'Do Not Disturb Mode Enabled' : 'Do Not Disturb Mode Disabled',
+                          type: ToastType.success,
+                        );
+                      }
+                    } else {
+                      if (mounted) {
+                        CustomToast.show(
+                          context,
+                          message: 'Failed to change DND mode status.',
+                          type: ToastType.error,
+                        );
+                      }
+                    }
+                  } else {
+                    setState(() => _dndMode = val);
+                  }
                 },
               ),
             ]),
