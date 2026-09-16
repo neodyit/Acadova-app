@@ -58,8 +58,14 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
         _facultyQuizzes = quizzes;
         _allSubmissions = submissions;
 
-        // If no quiz was passed in constructor, select the first available quiz by default
-        if (_selectedQuiz == null && _facultyQuizzes.isNotEmpty) {
+        if (_selectedQuiz != null) {
+          final targetId = _selectedQuiz!['id']?.toString();
+          final match = _facultyQuizzes.firstWhere(
+            (q) => q['id']?.toString() == targetId,
+            orElse: () => _selectedQuiz!,
+          );
+          _selectedQuiz = match;
+        } else if (_facultyQuizzes.isNotEmpty) {
           _selectedQuiz = _facultyQuizzes.first;
         }
 
@@ -364,14 +370,15 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
               border: Border.all(color: const Color(0xFFCBD5E1)),
             ),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton<Map<String, dynamic>>(
+              child: DropdownButton<String>(
                 isExpanded: true,
-                value: _selectedQuiz,
+                value: _selectedQuiz?['id']?.toString(),
                 hint: const Text('Choose a quiz from your list...', style: TextStyle(fontSize: 14)),
                 icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF475569)),
                 items: _facultyQuizzes.map((quiz) {
-                  return DropdownMenuItem<Map<String, dynamic>>(
-                    value: quiz,
+                  final qId = quiz['id']?.toString() ?? '';
+                  return DropdownMenuItem<String>(
+                    value: qId,
                     child: Text(
                       quiz['title'] ?? 'Untitled Quiz',
                       maxLines: 1,
@@ -380,11 +387,17 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                     ),
                   );
                 }).toList(),
-                onChanged: (quiz) {
-                  setState(() {
-                    _selectedQuiz = quiz;
-                    _selectedBatchFilter = 'ALL';
-                  });
+                onChanged: (selectedId) {
+                  if (selectedId != null) {
+                    final found = _facultyQuizzes.firstWhere(
+                      (q) => q['id']?.toString() == selectedId,
+                      orElse: () => _selectedQuiz!,
+                    );
+                    setState(() {
+                      _selectedQuiz = found;
+                      _selectedBatchFilter = 'ALL';
+                    });
+                  }
                 },
               ),
             ),
