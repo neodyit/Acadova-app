@@ -76,6 +76,8 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
       // Invoke native security channel for both Windows desktop and Android mobile
       if (!kIsWeb && (Platform.isWindows || Platform.isAndroid)) {
         await _securityChannel.invokeMethod('enableSecureScreen');
+        // Prompt for DND Policy Access permission if not granted
+        await _securityChannel.invokeMethod('requestDndPermission');
       }
     } catch (_) {}
   }
