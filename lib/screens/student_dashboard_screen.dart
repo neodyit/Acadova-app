@@ -7,7 +7,6 @@ import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/ad_service.dart';
 import '../widgets/custom_toast.dart';
-import '../widgets/location_permission_banner.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/ad_native_widget.dart';
 import '../widgets/safe_user_avatar.dart';
@@ -18,7 +17,6 @@ import 'campaigns_screen.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
-import 'quiz_attempt_screen.dart';
 import 'quiz_instructions_screen.dart';
 import 'quizzes_screen.dart';
 

@@ -842,41 +842,48 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             // Row 3: Submission Status + Time
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isAuto ? const Color(0xFFFFF5F5) : const Color(0xFFE6FFFA),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isAuto ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
-                        size: 13,
-                        color: isAuto ? const Color(0xFFE53E3E) : const Color(0xFF047857),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isAuto ? 'AUTO SUBMIT ($violations Vio)' : 'MANUAL SUBMIT',
-                        style: TextStyle(
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isAuto ? const Color(0xFFFFF5F5) : const Color(0xFFE6FFFA),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isAuto ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                          size: 13,
                           color: isAuto ? const Color(0xFFE53E3E) : const Color(0xFF047857),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            isAuto ? 'AUTO SUBMIT ($violations Vio)' : 'MANUAL SUBMIT',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isAuto ? const Color(0xFFE53E3E) : const Color(0xFF047857),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF94A3B8)),
                     const SizedBox(width: 4),
                     Text(
                       formattedDate,
                       style: const TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 11,
                         color: Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                       ),

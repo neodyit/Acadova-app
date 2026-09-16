@@ -80,31 +80,6 @@ class _MyBatchesScreenState extends State<MyBatchesScreen> {
     }).toList();
   }
 
-  String _formatBatchLabel(Map<String, dynamic> alloc) {
-    final branchCode = alloc['branch_code'] ??
-        alloc['code'] ??
-        alloc['branchModel']?['code'] ??
-        alloc['branch_name']?.toString().split(' ').first ??
-        alloc['branch'] ??
-        'Branch';
-    final sec = alloc['section_name'] ?? alloc['section'] ?? 'A';
-    final subject = alloc['subject_name'] ?? alloc['subject'] ?? 'Subject';
-    final rawSem = alloc['semester'] ?? alloc['sem'] ?? alloc['academic_year'] ?? '';
-
-    String semStr = rawSem.toString().trim();
-    if (semStr.isNotEmpty) {
-      final numMatch = RegExp(r'\d+').firstMatch(semStr);
-      if (numMatch != null) {
-        semStr = 'Sem ${numMatch.group(0)}';
-      } else {
-        semStr = 'Sem $semStr';
-      }
-    } else {
-      semStr = 'Sem N/A';
-    }
-
-    return '$branchCode ($sec) - $subject - $semStr';
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
-import '../widgets/location_permission_banner.dart';
-import 'quiz_attempt_screen.dart';
 import 'quiz_instructions_screen.dart';
 
 enum QuizTabFilter { active, upcoming, completed }

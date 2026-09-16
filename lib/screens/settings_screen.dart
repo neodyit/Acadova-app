@@ -674,21 +674,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
-  void _showDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Color(0xFF6C5CE7))),
-          ),
-        ],
-      ),
-    );
-  }
 }
+
