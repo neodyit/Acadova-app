@@ -884,10 +884,200 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 ),
               ),
             ],
+
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const SizedBox(height: 10),
+
+            // Row 4: Reattempt Action & Checks
+            _buildReattemptActionRow(sub, name),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildReattemptActionRow(Map<String, dynamic> sub, String studentName) {
+    final int attemptId = sub['id'] ?? 0;
+    final String rawDate = sub['created_at'] ?? sub['submitted_at'] ?? '';
+    final DateTime? submittedAt = DateTime.tryParse(rawDate)?.toLocal();
+    final bool isOlderThan3Hours = submittedAt != null && DateTime.now().difference(submittedAt).inHours >= 3;
+
+    final quizObj = sub['quiz'] is Map ? sub['quiz'] : (_selectedQuiz ?? {});
+    final String quizStatus = (quizObj['status'] ?? 'active').toString().toLowerCase();
+    final String endsAtIso = (quizObj['ends_at'] ?? '').toString();
+    final DateTime? quizEndsAt = endsAtIso.isNotEmpty ? DateTime.tryParse(endsAtIso)?.toLocal() : null;
+    final bool isQuizExpired = (quizStatus != 'active' && quizStatus != 'scheduled') ||
+        (quizEndsAt != null && DateTime.now().isAfter(quizEndsAt));
+
+    if (isOlderThan3Hours) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.history_toggle_off_rounded, size: 14, color: Color(0xFF64748B)),
+            SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Reattempt Locked: Submitted > 3 hours ago',
+                style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isQuizExpired) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.event_busy_rounded, size: 14, color: AppTheme.error),
+            SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Reattempt Locked: Quiz deadline has ended',
+                style: TextStyle(fontSize: 11.5, color: AppTheme.error, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _handleGrantReattemptDialog(attemptId, studentName),
+        icon: const Icon(Icons.restart_alt_rounded, size: 16),
+        label: const Text('Allow Reattempt', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.primary,
+          side: const BorderSide(color: AppTheme.primary),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
+  /// Open dialog asking faculty for Reattempt Reason with backend eligibility check
+  Future<void> _handleGrantReattemptDialog(int attemptId, String studentName) async {
+    // 1. First check server eligibility
+    CustomToast.show(context, message: 'Verifying reattempt eligibility...', type: ToastType.info);
+    final check = await ApiService.checkReattemptEligibility(attemptId);
+
+    if (!mounted) return;
+
+    if (check['eligible'] != true) {
+      final String reasonMsg = check['reason'] ?? 'Reattempt cannot be granted for this attempt.';
+      CustomToast.show(context, title: 'Ineligible for Reattempt', message: reasonMsg, type: ToastType.error);
+      return;
+    }
+
+    final reasonController = TextEditingController();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.restart_alt_rounded, color: AppTheme.primary, size: 24),
+              SizedBox(width: 8),
+              Text('Allow Quiz Reattempt', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Grant 1-time reattempt to $studentName?',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'This will reset the student\'s previous score and allow them to take the quiz again.',
+                style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'Reason for Reattempt *',
+                  hintText: 'e.g. Technical glitch during submission, network failure...',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (reasonController.text.trim().length < 5) {
+                  CustomToast.show(ctx, message: 'Please enter a valid reason (min 5 characters)', type: ToastType.warning);
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Confirm & Grant', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && mounted) {
+      final String reasonText = reasonController.text.trim();
+      setState(() => _isLoading = true);
+
+      final res = await ApiService.grantFacultyReattempt(
+        attemptId: attemptId,
+        reason: reasonText,
+      );
+
+      if (!mounted) return;
+
+      if (res['success'] == true) {
+        CustomToast.show(
+          context,
+          title: 'Reattempt Granted',
+          message: res['message'] ?? 'Reattempt granted successfully!',
+          type: ToastType.success,
+        );
+        _loadInitialData();
+      } else {
+        setState(() => _isLoading = false);
+        CustomToast.show(
+          context,
+          title: 'Failed to Grant Reattempt',
+          message: res['message'] ?? 'Could not grant reattempt.',
+          type: ToastType.error,
+        );
+      }
+    }
   }
 
   String _formatDate(String isoString) {

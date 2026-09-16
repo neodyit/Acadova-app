@@ -1701,4 +1701,52 @@ class ApiService {
       return false;
     }
   }
+
+  /// Check if a quiz attempt is eligible for a faculty reattempt
+  static Future<Map<String, dynamic>> checkReattemptEligibility(int attemptId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/faculty/attempts/$attemptId/check-reattempt'),
+        headers: _headers(),
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return Map<String, dynamic>.from(data);
+    } catch (e) {
+      return {
+        'status': false,
+        'eligible': false,
+        'reason': 'Connection failed ($e)',
+      };
+    }
+  }
+
+  /// Grant a faculty reattempt for a student quiz attempt
+  static Future<Map<String, dynamic>> grantFacultyReattempt({
+    required int attemptId,
+    required String reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/faculty/attempts/$attemptId/grant-reattempt'),
+        headers: _headers(),
+        body: jsonEncode({
+          'reason': reason,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return {
+        'statusCode': response.statusCode,
+        'success': data['status'] ?? false,
+        'message': data['message'] ?? 'Reattempt response (${response.statusCode})',
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'success': false,
+        'message': 'Failed to grant reattempt ($e)',
+      };
+    }
+  }
 }
