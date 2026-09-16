@@ -672,7 +672,6 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   Widget _buildResponseCard(Map<String, dynamic> sub) {
     final user = sub['user'] is Map ? sub['user'] : {};
     final String name = user['name'] ?? sub['student_name'] ?? 'Student';
-    final String email = user['email'] ?? sub['student_email'] ?? 'N/A';
     final String roll = user['roll_number'] ?? sub['roll_number'] ?? 'N/A';
     final String avatar = (user['avatar'] ?? '').toString();
     final String batchLabel = _getBatchLabelForSubmission(sub);
@@ -695,7 +694,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     final Color scoreBg = isPassed ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -703,8 +702,8 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -713,11 +712,11 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: Student info + Score Pill
+            // Row 1: Student Profile + Score Pill
             Row(
               children: [
                 CircleAvatar(
-                  radius: 20,
+                  radius: 22,
                   backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                   backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
                   child: avatar.isEmpty
@@ -726,7 +725,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primary,
-                            fontSize: 15,
+                            fontSize: 16,
                           ),
                         )
                       : null,
@@ -738,44 +737,44 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                     children: [
                       Text(
                         name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 15.5,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF0F172A),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Roll: $roll • $batchLabel',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        'Roll No: $roll',
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 12.5,
                           color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
 
-                // Score Badge
+                // Score Badge Container
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: scoreBg,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         '$score / $totalQ',
                         style: TextStyle(
                           color: scoreColor,
                           fontWeight: FontWeight.w800,
-                          fontSize: 14,
+                          fontSize: 15,
                         ),
                       ),
                       Text(
@@ -783,7 +782,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                         style: TextStyle(
                           color: scoreColor,
                           fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                          fontSize: 11.5,
                         ),
                       ),
                     ],
@@ -793,14 +792,45 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             ),
 
             const SizedBox(height: 12),
+
+            // Row 2: Target Batch Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.school_rounded, size: 14, color: Color(0xFF475569)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      batchLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
             const SizedBox(height: 10),
 
-            // Bottom Badges Row: Submission mode & Date
+            // Row 3: Submission Status + Time
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: isAuto ? const Color(0xFFFFF5F5) : const Color(0xFFE6FFFA),
                     borderRadius: BorderRadius.circular(6),
