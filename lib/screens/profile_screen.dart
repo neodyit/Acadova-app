@@ -1044,13 +1044,16 @@ class _ChangePasswordBottomSheet extends StatefulWidget {
 }
 
 class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> {
+  final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
 
+  bool _hasCurrentPassword = false;
   bool _hasMinLength = false;
   bool _hasUppercase = false;
   bool _hasLowercase = false;
@@ -1061,15 +1064,18 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
   @override
   void initState() {
     super.initState();
+    _currentPasswordController.addListener(_validatePassword);
     _newPasswordController.addListener(_validatePassword);
     _confirmPasswordController.addListener(_validatePassword);
   }
 
   void _validatePassword() {
+    final current = _currentPasswordController.text;
     final pass = _newPasswordController.text;
     final confirm = _confirmPasswordController.text;
 
     setState(() {
+      _hasCurrentPassword = current.isNotEmpty;
       _hasMinLength = pass.length >= 6;
       _hasUppercase = RegExp(r'[A-Z]').hasMatch(pass);
       _hasLowercase = RegExp(r'[a-z]').hasMatch(pass);
@@ -1084,12 +1090,23 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
 
   @override
   void dispose() {
+    _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleUpdatePassword() async {
+    if (!_hasCurrentPassword) {
+      CustomToast.show(
+        context,
+        title: 'Current Password Required',
+        message: 'Please enter your current password.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     if (!_hasMinLength || !_hasUppercase || !_hasLowercase || !_hasNumber || !_hasSpecial) {
       CustomToast.show(
         context,
@@ -1113,6 +1130,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
     setState(() => _isLoading = true);
 
     final res = await ApiService.changePassword(
+      oldPassword: _currentPasswordController.text,
       newPassword: _newPasswordController.text,
       confirmPassword: _confirmPasswordController.text,
     );
@@ -1230,8 +1248,34 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                     ),
                   ),
                 ],
+              ),              const SizedBox(height: 20),
+
+              // Current Password Field
+              TextField(
+                controller: _currentPasswordController,
+                obscureText: _obscureCurrent,
+                decoration: InputDecoration(
+                  labelText: 'Current Password',
+                  prefixIcon: const Icon(Icons.key_rounded, color: Color.fromARGB(255, 223, 74, 23)),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: const Color(0xFF666666),
+                    ),
+                    onPressed: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color.fromARGB(255, 223, 74, 23), width: 2),
+                  ),
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
 
               // New Password Field
               TextField(
@@ -1281,7 +1325,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color:Color.fromARGB(255, 223, 74, 23), width: 2),
+                    borderSide: const BorderSide(color: Color.fromARGB(255, 223, 74, 23), width: 2),
                   ),
                 ),
               ),
@@ -1307,6 +1351,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                       ),
                     ),
                     const SizedBox(height: 6),
+                    _buildRequirementItem('Current password entered', _hasCurrentPassword),
                     _buildRequirementItem('At least 6 characters long', _hasMinLength),
                     _buildRequirementItem('At least 1 uppercase letter (A-Z)', _hasUppercase),
                     _buildRequirementItem('At least 1 lowercase letter (a-z)', _hasLowercase),
