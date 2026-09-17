@@ -84,22 +84,30 @@ bool FlutterWindow::OnCreate() {
 
 namespace {
 HHOOK g_kiosk_keyboard_hook = nullptr;
+HHOOK g_kiosk_mouse_hook = nullptr;
+bool g_proctored_active = false;
+HWND g_proctored_hwnd = nullptr;
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
-  if (nCode == HC_ACTION) {
+  if (nCode == HC_ACTION && g_proctored_active) {
     KBDLLHOOKSTRUCT* pKbd = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
     if (pKbd != nullptr) {
       bool isAltDown = (pKbd->flags & LLKHF_ALTDOWN) != 0;
       bool isWinDown = (GetKeyState(VK_LWIN) & 0x8000) != 0 || (GetKeyState(VK_RWIN) & 0x8000) != 0;
       bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
-      // 1. Block Win key press, Win+Tab (Task View), Win+D, Win+A, Win+K, Win+S, Win+X, etc.
+      // 1. Block ALL Win key combinations & Task View (Win+Tab, Win+D, Win+A, Win+K, Win+C, Win+S, Win+X, etc.)
       if (pKbd->vkCode == VK_LWIN || pKbd->vkCode == VK_RWIN || isWinDown) {
+        if (g_proctored_hwnd != nullptr) {
+          ::SetWindowPos(g_proctored_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+          ::BringWindowToTop(g_proctored_hwnd);
+          ::SetForegroundWindow(g_proctored_hwnd);
+        }
         return 1; // Block key completely
       }
 
-      // 2. Block Alt+Tab, Alt+Esc, Alt+F4
-      if (isAltDown && (pKbd->vkCode == VK_TAB || pKbd->vkCode == VK_ESCAPE || pKbd->vkCode == VK_F4)) {
+      // 2. Block Alt+Tab, Alt+Esc, Alt+F4, Alt+Space
+      if (isAltDown && (pKbd->vkCode == VK_TAB || pKbd->vkCode == VK_ESCAPE || pKbd->vkCode == VK_F4 || pKbd->vkCode == VK_SPACE)) {
         return 1;
       }
 
@@ -116,6 +124,22 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   }
   return CallNextHookEx(g_kiosk_keyboard_hook, nCode, wParam, lParam);
 }
+
+LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
+  if (nCode == HC_ACTION && g_proctored_active) {
+    // Catch mouse/touchpad gesture actions when window is proctored
+    if (g_proctored_hwnd != nullptr) {
+      HWND foregroundHwnd = ::GetForegroundWindow();
+      if (foregroundHwnd != g_proctored_hwnd) {
+        ::SetWindowPos(g_proctored_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        ::BringWindowToTop(g_proctored_hwnd);
+        ::SetForegroundWindow(g_proctored_hwnd);
+        ::SetFocus(g_proctored_hwnd);
+      }
+    }
+  }
+  return CallNextHookEx(g_kiosk_mouse_hook, nCode, wParam, lParam);
+}
 }  // namespace
 
 void FlutterWindow::EnableProctoringSecurity() {
@@ -123,10 +147,15 @@ void FlutterWindow::EnableProctoringSecurity() {
   if (hwnd == nullptr || is_proctored_mode_) return;
 
   is_proctored_mode_ = true;
+  g_proctored_active = true;
+  g_proctored_hwnd = hwnd;
 
-  // Install Low Level Keyboard Hook to block Windows system shortcuts (Win+Tab, Alt+Tab, Win Keys)
+  // Install Low Level Keyboard & Mouse/Touchpad Hooks
   if (g_kiosk_keyboard_hook == nullptr) {
     g_kiosk_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(nullptr), 0);
+  }
+  if (g_kiosk_mouse_hook == nullptr) {
+    g_kiosk_mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandle(nullptr), 0);
   }
 
   // 1. Save current window styles & placement
@@ -159,8 +188,8 @@ void FlutterWindow::EnableProctoringSecurity() {
   ::SetForegroundWindow(hwnd);
   ::SetFocus(hwnd);
 
-  // 5. Start high-frequency 50ms focus enforcement timer (forces focus back if touchpad gesture tries to lift window)
-  focus_timer_id_ = ::SetTimer(hwnd, 999, 50, nullptr);
+  // 5. Start ultra-high frequency 15ms focus enforcement timer (forces focus back instantly if touchpad gesture tries to lift window)
+  focus_timer_id_ = ::SetTimer(hwnd, 999, 15, nullptr);
 }
 
 void FlutterWindow::DisableProctoringSecurity() {
@@ -168,6 +197,8 @@ void FlutterWindow::DisableProctoringSecurity() {
   if (hwnd == nullptr) return;
 
   is_proctored_mode_ = false;
+  g_proctored_active = false;
+  g_proctored_hwnd = nullptr;
 
   // Kill focus enforcement timer
   if (focus_timer_id_ != 0) {
@@ -175,10 +206,14 @@ void FlutterWindow::DisableProctoringSecurity() {
     focus_timer_id_ = 0;
   }
 
-  // Unhook Low Level Keyboard Hook
+  // Unhook Low Level Hooks
   if (g_kiosk_keyboard_hook != nullptr) {
     UnhookWindowsHookEx(g_kiosk_keyboard_hook);
     g_kiosk_keyboard_hook = nullptr;
+  }
+  if (g_kiosk_mouse_hook != nullptr) {
+    UnhookWindowsHookEx(g_kiosk_mouse_hook);
+    g_kiosk_mouse_hook = nullptr;
   }
 
   // Restore display capture affinity

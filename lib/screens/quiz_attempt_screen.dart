@@ -1314,14 +1314,63 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
           ],
         ),
         body: SafeArea(
-          child: isDesktop
-              ? Row(
-                  children: [
-                    Expanded(child: questionContentWidget),
-                    _buildRightStatusPanel(),
-                  ],
-                )
-              : questionContentWidget,
+          child: Stack(
+            children: [
+              // Main Quiz Layout
+              isDesktop
+                  ? Row(
+                      children: [
+                        Expanded(child: questionContentWidget),
+                        _buildRightStatusPanel(),
+                      ],
+                    )
+                  : questionContentWidget,
+
+              // Security & Proctoring Anti-Cheat Watermark Overlay
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Builder(
+                    builder: (context) {
+                      final user = ApiService.currentUser ?? {};
+                      final name = user['name'] ?? user['username'] ?? 'Candidate';
+                      final email = user['email'] ?? '';
+                      final rollNo = user['roll_number'] ?? user['roll_no'] ?? user['id'] ?? '';
+                      final watermarkText = '$name  •  $email  •  Roll: #$rollNo  •  PROCTORED EXAM';
+
+                      return Opacity(
+                        opacity: 0.08,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Wrap(
+                              spacing: 60,
+                              runSpacing: 50,
+                              children: List.generate(30, (index) {
+                                return Transform.rotate(
+                                  angle: -0.25,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(
+                                      watermarkText,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
