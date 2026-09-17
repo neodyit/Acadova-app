@@ -172,10 +172,15 @@ void FlutterWindow::DisableProctoringSecurity() {
 
   // Restore window styles & position
   SetWindowLong(hwnd, GWL_STYLE, saved_style_);
-  SetWindowLong(hwnd, GWL_EXSTYLE, saved_ex_style_);
+  SetWindowLong(hwnd, GWL_EXSTYLE, saved_ex_style_ & ~WS_EX_TOPMOST);
   SetWindowPlacement(hwnd, &saved_window_placement_);
+
+  // Explicitly clear HWND_TOPMOST and restore normal window z-order
   SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-               SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+               SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+  // Allow OS window switching / task bar interactions freely
+  ::RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME);
 }
 
 void FlutterWindow::OnDestroy() {
