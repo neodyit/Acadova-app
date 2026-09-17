@@ -48,11 +48,7 @@ class _QuizPreInstructionsScreenState extends State<QuizPreInstructionsScreen> {
     bool locGranted = false;
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       locGranted = true;
-      _locationDetails = {
-        'latitude': '0.0000',
-        'longitude': '0.0000',
-        'location': 'Desktop Environment Verified',
-      };
+      _locationDetails = await _fetchDesktopIpLocationDetails();
     } else {
       try {
         bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -80,6 +76,37 @@ class _QuizPreInstructionsScreenState extends State<QuizPreInstructionsScreen> {
         _isLoadingPermissionCheck = false;
       });
     }
+  }
+
+  static Future<Map<String, String>> _fetchDesktopIpLocationDetails() async {
+    try {
+      final uri = Uri.parse('http://ip-api.com/json/');
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'success') {
+          final city = data['city'] ?? '';
+          final region = data['regionName'] ?? '';
+          final country = data['country'] ?? '';
+          final lat = (data['lat'] ?? 0.0).toString();
+          final lon = (data['lon'] ?? 0.0).toString();
+
+          final locationParts = [city, region, country].where((e) => e.toString().isNotEmpty).join(', ');
+
+          return {
+            'latitude': lat,
+            'longitude': lon,
+            'location': locationParts.isNotEmpty ? locationParts : 'Desktop Verified',
+          };
+        }
+      }
+    } catch (_) {}
+
+    return {
+      'latitude': '0.0000',
+      'longitude': '0.0000',
+      'location': 'Desktop Verified',
+    };
   }
 
   static Future<Map<String, String>> _fetchLocationDetails() async {

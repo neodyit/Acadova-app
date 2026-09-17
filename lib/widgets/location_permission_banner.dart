@@ -25,11 +25,7 @@ class LocationPermissionBannerDialog extends StatefulWidget {
 
     // Desktop platforms (Windows/macOS/Linux) do not support native mobile Geolocator permission dialogs
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-      return {
-        'latitude': '0.0000',
-        'longitude': '0.0000',
-        'location': 'Desktop Environment Verified',
-      };
+      return await _fetchDesktopIpLocationDetails();
     }
 
     // 1. Check if location services and permissions are already granted
@@ -64,17 +60,44 @@ class LocationPermissionBannerDialog extends StatefulWidget {
     return result;
   }
 
+  static Future<Map<String, String>> _fetchDesktopIpLocationDetails() async {
+    try {
+      final uri = Uri.parse('http://ip-api.com/json/');
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['status'] == 'success') {
+          final city = data['city'] ?? '';
+          final region = data['regionName'] ?? '';
+          final country = data['country'] ?? '';
+          final lat = (data['lat'] ?? 0.0).toString();
+          final lon = (data['lon'] ?? 0.0).toString();
+
+          final locationParts = [city, region, country].where((e) => e.toString().isNotEmpty).join(', ');
+
+          return {
+            'latitude': lat,
+            'longitude': lon,
+            'location': locationParts.isNotEmpty ? locationParts : 'Desktop Verified',
+          };
+        }
+      }
+    } catch (_) {}
+
+    return {
+      'latitude': '0.0000',
+      'longitude': '0.0000',
+      'location': 'Desktop Verified',
+    };
+  }
+
   static Future<Map<String, String>> _fetchLocationDetails() async {
     String lat = '';
     String lng = '';
     String locationName = 'Location Granted';
 
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-      return {
-        'latitude': '0.0000',
-        'longitude': '0.0000',
-        'location': 'Desktop Environment Verified',
-      };
+      return await _fetchDesktopIpLocationDetails();
     }
 
     try {
