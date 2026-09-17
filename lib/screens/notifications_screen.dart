@@ -3,7 +3,7 @@ import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 
-enum NotificationFilter { all, unread, quizzes, reminders }
+enum NotificationFilter { all, unread, quizzes, notices, alerts }
 
 class NotificationsScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -55,9 +55,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (_selectedFilter == NotificationFilter.unread) {
         return isUnread;
       } else if (_selectedFilter == NotificationFilter.quizzes) {
-        return type.contains('quiz') || type == 'quizzes';
-      } else if (_selectedFilter == NotificationFilter.reminders) {
-        return type.contains('reminder') || type.contains('pending');
+        return type.contains('quiz') || type.contains('reminder') || type.contains('pending') || type.contains('scheduled');
+      } else if (_selectedFilter == NotificationFilter.notices) {
+        return type.contains('batch') || type.contains('notice') || type.contains('class') || type.contains('announcement') || type.contains('general');
+      } else if (_selectedFilter == NotificationFilter.alerts) {
+        return type.contains('alert') || type.contains('urgent') || type.contains('warning') || type.contains('emergency');
       }
       return true;
     }).toList();
@@ -147,31 +149,66 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Color _getCategoryColor(String type) {
-    final t = type.toLowerCase();
-    if (t.contains('pending') || t.contains('reminder')) return const Color(0xFFF59E0B); // Amber / Orange
-    if (t.contains('submitted') || t.contains('graded')) return const Color(0xFF10B981); // Emerald
-    if (t.contains('scheduled') || t.contains('quiz')) return const Color(0xFF6C5CE7); // Purple
-    if (t.contains('campaign') || t.contains('announcement')) return const Color(0xFFEF4444); // Red/Coral
-    return const Color(0xFF3B82F6); // Blue
+    final t = type.toLowerCase().trim();
+    if (t.contains('alert') || t.contains('urgent') || t.contains('emergency') || t.contains('warning')) {
+      return const Color(0xFFE11D48); // Crimson Red
+    }
+    if (t.contains('batch') || t.contains('class') || t.contains('notice')) {
+      return const Color(0xFF059669); // Emerald Green
+    }
+    if (t.contains('quiz') || t.contains('pending') || t.contains('reminder') || t.contains('scheduled') || t.contains('submitted') || t.contains('graded')) {
+      return const Color(0xFF7C3AED); // Deep Purple
+    }
+    return const Color(0xFF2563EB); // Royal Blue (General Announcement)
+  }
+
+  List<Color> _getCategoryGradient(String type) {
+    final t = type.toLowerCase().trim();
+    if (t.contains('alert') || t.contains('urgent') || t.contains('emergency') || t.contains('warning')) {
+      return [const Color(0xFFF43F5E), const Color(0xFFE11D48)]; // Red Crimson Gradient
+    }
+    if (t.contains('batch') || t.contains('class') || t.contains('notice')) {
+      return [const Color(0xFF10B981), const Color(0xFF059669)]; // Emerald Gradient
+    }
+    if (t.contains('quiz') || t.contains('pending') || t.contains('reminder') || t.contains('scheduled') || t.contains('submitted') || t.contains('graded')) {
+      return [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)]; // Purple Gradient
+    }
+    return [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)]; // Blue Gradient (Announcement)
   }
 
   IconData _getCategoryIcon(String type) {
-    final t = type.toLowerCase();
-    if (t.contains('pending') || t.contains('reminder')) return Icons.timer_rounded;
-    if (t.contains('submitted') || t.contains('graded')) return Icons.verified_rounded;
-    if (t.contains('scheduled') || t.contains('quiz')) return Icons.quiz_rounded;
-    if (t.contains('campaign') || t.contains('announcement')) return Icons.campaign_rounded;
+    final t = type.toLowerCase().trim();
+    if (t.contains('alert') || t.contains('urgent') || t.contains('emergency') || t.contains('warning')) {
+      return Icons.error_outline_rounded;
+    }
+    if (t.contains('batch') || t.contains('class') || t.contains('notice')) {
+      return Icons.school_rounded;
+    }
+    if (t.contains('pending') || t.contains('reminder')) {
+      return Icons.timer_rounded;
+    }
+    if (t.contains('submitted') || t.contains('graded')) {
+      return Icons.verified_rounded;
+    }
+    if (t.contains('quiz') || t.contains('scheduled')) {
+      return Icons.quiz_rounded;
+    }
+    if (t.contains('general') || t.contains('announcement') || t.contains('campaign')) {
+      return Icons.campaign_rounded;
+    }
     return Icons.notifications_active_rounded;
   }
 
   String _getCategoryBadgeLabel(String type) {
-    final t = type.toLowerCase();
+    final t = type.toLowerCase().trim();
+    if (t.contains('alert') || t.contains('urgent') || t.contains('emergency')) return 'IMPORTANT ALERT';
+    if (t.contains('batch') || t.contains('class') || t.contains('notice')) return 'CLASS NOTICE';
     if (t.contains('pending')) return 'PENDING REMINDER';
     if (t.contains('reminder')) return 'QUIZ REMINDER';
     if (t.contains('submitted')) return 'SUBMITTED';
     if (t.contains('graded')) return 'GRADED';
-    if (t.contains('scheduled')) return 'NEW QUIZ';
-    if (t.contains('announcement')) return 'ANNOUNCEMENT';
+    if (t.contains('quiz') || t.contains('scheduled')) return 'QUIZ UPDATE';
+    if (t.contains('general') || t.contains('announcement')) return 'ANNOUNCEMENT';
     return 'NOTIFICATION';
   }
 
@@ -242,7 +279,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     const SizedBox(width: 8),
                     _buildFilterPill(NotificationFilter.quizzes, 'Quizzes'),
                     const SizedBox(width: 8),
-                    _buildFilterPill(NotificationFilter.reminders, 'Reminders'),
+                    _buildFilterPill(NotificationFilter.notices, 'Notices'),
+                    const SizedBox(width: 8),
+                    _buildFilterPill(NotificationFilter.alerts, 'Alerts'),
                   ],
                 ),
               ),
@@ -303,6 +342,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final isUnread = n['is_read'] == false || n['is_read'] == 0 || n['isUnread'] == true;
     final type = (n['type'] ?? 'general').toString();
     final accentColor = _getCategoryColor(type);
+    final gradientColors = _getCategoryGradient(type);
     final iconData = _getCategoryIcon(type);
     final badgeLabel = _getCategoryBadgeLabel(type);
     final timeStr = _formatTimeAgo(n['created_at'] ?? n['time']);
@@ -325,16 +365,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: isUnread ? accentColor.withValues(alpha: 0.04) : Colors.white,
+          color: isUnread ? accentColor.withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isUnread ? accentColor.withValues(alpha: 0.3) : Colors.grey.shade200,
+            color: isUnread ? accentColor.withValues(alpha: 0.35) : Colors.grey.shade200,
             width: isUnread ? 1.5 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isUnread ? 0.04 : 0.02),
-              blurRadius: 10,
+              color: Colors.black.withValues(alpha: isUnread ? 0.05 : 0.02),
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
@@ -350,20 +390,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category Icon Avatar
+                  // Category Gradient Avatar
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.12),
+                      gradient: LinearGradient(
+                        colors: gradientColors,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                     child: Icon(
                       iconData,
-                      color: accentColor,
+                      color: Colors.white,
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 13),
 
                   // Content Column
                   Expanded(
@@ -373,18 +425,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: accentColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: accentColor.withValues(alpha: 0.25)),
                               ),
                               child: Text(
                                 badgeLabel,
                                 style: TextStyle(
                                   color: accentColor,
                                   fontSize: 9.5,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.4,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
@@ -410,11 +463,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 7),
                         Text(
                           n['title'] ?? 'Notification',
                           style: TextStyle(
-                            fontSize: 14.5,
+                            fontSize: 15,
                             fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
                             color: AppTheme.mainText,
                           ),
