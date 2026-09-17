@@ -15,7 +15,6 @@ import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 import 'academic_profile_screen.dart';
 import 'campaigns_screen.dart';
 import 'login_screen.dart';
-import 'notifications_screen.dart';
 import '../widgets/notification_badge_icon.dart';
 import 'profile_screen.dart';
 import 'quiz_instructions_screen.dart';
