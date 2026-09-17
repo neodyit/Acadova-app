@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../config/app_theme.dart';
 import '../services/ad_service.dart';
 import '../widgets/ad_banner_widget.dart';
@@ -26,12 +29,24 @@ class QuizResultScreen extends StatefulWidget {
 }
 
 class _QuizResultScreenState extends State<QuizResultScreen> {
+  static const MethodChannel _securityChannel = MethodChannel('com.neodyit.acadova/security');
+
   @override
   void initState() {
     super.initState();
+    _releaseProctoringSecurity();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AdService().showInterstitialAdIfReady();
     });
+  }
+
+  Future<void> _releaseProctoringSecurity() async {
+    try {
+      if (!kIsWeb && (Platform.isWindows || Platform.isAndroid)) {
+        await _securityChannel.invokeMethod('disableSecureScreen');
+      }
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    } catch (_) {}
   }
 
   void _returnHome() {
