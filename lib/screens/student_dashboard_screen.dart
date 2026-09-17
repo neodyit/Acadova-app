@@ -169,8 +169,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
           DateTime? startsAt = ApiService.parseDateTime(q['starts_at'] ?? q['scheduled_at']);
           DateTime? endsAt = ApiService.parseDateTime(q['ends_at']);
 
-          final bool isAttempted = _attemptedQuizIds.contains(qId);
           final att = _attemptMap[qId];
+          final bool isAttempted = att != null && att['submission_type'] != 'in_progress';
 
           // Determine quiz time state
           final bool isBeforeStart = startsAt != null && now.isBefore(startsAt);
@@ -223,7 +223,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
           }
         }
 
-        _recentSubmissions = attempts.map((att) {
+        _recentSubmissions = attempts.where((att) => att['submission_type'] != 'in_progress').map((att) {
           final quiz = att['quiz'] ?? {};
           final score = att['score'] ?? 0;
           final total = att['total_questions'] ?? 1;
