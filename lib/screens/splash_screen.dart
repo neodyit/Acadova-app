@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
+import '../services/offline_quiz_sync_service.dart';
 import '../widgets/app_update_dialog.dart';
 import 'academic_profile_screen.dart';
 import 'home_screen.dart';
@@ -49,6 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (!mounted) return;
 
       final bool isLoggedIn = await ApiService.initSession();
+      OfflineQuizSyncService.syncPendingSubmissions();
 
       if (!mounted) return;
 

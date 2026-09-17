@@ -66,8 +66,8 @@ class _QuizzesScreenState extends State<QuizzesScreen>
           if (processedIds.contains(qId)) continue;
           processedIds.add(qId);
 
-          final bool isAttempted = attemptMap.containsKey(qId);
           final att = attemptMap[qId];
+          final bool isAttempted = att != null && att['submission_type'] != 'in_progress';
 
           DateTime? startsAt = ApiService.parseDateTime(q['starts_at'] ?? q['scheduled_at']);
           DateTime? endsAt = ApiService.parseDateTime(q['ends_at']);
