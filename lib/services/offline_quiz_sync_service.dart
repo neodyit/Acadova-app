@@ -7,6 +7,90 @@ class OfflineQuizSyncService {
   static const String _pendingSubmissionsKey = 'acadova_pending_quiz_submissions';
   static bool _isSyncing = false;
 
+  static String _xorEncryptDecrypt(String text, String key) {
+    List<int> result = [];
+    List<int> textBytes = utf8.encode(text);
+    List<int> keyBytes = utf8.encode(key);
+    for (int i = 0; i < textBytes.length; i++) {
+      result.add(textBytes[i] ^ keyBytes[i % keyBytes.length]);
+    }
+    return base64Url.encode(result);
+  }
+
+  static String _xorDecrypt(String encryptedText, String key) {
+    try {
+      List<int> encryptedBytes = base64Url.decode(encryptedText);
+      List<int> keyBytes = utf8.encode(key);
+      List<int> result = [];
+      for (int i = 0; i < encryptedBytes.length; i++) {
+        result.add(encryptedBytes[i] ^ keyBytes[i % keyBytes.length]);
+      }
+      return utf8.decode(result);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Save encrypted live active quiz state locally on every answer selection or tick
+  static Future<void> saveEncryptedActiveQuizState({
+    required int quizId,
+    required Map<dynamic, dynamic> userAnswers,
+    required int remainingSeconds,
+    required int violationsCount,
+    String? location,
+    String? latitude,
+    String? longitude,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final Map<String, dynamic> formattedAnswers = {};
+      userAnswers.forEach((key, value) {
+        formattedAnswers[key.toString()] = value;
+      });
+
+      final Map<String, dynamic> payload = {
+        'quiz_id': quizId,
+        'user_answers': formattedAnswers,
+        'remaining_seconds': remainingSeconds,
+        'violations_count': violationsCount,
+        'location': location,
+        'latitude': latitude,
+        'longitude': longitude,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      final String rawJson = jsonEncode(payload);
+      final String encrypted = _xorEncryptDecrypt(rawJson, 'AcadovaQuizSecurityKey#2026!$quizId');
+      await prefs.setString('acadova_active_quiz_encrypted_$quizId', encrypted);
+    } catch (e) {
+      debugPrint('OfflineQuizSyncService: Error saving encrypted quiz state: $e');
+    }
+  }
+
+  /// Get decrypted active quiz state
+  static Future<Map<String, dynamic>?> getEncryptedActiveQuizState(int quizId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? encrypted = prefs.getString('acadova_active_quiz_encrypted_$quizId');
+      if (encrypted == null || encrypted.isEmpty) return null;
+
+      final String decryptedJson = _xorDecrypt(encrypted, 'AcadovaQuizSecurityKey#2026!$quizId');
+      if (decryptedJson.isEmpty) return null;
+
+      return jsonDecode(decryptedJson) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Clear active quiz state upon submission
+  static Future<void> clearActiveQuizState(int quizId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('acadova_active_quiz_encrypted_$quizId');
+    } catch (_) {}
+  }
+
   /// Save quiz attempt locally when offline or when backend submission fails
   static Future<void> savePendingSubmission({
     required int quizId,
@@ -56,6 +140,8 @@ class OfflineQuizSyncService {
         await prefs.setStringList(_pendingSubmissionsKey, pendingList);
         debugPrint('OfflineQuizSyncService: Saved pending quiz submission for quiz #$quizId');
       }
+
+      await clearActiveQuizState(quizId);
     } catch (e) {
       debugPrint('OfflineQuizSyncService: Error saving offline submission: $e');
     }

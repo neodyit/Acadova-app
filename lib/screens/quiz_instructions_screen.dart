@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
+import '../services/offline_quiz_sync_service.dart';
 import '../widgets/custom_toast.dart';
 import 'quiz_attempt_screen.dart';
 
@@ -246,6 +247,27 @@ class _QuizPreInstructionsScreenState extends State<QuizPreInstructionsScreen> {
       if (!mounted) return;
 
       if (res['success'] != true) {
+        // Retrieve local encrypted progress state if available to preserve answered questions
+        final localState = await OfflineQuizSyncService.getEncryptedActiveQuizState(quizId);
+        if (localState != null) {
+          final Map<dynamic, dynamic> userAnswers = localState['user_answers'] ?? {};
+          final int violations = localState['violations_count'] ?? 0;
+          
+          await ApiService.submitQuizAttempt(
+            quizId: quizId,
+            userAnswers: userAnswers,
+            violationsCount: violations,
+            location: _locationDetails?['location'],
+            latitude: _locationDetails?['latitude'],
+            longitude: _locationDetails?['longitude'],
+            submissionType: 'auto',
+            autoSubmitReason: 'Device Shutdown / Interrupted Session Auto-Submission with Saved Answers',
+          );
+          await OfflineQuizSyncService.clearActiveQuizState(quizId);
+        }
+
+        if (!mounted) return;
+
         CustomToast.show(
           context,
           title: 'Assessment Locked',

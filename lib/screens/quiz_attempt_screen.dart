@@ -67,7 +67,21 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     _shuffledQuestions = List<Map<String, dynamic>>.from(widget.questions)..shuffle();
     
     _remainingSeconds = widget.durationMinutes * 60;
+    _saveCurrentStateLocally();
     _startTimer();
+  }
+
+  void _saveCurrentStateLocally() {
+    if (widget.quizId == null) return;
+    OfflineQuizSyncService.saveEncryptedActiveQuizState(
+      quizId: widget.quizId!,
+      userAnswers: _selectedAnswers,
+      remainingSeconds: _remainingSeconds,
+      violationsCount: _tabSwitchCount,
+      location: widget.location,
+      latitude: widget.latitude,
+      longitude: widget.longitude,
+    );
   }
 
   Future<void> _enableProctoringSecurity() async {
@@ -185,6 +199,9 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
         setState(() {
           _remainingSeconds--;
         });
+        if (_remainingSeconds % 5 == 0) {
+          _saveCurrentStateLocally();
+        }
       } else {
         _timer?.cancel();
         _submitQuiz(
@@ -1126,6 +1143,7 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
                             }
                           }
                         });
+                        _saveCurrentStateLocally();
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: AnimatedContainer(
