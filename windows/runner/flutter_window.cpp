@@ -158,6 +158,9 @@ void FlutterWindow::EnableProctoringSecurity() {
   ::BringWindowToTop(hwnd);
   ::SetForegroundWindow(hwnd);
   ::SetFocus(hwnd);
+
+  // 5. Start high-frequency 50ms focus enforcement timer (forces focus back if touchpad gesture tries to lift window)
+  focus_timer_id_ = ::SetTimer(hwnd, 999, 50, nullptr);
 }
 
 void FlutterWindow::DisableProctoringSecurity() {
@@ -165,6 +168,12 @@ void FlutterWindow::DisableProctoringSecurity() {
   if (hwnd == nullptr) return;
 
   is_proctored_mode_ = false;
+
+  // Kill focus enforcement timer
+  if (focus_timer_id_ != 0) {
+    ::KillTimer(hwnd, focus_timer_id_);
+    focus_timer_id_ = 0;
+  }
 
   // Unhook Low Level Keyboard Hook
   if (g_kiosk_keyboard_hook != nullptr) {
@@ -207,21 +216,36 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               LPARAM const lparam) noexcept {
   if (is_proctored_mode_) {
     switch (message) {
-      // 1. Prevent close request (Alt+F4 or Taskbar close)
-      case WM_CLOSE:
-        return 0; // Completely ignore close attempt
-
-      // 2. Prevent minimizing, hiding or losing TOPMOST status (3-finger gesture / task view preview)
-      case WM_WINDOWPOSCHANGING: {
-        WINDOWPOS* pos = reinterpret_cast<WINDOWPOS*>(lparam);
-        if (pos) {
-          pos->hwndInsertAfter = HWND_TOPMOST;
-          pos->flags &= ~(SWP_HIDEWINDOW | SWP_NOZORDER);
+      // 1. High-frequency focus enforcement timer pulse (Blocks 3-finger touchpad swipe task switcher overlay)
+      case WM_TIMER: {
+        if (wparam == 999) {
+          HWND foregroundHwnd = ::GetForegroundWindow();
+          if (foregroundHwnd != hwnd) {
+            ::SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                           SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+            ::BringWindowToTop(hwnd);
+            ::SetForegroundWindow(hwnd);
+            ::SetFocus(hwnd);
+          }
         }
         break;
       }
 
-      // 3. Block shortcut keys like Ctrl+Tab, Alt+Tab, Win keys, Ctrl+Esc
+      // 2. Prevent close request (Alt+F4 or Taskbar close)
+      case WM_CLOSE:
+        return 0; // Completely ignore close attempt
+
+      // 3. Prevent minimizing, hiding or losing TOPMOST status (3-finger gesture / task view preview)
+      case WM_WINDOWPOSCHANGING: {
+        WINDOWPOS* pos = reinterpret_cast<WINDOWPOS*>(lparam);
+        if (pos) {
+          pos->hwndInsertAfter = HWND_TOPMOST;
+          pos->flags &= ~(SWP_HIDEWINDOW | SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        break;
+      }
+
+      // 4. Block shortcut keys like Ctrl+Tab, Alt+Tab, Win keys, Ctrl+Esc
       case WM_KEYDOWN:
       case WM_SYSKEYDOWN: {
         bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -232,7 +256,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
         break;
       }
 
-      // 4. Prevent minimizing, switching, task switching, or system commands
+      // 5. Prevent minimizing, switching, task switching, or system commands
       case WM_SYSCOMMAND: {
         UINT cmd = wparam & 0xFFF0;
         if (cmd == SC_MINIMIZE || cmd == SC_CLOSE || cmd == SC_SCREENSAVE ||
@@ -243,7 +267,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
         break;
       }
 
-      // 5. Force focus back IMMEDIATELY if touchpad gesture or task-switcher tries to deactivate window
+      // 6. Force focus back IMMEDIATELY if touchpad gesture or task-switcher tries to deactivate window
       case WM_KILLFOCUS:
       case WM_ACTIVATE:
       case WM_ACTIVATEAPP: {
