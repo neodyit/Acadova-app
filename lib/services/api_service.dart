@@ -1320,8 +1320,54 @@ class ApiService {
     return false;
   }
 
-  /// Fetch listed notifications for current user with unread count
-  static Future<Map<String, dynamic>> getNotifications() async {
+  static final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
+  static Map<String, dynamic>? _cachedNotificationData;
+
+  /// Helper to update local notification cache and save to disk
+  static Future<void> _updateLocalNotificationCache(Map<String, dynamic> data) async {
+    _cachedNotificationData = data;
+    unreadCountNotifier.value = data['unread_count'] ?? 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_notifications_data', jsonEncode(data));
+    } catch (_) {}
+  }
+
+  /// Helper to load local notification cache from disk
+  static Future<Map<String, dynamic>?> getCachedNotifications() async {
+    if (_cachedNotificationData != null) {
+      return _cachedNotificationData;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final str = prefs.getString('cached_notifications_data');
+      if (str != null && str.isNotEmpty) {
+        final decoded = jsonDecode(str);
+        if (decoded is Map<String, dynamic>) {
+          _cachedNotificationData = {
+            'notifications': List<Map<String, dynamic>>.from(decoded['notifications'] ?? []),
+            'unread_count': decoded['unread_count'] ?? 0,
+          };
+          unreadCountNotifier.value = _cachedNotificationData!['unread_count'] ?? 0;
+          return _cachedNotificationData;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Fetch listed notifications for current user with unread count (cached + remote background sync)
+  static Future<Map<String, dynamic>> getNotifications({bool forceRefresh = false}) async {
+    final cached = await getCachedNotifications();
+    if (cached != null && !forceRefresh) {
+      // Fetch fresh data in background asynchronously to update cache
+      _fetchNotificationsFromRemote();
+      return cached;
+    }
+    return await _fetchNotificationsFromRemote();
+  }
+
+  static Future<Map<String, dynamic>> _fetchNotificationsFromRemote() async {
     final url = Uri.parse('$baseUrl/notifications');
     try {
       final response = await http.get(
@@ -1335,18 +1381,48 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          return {
+          final result = {
             'notifications': List<Map<String, dynamic>>.from(data['data'] ?? []),
             'unread_count': data['unread_count'] ?? 0,
           };
+          await _updateLocalNotificationCache(result);
+          return result;
         }
       }
     } catch (_) {}
-    return {'notifications': <Map<String, dynamic>>[], 'unread_count': 0};
+    return _cachedNotificationData ?? {'notifications': <Map<String, dynamic>>[], 'unread_count': 0};
   }
 
-  /// Mark single notification as read
+  /// Mark single notification as read (updates cache & server)
   static Future<bool> markNotificationRead(dynamic id) async {
+    // 1. Immediately update local memory and disk cache
+    if (_cachedNotificationData != null) {
+      final notifications = List<Map<String, dynamic>>.from(_cachedNotificationData!['notifications'] ?? []);
+      int unreadCount = _cachedNotificationData!['unread_count'] ?? 0;
+      bool modified = false;
+
+      for (var n in notifications) {
+        if (n['id'] == id) {
+          final isUnread = n['is_read'] == false || n['is_read'] == 0 || n['isUnread'] == true;
+          if (isUnread) {
+            n['is_read'] = true;
+            n['isUnread'] = false;
+            if (unreadCount > 0) unreadCount--;
+            modified = true;
+          }
+          break;
+        }
+      }
+
+      if (modified) {
+        await _updateLocalNotificationCache({
+          'notifications': notifications,
+          'unread_count': unreadCount,
+        });
+      }
+    }
+
+    // 2. Call remote server
     final url = Uri.parse('$baseUrl/notifications/$id/read');
     try {
       final response = await http.post(
@@ -1363,8 +1439,22 @@ class ApiService {
     }
   }
 
-  /// Mark all notifications as read for current user
+  /// Mark all notifications as read for current user (updates cache & server)
   static Future<bool> markAllNotificationsRead() async {
+    // 1. Immediately update local memory and disk cache
+    if (_cachedNotificationData != null) {
+      final notifications = List<Map<String, dynamic>>.from(_cachedNotificationData!['notifications'] ?? []);
+      for (var n in notifications) {
+        n['is_read'] = true;
+        n['isUnread'] = false;
+      }
+      await _updateLocalNotificationCache({
+        'notifications': notifications,
+        'unread_count': 0,
+      });
+    }
+
+    // 2. Call remote server
     final url = Uri.parse('$baseUrl/notifications/read-all');
     try {
       final response = await http.post(
@@ -1381,8 +1471,28 @@ class ApiService {
     }
   }
 
-  /// Delete a single notification
+  /// Delete a single notification (updates cache & server)
   static Future<bool> deleteNotification(dynamic id) async {
+    // 1. Immediately update local memory and disk cache
+    if (_cachedNotificationData != null) {
+      final notifications = List<Map<String, dynamic>>.from(_cachedNotificationData!['notifications'] ?? []);
+      int unreadCount = _cachedNotificationData!['unread_count'] ?? 0;
+      
+      final removedItem = notifications.firstWhere((n) => n['id'] == id, orElse: () => {});
+      if (removedItem.isNotEmpty) {
+        final isUnread = removedItem['is_read'] == false || removedItem['is_read'] == 0 || removedItem['isUnread'] == true;
+        if (isUnread && unreadCount > 0) {
+          unreadCount--;
+        }
+        notifications.removeWhere((n) => n['id'] == id);
+        await _updateLocalNotificationCache({
+          'notifications': notifications,
+          'unread_count': unreadCount,
+        });
+      }
+    }
+
+    // 2. Call remote server
     final url = Uri.parse('$baseUrl/notifications/$id');
     try {
       final response = await http.delete(

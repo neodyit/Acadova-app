@@ -16,6 +16,7 @@ import 'login_screen.dart';
 import 'manage_questions_screen.dart';
 import 'my_batches_screen.dart';
 import 'notifications_screen.dart';
+import '../widgets/notification_badge_icon.dart';
 import 'profile_screen.dart';
 import 'quiz_responses_screen.dart';
 
@@ -573,34 +574,14 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen> {
           ],
         ),
         actions: [
-          // Notification Icon with Badge
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.mainText, size: 24),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => NotificationsScreen(userData: _user),
-                    ),
-                  );
-                },
-                tooltip: 'Notifications',
-              ),
-              Positioned(
-                right: 12,
-                top: 12,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primary,
-                    shape: BoxShape.circle,
-                  ),
+          NotificationBadgeIcon(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => NotificationsScreen(userData: _user),
                 ),
-              ),
-            ],
+              );
+            },
           ),
           // Profile Pic Avatar
           GestureDetector(

@@ -16,6 +16,7 @@ import 'academic_profile_screen.dart';
 import 'campaigns_screen.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
+import '../widgets/notification_badge_icon.dart';
 import 'profile_screen.dart';
 import 'quiz_instructions_screen.dart';
 import 'quizzes_screen.dart';
@@ -870,17 +871,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                 ],
               ),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined,
-                      color: AppTheme.mainText),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const NotificationsScreen(),
-                      ),
-                    );
-                  },
-                ),
+                const NotificationBadgeIcon(),
                 const SizedBox(width: 4),
                 Padding(
                   padding: const EdgeInsets.only(right: 16.0),
@@ -949,17 +940,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                                 ),
                               ),
                               const Spacer(),
-                              IconButton(
-                                icon: const Icon(Icons.notifications_outlined, color: AppTheme.mainText),
-                                tooltip: 'Notifications',
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => const NotificationsScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
+                              const NotificationBadgeIcon(),
                               const SizedBox(width: 8),
                               GestureDetector(
                                 onTap: () async {
