@@ -113,12 +113,26 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     }
 
     if (!_isSubmitted) {
-      // If user turns screen off or display sleeps (inactive/hidden), don't treat it as cheating switch
+      // On Windows Desktop, inactive or hidden states (such as 3-finger swipe, Win+Tab, Task View) count as violation
+      if (!kIsWeb && Platform.isWindows) {
+        if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
+          _tabSwitchCount++;
+
+          if (_tabSwitchCount >= _maxAllowedSwitches) {
+            _autoSubmitDueToViolation();
+          } else {
+            _showWarningDialog();
+          }
+          return;
+        }
+      }
+
+      // Mobile lifecycle handling
       if (state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
         return;
       }
 
-      // Only count actual app switching (paused)
+      // Only count actual app switching (paused) on Mobile
       if (state == AppLifecycleState.paused) {
         _tabSwitchCount++;
 

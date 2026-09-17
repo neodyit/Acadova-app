@@ -93,18 +93,23 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
       bool isWinDown = (GetKeyState(VK_LWIN) & 0x8000) != 0 || (GetKeyState(VK_RWIN) & 0x8000) != 0;
       bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
-      // 1. Block Win key press, Win+Tab (Task View), Win+D, Win+R, Win+E, Win+X, etc.
+      // 1. Block Win key press, Win+Tab (Task View), Win+D, Win+A, Win+K, Win+S, Win+X, etc.
       if (pKbd->vkCode == VK_LWIN || pKbd->vkCode == VK_RWIN || isWinDown) {
         return 1; // Block key completely
       }
 
-      // 2. Block Alt+Tab, Alt+Esc
-      if (isAltDown && (pKbd->vkCode == VK_TAB || pKbd->vkCode == VK_ESCAPE)) {
+      // 2. Block Alt+Tab, Alt+Esc, Alt+F4
+      if (isAltDown && (pKbd->vkCode == VK_TAB || pKbd->vkCode == VK_ESCAPE || pKbd->vkCode == VK_F4)) {
         return 1;
       }
 
       // 3. Block Ctrl+Tab, Ctrl+Esc, Ctrl+Shift+Esc
       if (isCtrlDown && (pKbd->vkCode == VK_TAB || pKbd->vkCode == VK_ESCAPE)) {
+        return 1;
+      }
+
+      // 4. Block F11, F12, PrintScreen
+      if (pKbd->vkCode == VK_SNAPSHOT || pKbd->vkCode == VK_F11 || pKbd->vkCode == VK_F12) {
         return 1;
       }
     }
@@ -157,7 +162,7 @@ void FlutterWindow::EnableProctoringSecurity() {
 
 void FlutterWindow::DisableProctoringSecurity() {
   HWND hwnd = GetHandle();
-  if (hwnd == nullptr || !is_proctored_mode_) return;
+  if (hwnd == nullptr) return;
 
   is_proctored_mode_ = false;
 
@@ -170,16 +175,17 @@ void FlutterWindow::DisableProctoringSecurity() {
   // Restore display capture affinity
   SetWindowDisplayAffinity(hwnd, WDA_NONE);
 
-  // Restore window styles & position
+  // Strip HWND_TOPMOST style completely
+  saved_ex_style_ &= ~WS_EX_TOPMOST;
   SetWindowLong(hwnd, GWL_STYLE, saved_style_);
-  SetWindowLong(hwnd, GWL_EXSTYLE, saved_ex_style_ & ~WS_EX_TOPMOST);
+  SetWindowLong(hwnd, GWL_EXSTYLE, saved_ex_style_);
   SetWindowPlacement(hwnd, &saved_window_placement_);
 
-  // Explicitly clear HWND_TOPMOST and restore normal window z-order
+  // Force HWND_NOTOPMOST & trigger window frame change
   SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-               SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
-  // Allow OS window switching / task bar interactions freely
+  // Redraw window and ensure normal OS z-order behavior
   ::RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME);
 }
 
@@ -205,13 +211,12 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
       case WM_CLOSE:
         return 0; // Completely ignore close attempt
 
-      // 2. Prevent minimizing or hiding via WM_WINDOWPOSCHANGING
+      // 2. Prevent minimizing, hiding or losing TOPMOST status (3-finger gesture / task view preview)
       case WM_WINDOWPOSCHANGING: {
         WINDOWPOS* pos = reinterpret_cast<WINDOWPOS*>(lparam);
         if (pos) {
-          // Force TOPMOST and remove HIDE / MINIMIZE flags
           pos->hwndInsertAfter = HWND_TOPMOST;
-          pos->flags &= ~SWP_HIDEWINDOW;
+          pos->flags &= ~(SWP_HIDEWINDOW | SWP_NOZORDER);
         }
         break;
       }
@@ -238,7 +243,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
         break;
       }
 
-      // 4. Force focus back immediately if focus is lost (Alt+Tab, Win+Tab, Start key, floating overlay)
+      // 5. Force focus back IMMEDIATELY if touchpad gesture or task-switcher tries to deactivate window
       case WM_KILLFOCUS:
       case WM_ACTIVATE:
       case WM_ACTIVATEAPP: {
