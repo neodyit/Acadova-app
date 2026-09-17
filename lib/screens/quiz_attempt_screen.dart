@@ -19,6 +19,7 @@ class QuizAttemptScreen extends StatefulWidget {
   final String? location;
   final String? latitude;
   final String? longitude;
+  final int? passingMarks;
 
   const QuizAttemptScreen({
     super.key,
@@ -30,6 +31,7 @@ class QuizAttemptScreen extends StatefulWidget {
     this.location,
     this.latitude,
     this.longitude,
+    this.passingMarks,
   });
 
   @override
@@ -314,6 +316,7 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
           totalQuestions: _shuffledQuestions.length,
           questions: _shuffledQuestions,
           userAnswers: _selectedAnswers,
+          passingMarks: widget.passingMarks,
         ),
       ),
     );

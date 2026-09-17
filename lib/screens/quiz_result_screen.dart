@@ -9,6 +9,7 @@ class QuizResultScreen extends StatefulWidget {
   final int totalQuestions;
   final List<Map<String, dynamic>> questions;
   final Map<dynamic, dynamic> userAnswers;
+  final int? passingMarks;
 
   const QuizResultScreen({
     super.key,
@@ -17,6 +18,7 @@ class QuizResultScreen extends StatefulWidget {
     required this.totalQuestions,
     required this.questions,
     required this.userAnswers,
+    this.passingMarks,
   });
 
   @override
@@ -171,7 +173,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
   @override
   Widget build(BuildContext context) {
     final double percentage = widget.totalQuestions > 0 ? (widget.score / widget.totalQuestions) * 100 : 0;
-    final bool passed = percentage >= 50;
+    final int passingThreshold = widget.passingMarks ?? 50;
+    final bool passed = percentage >= passingThreshold;
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isDesktop = screenWidth >= 850;
 

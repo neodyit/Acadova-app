@@ -25,6 +25,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late TextEditingController _durationController;
+  late TextEditingController _passingMarksController;
 
   String _selectedStatus = 'active';
   DateTime? _startDate;
@@ -43,12 +44,16 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
     _durationController = TextEditingController(text: '15');
+    _passingMarksController = TextEditingController();
 
     if (widget.quizToEdit != null) {
       final quiz = widget.quizToEdit!;
       _titleController.text = quiz['title'] ?? '';
       _descriptionController.text = quiz['description'] ?? '';
       _durationController.text = (quiz['duration_minutes'] ?? 15).toString();
+      if (quiz['passing_marks'] != null) {
+        _passingMarksController.text = quiz['passing_marks'].toString();
+      }
       _selectedStatus = (quiz['status'] ?? 'active').toString().toLowerCase();
 
       final startIso = quiz['scheduled_at'] ?? quiz['starts_at'];
@@ -121,6 +126,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _durationController.dispose();
+    _passingMarksController.dispose();
     super.dispose();
   }
 
@@ -343,6 +349,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     final isEditing = widget.quizToEdit != null;
     final Map<String, dynamic> res;
 
+    final int? passingMarks = int.tryParse(_passingMarksController.text.trim());
+
     if (isEditing) {
       res = await ApiService.updateQuiz(
         quizId: widget.quizToEdit!['id'],
@@ -350,6 +358,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         subject: selectedSubject,
         instructor: (widget.userData['name'] ?? widget.userData['full_name'] ?? 'Faculty').toString(),
         durationMinutes: duration,
+        passingMarks: passingMarks,
         status: _selectedStatus,
         description: description,
         scheduledAt: startIso,
@@ -368,6 +377,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         subject: selectedSubject,
         instructor: (widget.userData['name'] ?? widget.userData['full_name'] ?? 'Faculty').toString(),
         durationMinutes: duration,
+        passingMarks: passingMarks,
         status: _selectedStatus,
         description: description,
         scheduledAt: startIso,
@@ -551,7 +561,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                 const SizedBox(height: 20),
               ],
 
-              // 4. Duration & Status
+              // 4. Duration, Passing Marks & Status
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -573,24 +583,44 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      initialValue: _selectedStatus,
+                    child: TextFormField(
+                      controller: _passingMarksController,
+                      keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Status *',
-                        prefixIcon: Icon(Icons.flag_rounded),
+                        labelText: 'Passing Marks (%) (Optional)',
+                        hintText: 'Default 50%',
+                        suffixText: '%',
+                        prefixIcon: Icon(Icons.grade_rounded),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'active', child: Text('Active (Live)', overflow: TextOverflow.ellipsis)),
-                        DropdownMenuItem(value: 'upcoming', child: Text('Upcoming', overflow: TextOverflow.ellipsis)),
-                        DropdownMenuItem(value: 'completed', child: Text('Completed', overflow: TextOverflow.ellipsis)),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedStatus = val);
+                      validator: (val) {
+                        if (val != null && val.trim().isNotEmpty) {
+                          final parsed = int.tryParse(val.trim());
+                          if (parsed == null || parsed < 0 || parsed > 100) {
+                            return 'Enter 0-100';
+                          }
+                        }
+                        return null;
                       },
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: _selectedStatus,
+                decoration: const InputDecoration(
+                  labelText: 'Status *',
+                  prefixIcon: Icon(Icons.flag_rounded),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'active', child: Text('Active (Live)', overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'upcoming', child: Text('Upcoming', overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'completed', child: Text('Completed', overflow: TextOverflow.ellipsis)),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedStatus = val);
+                },
               ),
               const SizedBox(height: 24),
 

@@ -247,6 +247,7 @@ class _QuizPreInstructionsScreenState extends State<QuizPreInstructionsScreen> {
           location: _locationDetails?['location'],
           latitude: _locationDetails?['latitude'],
           longitude: _locationDetails?['longitude'],
+          passingMarks: widget.quiz['passing_marks'] != null ? int.tryParse(widget.quiz['passing_marks'].toString()) : null,
         ),
       ),
     );

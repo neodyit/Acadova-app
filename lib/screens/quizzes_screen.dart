@@ -640,7 +640,8 @@ class _QuizzesScreenState extends State<QuizzesScreen>
       percentage = int.tryParse(quiz['score'].toString().replaceAll('%', '')) ?? 0;
     }
 
-    final bool passed = percentage >= 50;
+    final int passingThreshold = quiz['passing_marks'] != null ? (int.tryParse(quiz['passing_marks'].toString()) ?? 50) : 50;
+    final bool passed = percentage >= passingThreshold;
 
     showModalBottomSheet(
       context: context,

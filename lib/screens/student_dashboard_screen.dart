@@ -1445,6 +1445,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
       percentage = totalQs > 0 ? ((score / totalQs) * 100).round() : 0;
     }
 
+    int passingThreshold = quiz['passing_marks'] != null ? (int.tryParse(quiz['passing_marks'].toString()) ?? 50) : 50;
+    bool isPassed = percentage >= passingThreshold;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1622,7 +1625,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: percentage >= 50
+                      colors: isPassed
                           ? [AppTheme.primary, AppTheme.primaryLight]
                           : [AppTheme.error, const Color(0xFFDC2626)],
                       begin: Alignment.topLeft,
@@ -1631,7 +1634,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: (percentage >= 50 ? AppTheme.primary : AppTheme.error).withValues(alpha: 0.3),
+                        color: (isPassed ? AppTheme.primary : AppTheme.error).withValues(alpha: 0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -1646,7 +1649,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          percentage >= 50 ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded,
+                          isPassed ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded,
                           color: Colors.white,
                           size: 24,
                         ),
