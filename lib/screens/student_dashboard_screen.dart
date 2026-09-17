@@ -1433,8 +1433,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
   }
 
   void _showQuizDetailsModal(Map<String, dynamic> quiz) {
-    final bool isAttempted = quiz['isAttempted'] == true;
     final att = quiz['attemptData'];
+    final bool isAttempted = att != null && att['submission_type'] != 'in_progress';
 
     int score = 0;
     int totalQs = quiz['questions'] ?? 0;
