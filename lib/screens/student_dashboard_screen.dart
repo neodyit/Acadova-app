@@ -259,6 +259,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
     final String? avatarUrl = ApiService.formatMediaUrl(_userData['avatar']?.toString());
 
     final isDesktop = MediaQuery.of(context).size.width >= 850;
+    final int unattemptedActiveCount = _activeQuizzes.where((q) => q['isAttempted'] != true).length;
 
     Widget dashboardContent = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -289,7 +290,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                       // Active Quizzes Section
                       _buildSectionHeader(
                         title: 'Active Quizzes',
-                        badgeCount: _activeQuizzes.length,
+                        badgeCount: unattemptedActiveCount,
                         actionText: 'View All',
                         actionIcon: Icons.apps_rounded,
                         onActionTap: () {
@@ -442,7 +443,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
             // 2. Active Quizzes Section
             _buildSectionHeader(
               title: 'Active Quizzes',
-              badgeCount: _activeQuizzes.length,
+              badgeCount: unattemptedActiveCount,
               actionText: 'View All',
               actionIcon: Icons.apps_rounded,
               onActionTap: () {
@@ -626,7 +627,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
               }
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: EdgeInsets.only(
+                top: isDesktop ? 24.0 : MediaQuery.of(context).padding.top + 20.0,
+                bottom: 20.0,
+                left: 20.0,
+                right: 20.0,
+              ),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppTheme.primary, AppTheme.primaryDark],
@@ -687,7 +693,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
             index: 1,
             icon: Icons.quiz_rounded,
             title: 'Active Quizzes',
-            badgeText: '${_activeQuizzes.length}',
+            badgeText: unattemptedActiveCount > 0 ? '$unattemptedActiveCount' : null,
             isDesktop: isDesktop,
           ),
           _buildDrawerTile(

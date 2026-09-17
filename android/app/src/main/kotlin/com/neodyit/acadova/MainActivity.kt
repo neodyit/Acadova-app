@@ -21,9 +21,6 @@ class MainActivity : FlutterActivity() {
                 "enableSecureScreen" -> {
                     window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                    try {
-                        startLockTask()
-                    } catch (e: Exception) {}
 
                     // Enable DND (Do Not Disturb) mode if policy access granted
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && notificationManager != null) {

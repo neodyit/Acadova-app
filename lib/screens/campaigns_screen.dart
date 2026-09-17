@@ -36,11 +36,12 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final rawList = await ApiService.getCampaigns(status: 'all');
+      final List rawList = await ApiService.getCampaigns(status: 'all');
       final now = DateTime.now();
 
       final List<Map<String, dynamic>> mappedList = [];
       for (var c in rawList) {
+        if (c is! Map) continue;
         List<Color> gradient = [AppTheme.primary, AppTheme.primaryDark];
         final colorKey = c['banner_color']?.toString().toLowerCase() ?? 'amber';
         if (colorKey == 'orange' || colorKey == 'coral' || colorKey == 'rust') {
@@ -86,14 +87,18 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
 
   List<Map<String, dynamic>> get _filteredCampaigns {
     return _campaigns.where((c) {
+      final titleStr = (c['title'] ?? '').toString().toLowerCase();
+      final descStr = (c['description'] ?? '').toString().toLowerCase();
+      final badgeStr = (c['badge'] ?? '').toString().toLowerCase();
+
       final matchesQuery = _searchQuery.isEmpty ||
-          c['title'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          c['description'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+          titleStr.contains(_searchQuery.toLowerCase()) ||
+          descStr.contains(_searchQuery.toLowerCase());
 
       if (_selectedCategory == 'notice') {
-        return matchesQuery && (c['badge'].toString().toLowerCase().contains('notice'));
+        return matchesQuery && (badgeStr.contains('notice'));
       } else if (_selectedCategory == 'event') {
-        return matchesQuery && (c['badge'].toString().toLowerCase().contains('event') || c['badge'].toString().toLowerCase().contains('workshop'));
+        return matchesQuery && (badgeStr.contains('event') || badgeStr.contains('workshop'));
       }
 
       return matchesQuery;
@@ -484,36 +489,36 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             ),
 
           // Body Content
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    c['title'],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3436),
-                      height: 1.2,
-                    ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  (c['title'] ?? 'Announcement').toString(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3436),
+                    height: 1.2,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    c['description'],
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade700,
-                      height: 1.35,
-                    ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  (c['description'] ?? '').toString(),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                    height: 1.35,
                   ),
-                  const Spacer(),
-                  if (endsAt != null) ...[
+                ),
+                const SizedBox(height: 14),
+                if (endsAt != null) ...[
                     Row(
                       children: [
                         Icon(Icons.schedule_rounded, size: 13, color: Colors.grey.shade600),
@@ -600,7 +605,6 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 ],
               ),
             ),
-          ),
         ],
       ),
     );

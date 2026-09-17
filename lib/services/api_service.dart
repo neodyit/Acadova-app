@@ -269,8 +269,16 @@ class ApiService {
         await prefs.setString(_keyUser, jsonEncode(currentUser));
         initAndSyncNotificationToken();
         return true;
-      } else {
+      } else if (profileResp['statusCode'] == 401) {
+        // Only clear session if backend explicitly returned 401 Unauthenticated
         await clearSession();
+        return false;
+      } else {
+        // Temporary network timeout/error/offline: keep local session active if currentUser exists
+        if (currentUser != null) {
+          initAndSyncNotificationToken();
+          return true;
+        }
         return false;
       }
     }
@@ -1262,20 +1270,20 @@ class ApiService {
         },
         body: jsonEncode({
           'title': title,
-          if (subject != null) 'subject': subject,
-          if (instructor != null) 'instructor': instructor,
-          if (durationMinutes != null) 'duration_minutes': durationMinutes,
-          if (status != null) 'status': status,
-          if (description != null) 'description': description,
-          if (scheduledAt != null) 'scheduled_at': scheduledAt,
-          if (startsAt != null) 'starts_at': startsAt,
-          if (endsAt != null) 'ends_at': endsAt,
-          if (departmentIds != null) 'department_ids': departmentIds,
-          if (courseIds != null) 'course_ids': courseIds,
-          if (branchIds != null) 'branch_ids': branchIds,
-          if (sectionIds != null) 'section_ids': sectionIds,
-          if (subjectIds != null) 'subject_ids': subjectIds,
-          if (targetGroups != null) 'target_groups': targetGroups,
+          'subject': ?subject,
+          'instructor': ?instructor,
+          'duration_minutes': ?durationMinutes,
+          'status': ?status,
+          'description': ?description,
+          'scheduled_at': ?scheduledAt,
+          'starts_at': ?startsAt,
+          'ends_at': ?endsAt,
+          'department_ids': ?departmentIds,
+          'course_ids': ?courseIds,
+          'branch_ids': ?branchIds,
+          'section_ids': ?sectionIds,
+          'subject_ids': ?subjectIds,
+          'target_groups': ?targetGroups,
         }),
       );
       _checkUnauthorized(response.statusCode);

@@ -1216,7 +1216,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                     ),
                     child: const Icon(
                       Icons.lock_reset_rounded,
-                      color: const Color.fromARGB(255, 223, 74, 23),
+                      color: Color.fromARGB(255, 223, 74, 23),
                       size: 24,
                     ),
                   ),
@@ -1239,7 +1239,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                 obscureText: _obscureNew,
                 decoration: InputDecoration(
                   labelText: 'New Password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: const Color.fromARGB(255, 223, 74, 23)),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color.fromARGB(255, 223, 74, 23)),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -1254,7 +1254,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: const Color.fromARGB(255, 223, 74, 23), width: 2),
+                    borderSide: const BorderSide(color: Color.fromARGB(255, 223, 74, 23), width: 2),
                   ),
                 ),
               ),
@@ -1266,7 +1266,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                 obscureText: _obscureConfirm,
                 decoration: InputDecoration(
                   labelText: 'Confirm New Password',
-                  prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: const Color.fromARGB(255, 223, 74, 23)),
+                  prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: Color.fromARGB(255, 223, 74, 23)),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -1281,7 +1281,7 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color:const Color.fromARGB(255, 223, 74, 23), width: 2),
+                    borderSide: const BorderSide(color:Color.fromARGB(255, 223, 74, 23), width: 2),
                   ),
                 ),
               ),
