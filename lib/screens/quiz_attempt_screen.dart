@@ -130,6 +130,12 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
       }
 
       // Mobile lifecycle handling
+      if (state == AppLifecycleState.resumed) {
+        // Force re-apply immersive sticky mode to block swipe down notification shade & navigation bar
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        return;
+      }
+
       if (state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
         return;
       }
