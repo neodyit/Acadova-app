@@ -508,27 +508,36 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 16,
+        elevation: 20,
+        backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 480),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Animated Icon Header
+              // Icon Header
               Container(
-                width: 64,
-                height: 64,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.task_alt_rounded,
-                  size: 36,
+                  Icons.assignment_turned_in_rounded,
+                  size: 32,
                   color: AppTheme.primary,
                 ),
               ),
@@ -537,64 +546,69 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
               const Text(
                 'Submit Assessment?',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.mainText,
+                  color: Color(0xFF2D3436),
+                  letterSpacing: -0.3,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
-                'Are you sure you want to finish your test?\nOnce submitted, you cannot alter your answers.',
+                'Are you sure you want to finalize your test submission?\nOnce submitted, answers cannot be edited.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey.shade600,
-                  height: 1.35,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
-              // Summary Stats Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceLight.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Column(
-                  children: [
-                    _buildStatRow(
-                      icon: Icons.list_alt_rounded,
+              // Summary Stats Grid (2x2)
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDialogStatTile(
                       label: 'Total Questions',
                       value: '$total',
-                      valueColor: AppTheme.mainText,
+                      icon: Icons.format_list_numbered_rounded,
+                      color: const Color(0xFF475569),
                     ),
-                    const Divider(height: 16, thickness: 0.8),
-                    _buildStatRow(
-                      icon: Icons.check_circle_rounded,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildDialogStatTile(
                       label: 'Answered',
                       value: '$answered',
-                      valueColor: AppTheme.success,
+                      icon: Icons.check_circle_rounded,
+                      color: const Color(0xFF059669),
                     ),
-                    const Divider(height: 16, thickness: 0.8),
-                    _buildStatRow(
-                      icon: Icons.flag_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDialogStatTile(
                       label: 'Marked for Review',
                       value: '$reviewCount',
-                      valueColor: AppTheme.primary,
+                      icon: Icons.flag_rounded,
+                      color: AppTheme.primary,
                     ),
-                    const Divider(height: 16, thickness: 0.8),
-                    _buildStatRow(
-                      icon: Icons.error_outline_rounded,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildDialogStatTile(
                       label: 'Unanswered',
                       value: '$unattempted',
-                      valueColor: AppTheme.error,
+                      icon: Icons.pending_rounded,
+                      color: const Color(0xFFE11D48),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 26),
 
               // Actions
               Row(
@@ -604,7 +618,7 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppTheme.border),
+                        side: BorderSide(color: Colors.grey.shade300),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -612,7 +626,7 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
                       child: const Text(
                         'Keep Solving',
                         style: TextStyle(
-                          color: AppTheme.textMuted,
+                          color: Color(0xFF475569),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -629,8 +643,8 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
-                        elevation: 4,
-                        shadowColor: AppTheme.primary.withValues(alpha: 0.4),
+                        elevation: 3,
+                        shadowColor: AppTheme.primary.withValues(alpha: 0.35),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -654,41 +668,49 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     );
   }
 
-  Widget _buildStatRow({
-    required IconData icon,
+  Widget _buildDialogStatTile({
     required String label,
     required String value,
-    required Color valueColor,
+    required IconData icon,
+    required Color color,
   }) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: valueColor),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey.shade700,
-          ),
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-          decoration: BoxDecoration(
-            color: valueColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.bold,
-              color: valueColor,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
