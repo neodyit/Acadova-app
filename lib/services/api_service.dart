@@ -859,6 +859,41 @@ class ApiService {
     return null;
   }
 
+  /// Start quiz attempt (Instant Server-Side Lock)
+  static Future<Map<String, dynamic>> startQuizAttempt({
+    required int quizId,
+    String? location,
+    String? latitude,
+    String? longitude,
+  }) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId/start');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({
+          'location': location,
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return {
+        'success': data['success'] ?? false,
+        'message': data['message'] ?? 'Quiz start response',
+        'data': data['data'],
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to initialize quiz attempt ($e)'};
+    }
+  }
+
   /// Submit quiz attempt to backend with location, IP, and violation details
   static Future<Map<String, dynamic>> submitQuizAttempt({
     required int quizId,

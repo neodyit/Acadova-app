@@ -211,7 +211,7 @@ class _QuizPreInstructionsScreenState extends State<QuizPreInstructionsScreen> {
     }
   }
 
-  void _startQuiz() {
+  Future<void> _startQuiz() async {
     if (!_isLocationGranted) {
       CustomToast.show(
         context,
@@ -232,9 +232,35 @@ class _QuizPreInstructionsScreenState extends State<QuizPreInstructionsScreen> {
       return;
     }
 
+    final int? quizId = widget.quiz['id'];
+    if (quizId != null) {
+      // Call instant server lock
+      final res = await ApiService.startQuizAttempt(
+        quizId: quizId,
+        location: _locationDetails?['location'],
+        latitude: _locationDetails?['latitude'],
+        longitude: _locationDetails?['longitude'],
+      );
+
+      if (!mounted) return;
+
+      if (res['success'] != true) {
+        CustomToast.show(
+          context,
+          title: 'Assessment Locked',
+          message: res['message'] ?? 'This assessment is already locked or attempted.',
+          type: ToastType.error,
+        );
+        Navigator.pop(context);
+        return;
+      }
+    }
+
     final quizTitle = widget.quiz['title'] ?? 'Quiz Attempt';
     final subject = widget.quiz['subject'];
     final durationMinutes = widget.quiz['durationMinutes'] ?? widget.quiz['duration_minutes'] ?? 15;
+
+    if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
