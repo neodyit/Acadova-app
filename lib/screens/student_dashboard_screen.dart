@@ -389,7 +389,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                               message: 'There are currently no active promotional events or notices.',
                             )
                           : SizedBox(
-                              height: 140,
+                              height: 152,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: _campaigns.length,
@@ -502,7 +502,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                     message: 'There are currently no active promotional events or notices.',
                   )
                 : SizedBox(
-                    height: 140,
+                    height: 152,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: _campaigns.length,
@@ -2269,7 +2269,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
       onTap: () => _showCampaignModal(campaign),
       child: Container(
         width: 270,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: campaign['gradient'],
@@ -2287,61 +2287,67 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    campaign['badge'].toString().toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        campaign['badge'].toString().toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
                     ),
+                    if (hasValidLink)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  campaign['title'],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
                 ),
-                if (hasValidLink)
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                const SizedBox(height: 3),
+                Text(
+                  campaign['description'],
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    height: 1.25,
                   ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              campaign['title'],
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              campaign['description'],
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 12.5,
-                height: 1.3,
-              ),
-            ),
-            if (endsAt != null) ...[
-              const Spacer(),
+            if (endsAt != null)
               Row(
                 children: [
                   Icon(Icons.schedule_rounded, color: Colors.white.withValues(alpha: 0.9), size: 13),
@@ -2356,7 +2362,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                   ),
                 ],
               ),
-            ],
           ],
         ),
       ),
