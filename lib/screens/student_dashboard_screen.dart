@@ -1683,9 +1683,26 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: (isAttempted || quiz['isAfterEnd'] == true)
+                  onPressed: quiz['isAfterEnd'] == true
                       ? null
                       : () async {
+                          if (isAttempted) {
+                            Navigator.pop(sheetContext);
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => QuizResultScreen(
+                                  quizId: quiz['id'],
+                                  quizTitle: quiz['title'] ?? 'Quiz Result',
+                                  score: score,
+                                  totalQuestions: totalQs,
+                                  questions: const [],
+                                  userAnswers: const {},
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
                           if (quiz['isBeforeStart'] == true) {
                             Navigator.pop(sheetContext);
                             CustomToast.show(
@@ -1765,22 +1782,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
                         },
                   icon: Icon(
                     isAttempted
-                        ? Icons.check_circle_rounded
+                        ? Icons.analytics_rounded
                         : (quiz['isAfterEnd'] == true ? Icons.timer_off_rounded : Icons.play_arrow_rounded),
                   ),
                   label: Text(
                     isAttempted
-                        ? 'Already Attempted'
+                        ? 'View Result & Leaderboard'
                         : (quiz['isAfterEnd'] == true ? 'Quiz Expired' : 'Start Attempt Now'),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isAttempted
-                        ? AppTheme.success
+                        ? AppTheme.primary
                         : (quiz['isAfterEnd'] == true ? Colors.grey.shade400 : AppTheme.primary),
-                    disabledBackgroundColor: isAttempted
-                        ? AppTheme.success.withValues(alpha: 0.7)
-                        : Colors.grey.shade300,
+                    disabledBackgroundColor: Colors.grey.shade300,
                     disabledForegroundColor: Colors.white,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
