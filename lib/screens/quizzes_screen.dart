@@ -861,18 +861,53 @@ class _QuizzesScreenState extends State<QuizzesScreen>
 
               SizedBox(
                 width: double.infinity,
+                height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: const Text('Close Overview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => QuizResultScreen(
+                          quizId: quiz['id'],
+                          quizTitle: quiz['title'] ?? 'Quiz Result',
+                          score: score,
+                          totalQuestions: totalQs,
+                          questions: const [],
+                          userAnswers: const {},
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.leaderboard_rounded, size: 20),
+                  label: const Text(
+                    'View Leaderboard & Full Results',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D3436),
+                    backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                  label: const Text('Close Overview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.mainText,
+                    side: const BorderSide(color: AppTheme.border),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    elevation: 0,
                   ),
                 ),
               ),
