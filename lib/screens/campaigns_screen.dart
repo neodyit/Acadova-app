@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
+import 'campaign_detail_screen.dart';
 
 class CampaignsScreen extends StatefulWidget {
   const CampaignsScreen({super.key});
@@ -333,7 +334,15 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     final String? imageUrl = c['imageUrl'] as String?;
     final DateTime? endsAt = c['endsAt'] as DateTime?;
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CampaignDetailScreen(campaign: c),
+          ),
+        );
+      },
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -605,7 +614,8 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 ],
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

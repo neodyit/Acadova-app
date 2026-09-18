@@ -13,6 +13,7 @@ import '../widgets/safe_user_avatar.dart';
 import '../widgets/app_update_dialog.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' show TemplateType;
 import 'academic_profile_screen.dart';
+import 'campaign_detail_screen.dart';
 import 'campaigns_screen.dart';
 import 'login_screen.dart';
 import '../widgets/notification_badge_icon.dart';
@@ -2266,7 +2267,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
         linkUrl.trim().toLowerCase() != 'null';
 
     return GestureDetector(
-      onTap: () => _showCampaignModal(campaign),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CampaignDetailScreen(campaign: campaign),
+          ),
+        );
+      },
       child: Container(
         width: 270,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
