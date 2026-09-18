@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -47,11 +48,22 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
   // ignore: unused_field
   Map<String, dynamic>? _quizData;
   List<Map<String, dynamic>> _leaderboard = [];
+  List<Map<String, dynamic>> _questions = [];
+  Map<dynamic, dynamic> _userAnswers = {};
+  int _score = 0;
+  int _totalQuestions = 0;
+  int? _passingMarks;
   String? _statusMessage;
 
   @override
   void initState() {
     super.initState();
+    _score = widget.score;
+    _totalQuestions = widget.totalQuestions;
+    _questions = List<Map<String, dynamic>>.from(widget.questions);
+    _userAnswers = Map<dynamic, dynamic>.from(widget.userAnswers);
+    _passingMarks = widget.passingMarks;
+
     _releaseProctoringSecurity();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AdService().showInterstitialAdIfReady();
@@ -82,6 +94,29 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
           _isPublished = res['is_published'] == true;
           if (_isPublished && res['data'] != null) {
             _quizData = res['data']['quiz'];
+            if (res['data']['quiz'] != null && res['data']['quiz']['passing_marks'] != null) {
+              _passingMarks = int.tryParse(res['data']['quiz']['passing_marks'].toString()) ?? _passingMarks;
+            }
+            if (res['data']['questions'] is List && (res['data']['questions'] as List).isNotEmpty) {
+              _questions = List<Map<String, dynamic>>.from(res['data']['questions']);
+            }
+            if (res['data']['my_attempt'] is Map) {
+              final myAtt = res['data']['my_attempt'];
+              _score = int.tryParse(myAtt['score'].toString()) ?? _score;
+              _totalQuestions = int.tryParse(myAtt['total_questions'].toString()) ?? _totalQuestions;
+              if (myAtt['user_answers'] != null) {
+                if (myAtt['user_answers'] is Map) {
+                  _userAnswers = Map<dynamic, dynamic>.from(myAtt['user_answers']);
+                } else if (myAtt['user_answers'] is String && (myAtt['user_answers'] as String).isNotEmpty) {
+                  try {
+                    final decoded = jsonDecode(myAtt['user_answers']);
+                    if (decoded is Map) {
+                      _userAnswers = Map<dynamic, dynamic>.from(decoded);
+                    }
+                  } catch (_) {}
+                }
+              }
+            }
             if (res['data']['leaderboard'] is List) {
               _leaderboard = List<Map<String, dynamic>>.from(res['data']['leaderboard']);
             }
@@ -119,7 +154,6 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
     }
 
     String loc = locationStr.trim();
-    // Replace raw coordinate fallback like "Location Verified 0.0000 0.0000"
     if (loc.contains('0.0000') || loc.toLowerCase() == 'location verified') {
       return (ipStr != null && ipStr.isNotEmpty) ? 'GPS Verified (IP: $ipStr)' : 'GPS & Proctoring Verified';
     }
@@ -128,6 +162,21 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
       return '$loc • IP: $ipStr';
     }
     return loc;
+  }
+
+  String _formatOptionText(dynamic rawOpt, List optionsList) {
+    if (rawOpt == null) return 'Not Answered';
+    if (rawOpt is List) {
+      return rawOpt.map((e) => _formatOptionText(e, optionsList)).join(', ');
+    }
+
+    String optStr = rawOpt.toString().trim();
+    int? idx = int.tryParse(optStr);
+    if (idx != null && optionsList.isNotEmpty && idx >= 0 && idx < optionsList.length) {
+      return optionsList[idx].toString();
+    }
+
+    return optStr;
   }
 
   Widget _buildInitialStatusCard(bool isDesktop) {
@@ -151,7 +200,6 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
       ),
       child: Column(
         children: [
-          // Header checkmark
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -325,7 +373,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                 const Icon(Icons.analytics_rounded, size: 20, color: Colors.white),
                 const SizedBox(width: 8),
                 Text(
-                  '${widget.score} / ${widget.totalQuestions} (${percentage.toStringAsFixed(0)}%)',
+                  '$_score / $_totalQuestions (${percentage.toStringAsFixed(0)}%)',
                   style: const TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.bold,
@@ -503,12 +551,12 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double percentage = widget.totalQuestions > 0 ? (widget.score / widget.totalQuestions) * 100 : 0;
-    final int passingThreshold = widget.passingMarks ?? 50;
+    final double percentage = _totalQuestions > 0 ? (_score / _totalQuestions) * 100 : 0;
+    final int passingThreshold = _passingMarks ?? 50;
     final bool passed = percentage >= passingThreshold;
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isDesktop = screenWidth >= 850;
-    final int wrongCount = widget.totalQuestions - widget.score;
+    final int wrongCount = _totalQuestions - _score;
 
     Widget detailedReviewList = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,23 +566,27 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.mainText),
         ),
         const SizedBox(height: 14),
-        ...List.generate(widget.questions.length, (index) {
-          final q = widget.questions[index];
-          final dynamic userAnsRaw = widget.userAnswers[index];
+        ...List.generate(_questions.length, (index) {
+          final q = _questions[index];
+          final dynamic userAnsRaw = _userAnswers[index] ?? _userAnswers[index.toString()] ?? _userAnswers[q['id']?.toString()];
           final dynamic correctAnsRaw = q['correct_option'];
 
-          final String userAnsStr = userAnsRaw is List ? userAnsRaw.join(', ') : (userAnsRaw?.toString() ?? 'Not Answered');
-          final String correctAnsStr = correctAnsRaw is List ? correctAnsRaw.join(', ') : (correctAnsRaw?.toString() ?? 'N/A');
+          final List optionsList = (q['options'] is List) ? (q['options'] as List) : [];
+          final String userAnsStr = _formatOptionText(userAnsRaw, optionsList);
+          final String correctAnsStr = _formatOptionText(correctAnsRaw, optionsList);
 
           bool isCorrect = false;
-          if (q['type'] == 'multiple') {
-            List<String> userList = userAnsRaw is List ? List<String>.from(userAnsRaw) : (userAnsRaw is String ? [userAnsRaw] : []);
-            List<String> correctList = correctAnsRaw is List ? List<String>.from(correctAnsRaw) : [correctAnsRaw?.toString() ?? ''];
-            userList.sort();
-            correctList.sort();
-            isCorrect = userList.length == correctList.length && userList.every((e) => correctList.contains(e));
-          } else {
-            isCorrect = userAnsRaw.toString() == correctAnsRaw.toString();
+          if (userAnsRaw != null) {
+            if (q['type'] == 'multiple') {
+              List<String> userList = userAnsRaw is List ? List<String>.from(userAnsRaw) : [userAnsRaw.toString()];
+              List<String> correctList = correctAnsRaw is List ? List<String>.from(correctAnsRaw) : [correctAnsRaw.toString()];
+              userList.sort();
+              correctList.sort();
+              isCorrect = userList.length == correctList.length && userList.every((e) => correctList.contains(e));
+            } else {
+              isCorrect = userAnsRaw.toString().trim() == correctAnsRaw.toString().trim() ||
+                  userAnsStr.trim() == correctAnsStr.trim();
+            }
           }
 
           return Container(
@@ -708,9 +760,9 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                                   children: [
                                     _buildPublishedSummaryCard(true, percentage, passed),
                                     const SizedBox(height: 20),
-                                    _buildStatTile('Total Questions', '${widget.totalQuestions}', Icons.format_list_numbered_rounded, AppTheme.primary),
+                                    _buildStatTile('Total Questions', '$_totalQuestions', Icons.format_list_numbered_rounded, AppTheme.primary),
                                     const SizedBox(height: 12),
-                                    _buildStatTile('Correct Answers', '${widget.score}', Icons.check_circle_rounded, AppTheme.success),
+                                    _buildStatTile('Correct Answers', '$_score', Icons.check_circle_rounded, AppTheme.success),
                                     const SizedBox(height: 12),
                                     _buildStatTile('Incorrect / Skipped', '$wrongCount', Icons.cancel_rounded, AppTheme.error),
                                     _buildLeaderboardSection(),
@@ -729,7 +781,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                               const SizedBox(height: 20),
                               Row(
                                 children: [
-                                  Expanded(child: _buildStatTile('Correct', '${widget.score}', Icons.check_circle_rounded, AppTheme.success)),
+                                  Expanded(child: _buildStatTile('Correct', '$_score', Icons.check_circle_rounded, AppTheme.success)),
                                   const SizedBox(width: 12),
                                   Expanded(child: _buildStatTile('Wrong', '$wrongCount', Icons.cancel_rounded, AppTheme.error)),
                                 ],
