@@ -534,7 +534,9 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                   icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   onSelected: (val) {
-                    if (val == 'responses') {
+                    if (val == 'publish') {
+                      _togglePublishResult(quiz);
+                    } else if (val == 'responses') {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => QuizResponsesScreen(quiz: quiz),
@@ -548,48 +550,61 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
                       _deleteQuiz(quizId, title);
                     }
                   },
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem(
-                      value: 'responses',
-                      child: Row(
-                        children: [
-                          Icon(Icons.analytics_outlined, size: 18, color: Color(0xFF8B5CF6)),
-                          SizedBox(width: 10),
-                          Text('View Responses'),
-                        ],
+                  itemBuilder: (ctx) {
+                    final bool isPublished = quiz['is_results_published'] == true || quiz['is_results_published'] == 1 || quiz['is_results_published'].toString() == 'true';
+                    return [
+                      PopupMenuItem(
+                        value: 'publish',
+                        child: Row(
+                          children: [
+                            Icon(isPublished ? Icons.visibility_off_outlined : Icons.campaign_rounded, size: 18, color: isPublished ? Colors.orange : const Color(0xFF059669)),
+                            const SizedBox(width: 10),
+                            Text(isPublished ? 'Unpublish Results' : 'Publish Result'),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'questions',
-                      child: Row(
-                        children: [
-                          Icon(Icons.quiz_outlined, size: 18, color: Color(0xFF3B82F6)),
-                          SizedBox(width: 10),
-                          Text('Manage Questions'),
-                        ],
+                      const PopupMenuItem(
+                        value: 'responses',
+                        child: Row(
+                          children: [
+                            Icon(Icons.analytics_outlined, size: 18, color: Color(0xFF8B5CF6)),
+                            SizedBox(width: 10),
+                            Text('View Responses'),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, size: 18, color: Color(0xFF10B981)),
-                          SizedBox(width: 10),
-                          Text('Edit Settings'),
-                        ],
+                      const PopupMenuItem(
+                        value: 'questions',
+                        child: Row(
+                          children: [
+                            Icon(Icons.quiz_outlined, size: 18, color: Color(0xFF3B82F6)),
+                            SizedBox(width: 10),
+                            Text('Manage Questions'),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_outline_rounded, size: 18, color: AppTheme.error),
-                          SizedBox(width: 10),
-                          Text('Delete Quiz', style: TextStyle(color: AppTheme.error)),
-                        ],
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 18, color: Color(0xFF10B981)),
+                            SizedBox(width: 10),
+                            Text('Edit Settings'),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline_rounded, size: 18, color: AppTheme.error),
+                            SizedBox(width: 10),
+                            Text('Delete Quiz', style: TextStyle(color: AppTheme.error)),
+                          ],
+                        ),
+                      ),
+                    ];
+                  },
                 ),
               ],
             ),
@@ -670,5 +685,28 @@ class _FacultyQuizzesScreenState extends State<FacultyQuizzesScreen>
         ),
       ],
     );
+  }
+
+  Future<void> _togglePublishResult(Map<String, dynamic> quiz) async {
+    final int quizId = quiz['id'] ?? 0;
+    final bool isPublished = quiz['is_results_published'] == true || quiz['is_results_published'] == 1 || quiz['is_results_published'].toString() == 'true';
+    try {
+      final res = await ApiService.toggleQuizPublishResult(quizId);
+      if (!mounted) return;
+      if (res['success'] == true) {
+        CustomToast.show(
+          context,
+          message: res['message'] ?? (isPublished ? 'Results unpublished' : 'Results published!'),
+          type: ToastType.success,
+        );
+        _fetchQuizzes();
+      } else {
+        CustomToast.show(context, message: res['message'] ?? 'Failed to update publication', type: ToastType.error);
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomToast.show(context, message: 'Error: $e', type: ToastType.error);
+      }
+    }
   }
 }

@@ -334,12 +334,16 @@ class _QuizAttemptScreenState extends State<QuizAttemptScreen> with WidgetsBindi
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => QuizResultScreen(
+          quizId: widget.quizId,
           quizTitle: widget.quizTitle,
           score: score,
           totalQuestions: _shuffledQuestions.length,
           questions: _shuffledQuestions,
           userAnswers: _selectedAnswers,
           passingMarks: widget.passingMarks,
+          submissionType: submissionType,
+          autoSubmitReason: autoSubmitReason,
+          location: widget.location,
         ),
       ),
     );

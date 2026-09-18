@@ -975,6 +975,45 @@ class ApiService {
     return [];
   }
 
+  /// Toggle quiz results published status (Faculty / Admin)
+  static Future<Map<String, dynamic>> toggleQuizPublishResult(int quizId) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId/toggle-publish');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to update result publication status ($e)'};
+    }
+  }
+
+  /// Get Quiz Leaderboard and detailed result breakdown for published quiz
+  static Future<Map<String, dynamic>> getQuizLeaderboard(int quizId) async {
+    final url = Uri.parse('$baseUrl/quizzes/$quizId/leaderboard');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      );
+      _checkUnauthorized(response.statusCode);
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to fetch leaderboard ($e)'};
+    }
+  }
+
   // --- ACADEMIC STRUCTURE FETCHERS FOR DROPDOWNS ---
   static Future<List<Map<String, dynamic>>> getUniversities() async {
     try {
