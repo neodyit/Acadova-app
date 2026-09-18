@@ -19,6 +19,7 @@ import 'login_screen.dart';
 import '../widgets/notification_badge_icon.dart';
 import 'profile_screen.dart';
 import 'quiz_instructions_screen.dart';
+import 'quiz_result_screen.dart';
 import 'quizzes_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
@@ -2450,7 +2451,25 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
 
   // Submission History Tile
   Widget _buildSubmissionTile(Map<String, dynamic> submission) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        final int? qId = submission['quiz_id'] is int ? submission['quiz_id'] : (submission['id'] is int ? submission['id'] : null);
+        if (qId != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => QuizResultScreen(
+                quizId: qId,
+                quizTitle: submission['title'] ?? 'Quiz Result',
+                score: submission['score_num'] ?? 0,
+                totalQuestions: submission['total_questions'] ?? 0,
+                questions: const [],
+                userAnswers: const {},
+              ),
+            ),
+          );
+        }
+      },
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -2514,6 +2533,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> with Wi
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

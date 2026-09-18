@@ -4,6 +4,7 @@ import '../config/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_toast.dart';
 import 'quiz_instructions_screen.dart';
+import 'quiz_result_screen.dart';
 
 enum QuizTabFilter { active, upcoming, completed }
 
@@ -544,11 +545,17 @@ class _QuizzesScreenState extends State<QuizzesScreen>
               ElevatedButton.icon(
                 onPressed: () async {
                   if (quiz['isAttempted'] == true) {
-                    CustomToast.show(
-                      context,
-                      title: 'Already Attempted',
-                      message: 'You have already submitted your response for this quiz.',
-                      type: ToastType.info,
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => QuizResultScreen(
+                          quizId: quiz['id'],
+                          quizTitle: quiz['title'] ?? 'Quiz Result',
+                          score: quiz['userScore'] ?? 0,
+                          totalQuestions: quiz['totalQuestions'] ?? 0,
+                          questions: const [],
+                          userAnswers: const {},
+                        ),
+                      ),
                     );
                     return;
                   }
@@ -615,7 +622,7 @@ class _QuizzesScreenState extends State<QuizzesScreen>
                   elevation: 0,
                 ),
                 label: Text(
-                  quiz['isAttempted'] == true ? 'Attempted' : 'Attempt',
+                  quiz['isAttempted'] == true ? 'View Result' : 'Attempt',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
