@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/app_theme.dart';
+import '../services/analytics_service.dart';
 import '../services/api_service.dart';
 import '../services/offline_quiz_sync_service.dart';
 import '../widgets/custom_toast.dart';
@@ -283,7 +284,11 @@ class _QuizPreInstructionsScreenState extends State<QuizPreInstructionsScreen> {
     final subject = widget.quiz['subject'];
     final durationMinutes = widget.quiz['durationMinutes'] ?? widget.quiz['duration_minutes'] ?? 15;
 
-    if (!mounted) return;
+    AnalyticsService().logQuizStart(
+      quizId: widget.quiz['id'],
+      title: quizTitle,
+      subject: subject,
+    );
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(

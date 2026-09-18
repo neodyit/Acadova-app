@@ -7,6 +7,7 @@ import 'screens/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/ad_service.dart';
+import 'services/analytics_service.dart';
 import 'services/offline_quiz_sync_service.dart';
 import 'services/presence_service.dart';
 
@@ -15,6 +16,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConfig.initVersion();
+  await AnalyticsService().init();
   await AdService().init();
   await PresenceService().init();
 
@@ -152,7 +154,10 @@ class _AcadovaAppState extends State<AcadovaApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      navigatorObservers: [PresenceNavigatorObserver()],
+      navigatorObservers: [
+        PresenceNavigatorObserver(),
+        if (AnalyticsService().observer != null) AnalyticsService().observer!,
+      ],
       title: 'Acadova',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

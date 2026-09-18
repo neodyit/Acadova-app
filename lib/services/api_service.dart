@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_config.dart';
 import 'ad_service.dart';
+import 'analytics_service.dart';
 
 class ApiService {
   static String get baseUrl => AppConfig.activeApiUrl;
@@ -295,6 +296,12 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyToken, token);
     await prefs.setString(_keyUser, jsonEncode(user));
+    
+    final userIdStr = user['id']?.toString();
+    final roleStr = user['role']?.toString();
+    AnalyticsService().setUserId(userIdStr);
+    AnalyticsService().setUserProperty(name: 'role', value: roleStr);
+
     initAndSyncNotificationToken();
   }
 
@@ -302,6 +309,7 @@ class ApiService {
   static Future<void> clearSession() async {
     authToken = null;
     currentUser = null;
+    AnalyticsService().setUserId(null);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyToken);
     await prefs.remove(_keyUser);

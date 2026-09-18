@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_config.dart';
+import 'analytics_service.dart';
 import 'api_service.dart';
 
 class PresenceService with WidgetsBindingObserver {
@@ -186,13 +187,14 @@ class PresenceService with WidgetsBindingObserver {
   }
 }
 
-/// NavigatorObserver for automatic screen tracking across Flutter navigation
 class PresenceNavigatorObserver extends NavigatorObserver {
   final PresenceService _presence = PresenceService();
 
   void _sendScreenView(Route<dynamic>? route) {
     if (route != null && route.settings.name != null && route.settings.name!.isNotEmpty) {
-      _presence.trackScreen(route.settings.name!);
+      final name = route.settings.name!;
+      _presence.trackScreen(name);
+      AnalyticsService().logScreenView(screenName: name);
     }
   }
 
